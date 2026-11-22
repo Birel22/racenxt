@@ -10,6 +10,13 @@
   const VFIELDS = [["engine", "Engine"], ["hybrid", "Hybrid system"], ["power", "Power"], ["max_rpm", "Max rpm"], ["gearbox", "Gearbox"], ["weight", "Weight"], ["dimensions", "Dimensions"]];
   const DRIVE = { awd: "AWD", rwd: "RWD", fwd: "FWD" };
   const PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
+  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  const CHEV = '<svg class="rx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+  const FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>';
+  const LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
+  const USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+  const OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></svg>';
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ---------- session ----------
@@ -59,25 +66,73 @@
 
   // ---------- styles (prefixed so they never touch the page's own) ----------
   const CSS = `
-  .rx-pen{position:absolute;z-index:6;width:34px;height:34px;border-radius:50%;border:0;background:#FF5A1F;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-  .rx-pen svg{width:16px;height:16px}
   body.rx-view .rx-only{display:none!important}
-  .rx-bar{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:rgba(17,18,22,.94);border:1px solid #3b3e47;box-shadow:0 12px 34px rgba(0,0,0,.55);backdrop-filter:blur(10px);font:600 14px Barlow,system-ui,sans-serif;color:#f4f4f2;white-space:nowrap}
-  .rx-bar .rx-st{padding:0 10px 0 12px;display:flex;align-items:center;gap:8px}
-  .rx-bar .rx-st i{width:8px;height:8px;border-radius:50%;background:#FF5A1F}
+  .rx-app{position:fixed;top:0;left:0;right:0;z-index:900;padding-top:env(safe-area-inset-top);background:rgba(11,12,15,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(255,255,255,.07);font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
+  .rx-app-in{max-width:980px;margin:0 auto;height:58px;padding:0 14px;display:flex;align-items:center;gap:10px}
+  .rx-brand{font:800 italic 22px 'Barlow Condensed',sans-serif;letter-spacing:-.3px}
+  .rx-brand .x{background:linear-gradient(90deg,#FF5A1F 50%,#f4f4f2 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:1px}
+  .rx-status{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,178,15,.35);color:#f2b20f;font:600 12.5px Barlow,system-ui,sans-serif}
+  .rx-status i{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .rx-status.live{border-color:rgba(95,207,110,.4);color:#5fcf6e}
+  .rx-icon-b{height:38px;padding:0 12px;border-radius:12px;border:1px solid #33363d;background:#17181d;color:#f4f4f2;display:inline-flex;align-items:center;gap:7px;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-icon-b svg{width:18px;height:18px}
+  .rx-icon-b:hover{border-color:#50545e}
+  @media (max-width:420px){.rx-icon-b span{display:none}.rx-icon-b{width:38px;padding:0;justify-content:center}}
+  .rx-av-b{width:40px;height:40px;padding:0;border-radius:50%;border:2px solid #33363d;background:none;cursor:pointer;overflow:hidden}
+  .rx-av-b[aria-expanded="true"],.rx-av-b:hover{border-color:#FF5A1F}
+  .rx-av{display:flex;width:100%;height:100%;border-radius:50%;background:#22242b center/cover no-repeat;align-items:center;justify-content:center;font:700 14px Barlow,system-ui,sans-serif;color:#cfd0d4}
+  .rx-av.lg{width:46px;height:46px;flex:none;font-size:16px}
+  body.rx-edit{padding-top:calc(58px + env(safe-area-inset-top))}
+  body.rx-view{padding-top:0}
+  body.rx-view .rx-app{display:none}
+  .rx-exit{display:none;position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;border:1px solid #3b3e47;background:rgba(17,18,22,.9);backdrop-filter:blur(10px);color:#a9abb2;font:500 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap}
+  .rx-exit b{color:#FF5A1F;font-weight:700}
+  .rx-exit svg{width:17px;height:17px}
+  body.rx-view .rx-exit{display:inline-flex}
+  .rx-edit-b{position:absolute;left:14px;top:14px;z-index:6;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 15px 0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,12,15,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .rx-edit-b svg{width:16px;height:16px;color:#FF5A1F}
+  .rx-edit-b:hover{background:rgba(11,12,15,.8)}
+  .rx-season{margin:18px 0 8px;border-radius:18px;background:#14151a;border:1px solid #2a2c33;overflow:hidden;font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
+  .rx-season-h{display:flex;align-items:center;gap:12px;padding:16px}
+  .rx-season-h > div{flex:1;display:grid}
+  .rx-season-h b{font:700 19px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.03em}
+  .rx-season-h span{font-size:13.5px;color:#8e919b}
+  .rx-season-h .rx-b svg{width:16px;height:16px}
+  .rx-rows{border-top:1px solid #23252b}
+  .rx-row{display:grid;grid-template-columns:64px 1fr auto 18px;gap:12px;align-items:center;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #23252b;background:none;color:inherit;cursor:pointer;text-align:left;position:relative;font:inherit}
+  .rx-row:last-child{border-bottom:0}
+  .rx-row::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+  .rx-row:hover{background:#181a20}
+  .rx-row-lg{height:32px;display:flex;align-items:center;justify-content:center}
+  .rx-row-lg img{max-width:60px;max-height:32px;object-fit:contain}
+  .rx-lgt{font:700 13px 'Barlow Condensed';color:#a9abb2;border:1px solid #3b3e47;border-radius:7px;padding:4px 6px}
+  .rx-row-t{display:grid;min-width:0}
+  .rx-row-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-row-t small{font-size:13.5px;color:#a9abb2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-row-t small.warn{color:#f2b20f}
+  .rx-row-y{font:700 14px 'Barlow Condensed';color:#7d808a}
+  .rx-chev{width:18px;height:18px;color:#5d6069}
+  .rx-menu{position:fixed;right:max(14px, calc((100vw - 980px) / 2 + 14px));top:calc(64px + env(safe-area-inset-top));z-index:960;width:min(300px,calc(100vw - 28px));background:#17181d;border:1px solid #33363d;border-radius:16px;padding:6px;font:15px Barlow,system-ui,sans-serif;color:#f4f4f2;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+  .rx-menu-h{display:flex;align-items:center;gap:12px;padding:10px 10px 12px}
+  .rx-menu-h > div{display:grid;min-width:0}
+  .rx-menu-h b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-menu-h small{color:#7d808a;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 10px;border:0;background:none;color:inherit;border-radius:10px;cursor:pointer;text-align:left;font:inherit}
+  .rx-menu button svg{width:18px;height:18px;color:#a9abb2;flex:none}
+  .rx-menu button:hover,.rx-menu button:focus-visible{background:#202228;outline:none}
+  .rx-menu .rx-out,.rx-menu .rx-out svg{color:#ef5a52}
+  .rx-menu hr{border:0;border-top:1px solid #2a2c33;margin:6px 4px}
+  .rx-menu-l{font:700 11px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;padding:8px 10px 4px}
+  .rx-grp2{font:700 12px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:-6px}
+  .rx-ph{width:100%;aspect-ratio:16/10;border-radius:16px;border:1.5px dashed #3b3e47;background:#15161b center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0;color:#f4f4f2}
+  .rx-ph[style*="background-image"]{border-style:solid}
+  .rx-ph-empty{display:grid;gap:6px;justify-items:center;color:#a9abb2;font:14px Barlow,system-ui,sans-serif} .rx-ph-empty svg{width:28px;height:28px;color:#FF5A1F} .rx-ph-empty b{color:#f4f4f2;font-size:16px} .rx-ph-empty small{font-size:13px}
+  .rx-ph-chg{position:absolute;right:10px;bottom:10px;display:flex;gap:6px;align-items:center;background:rgba(11,12,15,.75);border-radius:999px;padding:7px 12px;font:600 13.5px Barlow,system-ui,sans-serif} .rx-ph-chg svg{width:15px;height:15px}
   .rx-b{height:38px;padding:0 14px;border-radius:999px;border:1px solid #3b3e47;background:#1b1c22;color:#f4f4f2;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
   .rx-b:hover{border-color:#50545e}
   .rx-b.pri{background:#FF5A1F;border-color:#FF5A1F;color:#fff}
   .rx-b.bad{color:#e8352f}
   .rx-b:disabled{opacity:.45;cursor:not-allowed}
-  .rx-season{margin:18px 0 6px;padding:14px;border:1.5px dashed #3b3e47;border-radius:16px;font-family:Barlow,system-ui,sans-serif}
-  .rx-season h4{margin:0 0 10px;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#a9abb2;display:flex;align-items:center}
-  .rx-season h4 span{flex:1}
-  .rx-chips{display:flex;flex-wrap:wrap;gap:8px}
-  .rx-chip{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px 0 10px;border-radius:12px;border:1px solid #3b3e47;background:#15161b;color:#f4f4f2;cursor:pointer;font:600 14px Barlow,system-ui,sans-serif}
-  .rx-chip i{width:4px;height:24px;border-radius:2px;background:var(--c)}
-  .rx-chip img{height:22px;max-width:64px;object-fit:contain}
-  .rx-chip small{color:#7d808a;font-weight:600}
   .rx-photo-ph{width:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:2px dashed #3b3e47;color:#a9abb2;font:600 14px Barlow,system-ui,sans-serif;background:#15161b;cursor:pointer}
   .rx-photo-ph svg{width:26px;height:26px}
   .rx-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;opacity:0;pointer-events:none;transition:opacity .2s}
@@ -125,14 +180,7 @@
   .rx-carph .rx-none{width:120px;height:68px;border-radius:10px;border:1.5px dashed #3b3e47;display:flex;align-items:center;justify-content:center;color:#7d808a;font-size:13px}
   .rx-link{color:#FF5A1F;background:none;border:0;padding:0;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
   .rx-toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%);z-index:999;background:#f4f4f2;color:#0b0c0f;padding:10px 16px;border-radius:12px;font:600 14px Barlow,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-  .rx-menu{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:960;min-width:250px;background:#1b1c22;border:1px solid #3b3e47;border-radius:14px;padding:6px;font:15px Barlow,system-ui,sans-serif;color:#f4f4f2;box-shadow:0 16px 40px rgba(0,0,0,.5)}
-  .rx-menu button{display:flex;width:100%;padding:11px 12px;border:0;background:none;color:inherit;border-radius:10px;cursor:pointer;text-align:left;font:inherit}
-  .rx-menu button:hover{background:#15161b}
-  .rx-menu .on::after{content:"✓";margin-left:auto;color:#FF5A1F}
-  .rx-menu hr{border:0;border-top:1px solid #2a2c33;margin:6px 0}
-  body.rx-edit .wrap{padding-bottom:90px}
-  body.rx-edit:not(.rx-view) #scroll-cue,body.rx-edit:not(.rx-view) #page-cue{display:none!important}
-  @media (min-width:760px){.rx-bar{left:auto;right:18px;transform:none}.rx-menu{left:auto;right:18px;transform:none}}`;
+  body.rx-edit:not(.rx-view) #scroll-cue,body.rx-edit:not(.rx-view) #page-cue{display:none!important}`;
 
   let toastEl;
   function busy(on, msg) {
@@ -165,18 +213,44 @@
   let R, ME, ROLE, MEMBERS = [], SERIES = [], VEH = [];
   const entryOf = slug => R.entries.find(e => e.series?.slug === slug);
 
-  async function editPhoto() {
-    const f = await pickFile(); if (!f) return;
-    save(async () => { const b = await picture(f, false, 1800); const u = await upload(b, `profiles/${R.profile.id}-${Date.now()}.jpg`); await upd("profiles", R.profile.id, { photo_url: u, hero_url: null, updated_at: new Date().toISOString() }); }, "Photo updated");
-  }
-  async function editName() {
-    const p = R.profile;
-    const r = await sheet("Name", `
-      <div class="rx-two"><div><label class="rx-f" for="rx-first">First name</label><input id="rx-first" value="${esc(p.first_name || "")}"></div>
-      <div><label class="rx-f" for="rx-full">Full name</label><input id="rx-full" value="${esc(p.display_name)}"></div></div>
-      <div class="rx-help">Your page title is "${esc((p.first_name || "Name").toUpperCase())} RACE HUB".</div>`,
-      { collect() { if (!need("#rx-first", "Add a first name.") || !need("#rx-full", "Add your full name.")) return null; return { first_name: $("#rx-first").value.trim(), display_name: $("#rx-full").value.trim() }; } });
-    if (r) save(() => upd("profiles", p.id, { ...r, updated_at: new Date().toISOString() }));
+  const SOCIALS = [
+    { k: "instagram", l: "Instagram", base: "https://instagram.com/" },
+    { k: "x", l: "X (Twitter)", base: "https://x.com/" },
+    { k: "tiktok", l: "TikTok", base: "https://tiktok.com/@" },
+    { k: "youtube", l: "YouTube", base: "https://youtube.com/@" },
+    { k: "facebook", l: "Facebook", base: "https://facebook.com/" }
+  ];
+  const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
+  const handleOf = (k, url) => { if (!url) return ""; const s = SOCIALS.find(x => x.k === k); return s && url.startsWith(s.base) ? url.slice(s.base.length) : url; };
+  // one place for everything about you: photo, name, links, contact
+  async function editProfile() {
+    const p = R.profile, so = p.socials || {};
+    const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
+    let file = null, prev = p.hero_url || p.photo_url || "";
+    const phHtml = () => `<button type="button" class="rx-ph" id="rx-ph" style="${prev ? `background-image:url('${esc(prev)}')` : ""}">${prev ? `<span class="rx-ph-chg">${CAM} Change photo</span>` : `<span class="rx-ph-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span>`}</button>`;
+    const r = await sheet("Edit profile", `
+      <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
+      <div class="rx-grp2">Name</div>
+      <div class="rx-two"><div><label class="rx-f" for="rx-first">First name</label><input id="rx-first" value="${esc(p.first_name || "")}" autocomplete="given-name"></div>
+      <div><label class="rx-f" for="rx-last">Last name</label><input id="rx-last" value="${esc(last)}" autocomplete="family-name"></div></div>
+      <div class="rx-grp2">Links</div>
+      ${SOCIALS.map(s => `<div><label class="rx-f" for="rx-s-${s.k}">${s.l}</label><input id="rx-s-${s.k}" value="${esc(handleOf(s.k, so[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>`).join("")}
+      <div><label class="rx-f" for="rx-web">Website</label><input id="rx-web" value="${esc(so.website || "")}" inputmode="url" autocapitalize="off"></div>
+      <div><label class="rx-f" for="rx-mail">Contact email</label><input id="rx-mail" type="email" value="${esc(p.contact_email || "")}" inputmode="email"><div class="rx-help">Shown on your page for teams, media and partners.</div></div>`,
+      { after() { const bind = () => $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); $("#rx-phw").innerHTML = phHtml(); bind(); }; bind(); },
+        collect() {
+          if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
+          const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
+          const socials = {}; SOCIALS.forEach(s => { const v = toUrl(s.k, $("#rx-s-" + s.k).value); if (v) socials[s.k] = v; });
+          const web = toUrl("website", $("#rx-web").value); if (web) socials.website = web;
+          const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
+          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null };
+        } });
+    if (!r) return;
+    save(async () => {
+      if (file) { r.photo_url = await upload(await picture(file, false, 1800), `profiles/${p.id}-${Date.now()}.jpg`); r.hero_url = null; }
+      await upd("profiles", p.id, { ...r, updated_at: new Date().toISOString() });
+    }, "Profile saved");
   }
   async function loadLists() {
     if (!SERIES.length) [SERIES, VEH] = await Promise.all([api("series?select=id,slug,name,short_name,sport,logo_url&order=name"), api("vehicles?select=*&order=name")]);
@@ -263,57 +337,82 @@
     const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
     document.body.insertAdjacentHTML("beforeend", `<div class="rx-scrim" id="rx-scrim"></div><div class="rx-sheet" id="rx-sheet" role="dialog" aria-modal="true" aria-labelledby="rx-t"><div class="rx-sh-h"><b id="rx-t"></b><button class="rx-x" id="rx-x" aria-label="Close">×</button></div><div class="rx-sh-b" id="rx-b"></div><div class="rx-sh-f" id="rx-f"></div></div>`);
     $("#rx-x").onclick = () => closeSheet(null); $("#rx-scrim").onclick = () => closeSheet(null);
-    document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("rx-on")) closeSheet(null); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") { if (document.body.classList.contains("rx-on")) closeSheet(null); else closeMenu(); } });
     document.body.classList.add("rx-edit");
-    document.getElementById("rnx-preview")?.remove();   // the edit bar already says "Draft"
+    document.getElementById("rnx-preview")?.remove();
+    const p = R.profile, photo = p.hero_url || p.photo_url;
+    const initials = ((p.first_name || "?")[0] + ((p.last_name || (p.display_name || "").split(" ").slice(1).join(" "))[0] || "")).toUpperCase();
+    const avatar = (cls = "rx-av") => `<span class="${cls}" style="${photo ? `background-image:url('${esc(photo)}')` : ""}">${photo ? "" : esc(initials)}</span>`;
 
-    // photo
-    const photo = $("#rnx-photo"), hero = $(".hero");
+    // app bar
+    const bar = document.createElement("header"); bar.className = "rx-app"; bar.setAttribute("aria-label", "Racenxt");
+    bar.innerHTML = `<div class="rx-app-in"><span class="rx-brand">RACEN<span class="x">X</span>T</span><span class="rx-status ${p.published ? "live" : ""}"><i></i>${p.published ? "Live" : "Draft"}</span><span style="flex:1"></span>
+      <button class="rx-icon-b" id="rx-prev" aria-label="Preview as a fan">${EYE}<span>Preview</span></button>
+      <button class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button></div>`;
+    document.body.prepend(bar);
+    const exit = document.createElement("button"); exit.className = "rx-exit"; exit.innerHTML = `${EYE} Fan preview · <b>Back to editing</b>`;
+    document.body.appendChild(exit);
+    const preview = on => { document.body.classList.toggle("rx-view", on); window.scrollTo({ top: 0 }); };
+    $("#rx-prev").onclick = () => preview(true); exit.onclick = () => preview(false);
+
+    // one edit button on the hero
+    const hero = $(".hero");
     if (hero) {
-      if (!R.profile.photo_url && !R.profile.hero_url && photo) {
-        const ph = document.createElement("button"); ph.type = "button"; ph.className = "rx-photo-ph rx-only"; ph.innerHTML = `${CAM}<span>Add your photo</span>`; ph.onclick = editPhoto;
-        photo.insertAdjacentElement("afterend", ph);
-        ph.style.cssText = "position:absolute;inset:0;width:auto;aspect-ratio:auto;border-radius:inherit;justify-content:flex-start;padding-top:22%";
-      }
-      const pen = document.createElement("button"); pen.type = "button"; pen.className = "rx-pen rx-only"; pen.setAttribute("aria-label", "Change photo"); pen.innerHTML = CAM; pen.onclick = editPhoto;
       if (getComputedStyle(hero).position === "static") hero.style.position = "relative";
-      pen.style.cssText = "top:12px;left:12px"; hero.appendChild(pen);
+      if (!photo) { const ph = document.createElement("button"); ph.type = "button"; ph.className = "rx-photo-ph rx-only"; ph.innerHTML = `${CAM}<span>Add your photo</span>`; ph.onclick = editProfile; ph.style.cssText = "position:absolute;inset:0;border-radius:inherit;padding-bottom:18%"; hero.prepend(ph); }
+      const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile; hero.appendChild(eb);
     }
-    // name
-    const h1 = $(".hero-text h1");
-    if (h1) { const pen = document.createElement("button"); pen.type = "button"; pen.className = "rx-pen rx-only"; pen.setAttribute("aria-label", "Edit name"); pen.innerHTML = PEN; pen.onclick = editName; pen.style.cssText = "position:relative;display:inline-flex;vertical-align:middle;margin-left:10px;width:30px;height:30px"; h1.appendChild(pen); }
-    // season strip above the race list
-    const lg = s => s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<b>${esc(s?.short_name || "")}</b>`;
-    const strip = document.createElement("section"); strip.className = "rx-season rx-only";
-    strip.innerHTML = `<h4><span>Your season</span><button class="rx-b pri" id="rx-add">+ Add championship</button></h4>${R.entries.length ? `<div class="rx-chips">${R.entries.map(e => `<button class="rx-chip" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><i></i>${lg(e.series)}<span>${e.car_number ? "#" + esc(e.car_number) : ""}</span><small>${e.year}</small>${PEN.replace("<svg", '<svg width="14" height="14"')}</button>`).join("")}</div>` : `<div class="rx-help" style="color:#a9abb2;font-size:14px">Add the championships you race in: your calendar, schedules and where to watch fill in by themselves.</div>`}`;
+
+    // your season
+    const lg = s => s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="rx-lgt">${esc(s?.short_name || "")}</span>`;
+    const strip = document.createElement("section"); strip.className = "rx-season rx-only"; strip.id = "rx-season";
+    strip.innerHTML = `<div class="rx-season-h"><div><b>Your season</b><span>${R.entries.length ? `${R.entries.length} championship${R.entries.length > 1 ? "s" : ""}` : "Add the championships you race in"}</span></div><button class="rx-b pri" id="rx-add">${PLUS} Add</button></div>
+      ${R.entries.length ? `<div class="rx-rows">${R.entries.map(e => { const d = [e.car_number ? "#" + esc(e.car_number) : "", esc(e.team || ""), esc(e.vehicles?.name || "")].filter(Boolean); return `<button class="rx-row" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><span class="rx-row-lg">${lg(e.series)}</span><span class="rx-row-t"><b>${esc(e.series?.name || "")}</b><small class="${d.length ? "" : "warn"}">${d.length ? d.join(" · ") : "Add your number, team and car"}</small></span><span class="rx-row-y">${e.year}</span>${CHEV}</button>`; }).join("")}</div>` : ""}`;
     const anchor = $("#ffdd") || $("#list");
     anchor.parentNode.insertBefore(strip, anchor);
     $("#rx-add").onclick = addChampionship;
     strip.querySelectorAll("[data-e]").forEach(b => b.onclick = () => editEntry(R.entries.find(x => x.id === b.dataset.e)));
-    // car modal: change the photo of your car
+
+    // car window: your car photo + entry
     document.addEventListener("click", e => {
       const b = e.target.closest(".car-btn, .cd-car"); if (!b || document.body.classList.contains("rx-view")) return;
-      setTimeout(() => { const en = entryOf(b.dataset.series), body = $("#tt-body"); if (!en || !body) return; body.insertAdjacentHTML("afterbegin", `<div class="rx-only" style="display:flex;gap:8px;justify-content:center;margin:0 0 14px"><button class="rx-b pri" id="rx-carph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${en.car_photo_url ? "Change car photo" : "Add your car photo"}</button><button class="rx-b" id="rx-caredit">${PEN.replace("<svg", '<svg width="15" height="15"')} Edit entry</button></div>`);
+      setTimeout(() => { const en = entryOf(b.dataset.series), body = $("#tt-body"); if (!en || !body) return; body.insertAdjacentHTML("afterbegin", `<div class="rx-only" style="display:flex;gap:8px;justify-content:center;margin:0 0 14px;flex-wrap:wrap"><button class="rx-b pri" id="rx-carph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${en.car_photo_url ? "Change car photo" : "Add your car photo"}</button><button class="rx-b" id="rx-caredit">${PEN.replace("<svg", '<svg width="15" height="15"')} Edit entry</button></div>`);
         $("#rx-caredit").onclick = () => { $("#tt-close")?.click(); editEntry(en); };
         $("#rx-carph").onclick = async () => { const f = await pickFile(); if (!f) return; save(async () => { const u = await upload(await picture(f, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`); await upd("entries", en.id, { car_photo_url: u }); }, "Car photo saved"); }; }, 0);
     }, true);
-    // bottom bar
-    const bar = document.createElement("div"); bar.className = "rx-bar";
-    bar.innerHTML = `<span class="rx-st"><i></i><span id="rx-mode">Editing</span>${R.profile.published ? "" : " · Draft"}</span><button class="rx-b" id="rx-view">View as fan</button><button class="rx-b" id="rx-more" aria-label="More">•••</button>`;
-    document.body.appendChild(bar);
-    $("#rx-view").onclick = () => { const v = document.body.classList.toggle("rx-view"); $("#rx-view").textContent = v ? "Edit" : "View as fan"; $("#rx-mode").textContent = v ? "Fan view" : "Editing"; };
-    $("#rx-more").onclick = ev => {
-      ev.stopPropagation(); if ($(".rx-menu")) return $(".rx-menu").remove();
-      const m = document.createElement("div"); m.className = "rx-menu";
-      m.innerHTML = `${MEMBERS.map(x => `<button data-slug="${esc(x.profiles.slug)}" class="${x.profiles.id === R.profile.id ? "on" : ""}">${esc(x.profiles.display_name)}</button>`).join("")}<hr><button id="rx-copy">Copy page link</button><button id="rx-new">+ Create another page</button><button id="rx-out">Sign out</button><div style="font-size:12px;color:#7d808a;padding:6px 12px">${esc(ME.email || "")}</div>`;
-      document.body.appendChild(m);
-      m.querySelectorAll("[data-slug]").forEach(b => b.onclick = () => { localStorage.setItem("rnx_profile", MEMBERS.find(x => x.profiles.slug === b.dataset.slug).profiles.id); location.href = (window.RNX_BASE || "/") + b.dataset.slug; });
-      $("#rx-copy").onclick = async () => { m.remove(); const u = location.origin + location.pathname; try { await navigator.clipboard.writeText(u); busy(true); busy(false, "Link copied"); } catch (e) { prompt("Your page link:", u); } };
-      $("#rx-new").onclick = () => { location.href = (window.RNX_BASE || "/") + "app.html?new=1"; };
-      $("#rx-out").onclick = () => { S.set(null); localStorage.removeItem("rnx_profile"); location.reload(); };
-      setTimeout(() => document.addEventListener("click", function off(e2) { if (!m.contains(e2.target)) { m.remove(); document.removeEventListener("click", off); } }), 0);
+
+    // account menu
+    const url = location.origin + location.pathname;
+    function closeMenu() { $(".rx-menu")?.remove(); $("#rx-me")?.setAttribute("aria-expanded", "false"); }
+    window.__rxCloseMenu = closeMenu;
+    $("#rx-me").onclick = ev => {
+      ev.stopPropagation(); if ($(".rx-menu")) return closeMenu();
+      const m = document.createElement("div"); m.className = "rx-menu"; m.setAttribute("role", "menu");
+      const others = MEMBERS.filter(x => x.profiles.id !== p.id);
+      m.innerHTML = `<div class="rx-menu-h">${avatar("rx-av lg")}<div><b>${esc(p.display_name)}</b><small>${esc(ME.email || "")}</small></div></div>
+        <button role="menuitem" data-a="profile">${PEN}Edit profile</button>
+        <button role="menuitem" data-a="season">${FLAG}Your season</button>
+        <button role="menuitem" data-a="preview">${EYE}Preview as a fan</button>
+        <button role="menuitem" data-a="copy">${LINK}Copy page link</button>
+        <hr>${others.length ? `<div class="rx-menu-l">Your other pages</div>${others.map(x => `<button role="menuitem" data-slug="${esc(x.profiles.slug)}" data-id="${x.profiles.id}">${USER}${esc(x.profiles.display_name)}</button>`).join("")}` : ""}
+        <button role="menuitem" data-a="new">${PLUS}Create another page</button>
+        <hr><button role="menuitem" data-a="out" class="rx-out">${OUT}Log out</button>`;
+      document.body.appendChild(m); $("#rx-me").setAttribute("aria-expanded", "true");
+      m.querySelector("button")?.focus();
+      m.onclick = async e2 => {
+        const b = e2.target.closest("button"); if (!b) return; closeMenu();
+        if (b.dataset.slug) { localStorage.setItem("rnx_profile", b.dataset.id); location.href = (window.RNX_BASE || "/") + b.dataset.slug; return; }
+        const a = b.dataset.a;
+        if (a === "profile") editProfile();
+        if (a === "season") $("#rx-season").scrollIntoView({ behavior: "smooth", block: "center" });
+        if (a === "preview") preview(true);
+        if (a === "copy") { try { await navigator.clipboard.writeText(url); busy(true); busy(false, "Link copied"); } catch (er) { prompt("Your page link:", url); } }
+        if (a === "new") location.href = (window.RNX_BASE || "/") + "app.html?new=1";
+        if (a === "out") { S.set(null); localStorage.removeItem("rnx_profile"); location.reload(); }
+      };
+      setTimeout(() => document.addEventListener("click", function off(e3) { if (!m.contains(e3.target)) { closeMenu(); document.removeEventListener("click", off); } }), 0);
     };
-    if (!R.entries.length) setTimeout(addChampionship, 400);
+    if (!R.entries.length) setTimeout(addChampionship, 500);
   }
 
   window.rnxEditInit = async function (raw) {

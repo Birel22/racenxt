@@ -132,7 +132,8 @@
     tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 3c.4 2.2 1.7 3.6 3.9 3.8v3.1c-1.4.1-2.7-.3-3.9-1v6.4c0 3.6-2.6 5.7-5.6 5.7A5.5 5.5 0 0 1 5.5 15.5c0-3.4 3-5.9 6.3-5.4v3.2c-1.5-.4-3.1.6-3.1 2.2 0 1.3 1 2.3 2.3 2.3 1.4 0 2.4-.9 2.4-2.7V3z"/></svg>',
     website: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></g></svg>'
   };
-  const NAMES = { instagram: "Instagram", facebook: "Facebook", x: "X", youtube: "YouTube", tiktok: "TikTok", website: "Website" };
+  ICONS.email = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></g></svg>';
+  const NAMES = { instagram: "Instagram", facebook: "Facebook", x: "X", youtube: "YouTube", tiktok: "TikTok", website: "Website", email: "Email" };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   // Fills the parts of the page that come from the profile (photo, logo, socials, sponsors, filter, legend)
@@ -142,9 +143,10 @@
     if (photo) { if (p.hero_url || p.photo_url) photo.src = p.hero_url || p.photo_url; else photo.style.display = "none"; }
     const lg = document.getElementById("rnx-logo");
     if (lg && p.logo_url) { lg.src = p.logo_url; lg.alt = p.display_name; lg.hidden = false; }
-    const soc = Object.keys(ICONS).filter(k => p.socials && p.socials[k]);
+    const href = k => k === "email" ? (p.contact_email ? "mailto:" + p.contact_email : "") : (p.socials && p.socials[k]) || "";
+    const soc = Object.keys(ICONS).filter(k => href(k));
     document.querySelectorAll(".rnx-socials").forEach(n => {
-      n.innerHTML = soc.map(k => `<a href="${esc(p.socials[k])}" target="_blank" rel="noopener" aria-label="${NAMES[k]}" title="${NAMES[k]}">${ICONS[k]}</a>`).join("");
+      n.innerHTML = soc.map(k => `<a href="${esc(href(k))}"${k === "email" ? "" : ' target="_blank" rel="noopener"'} aria-label="${NAMES[k]}" title="${NAMES[k]}">${ICONS[k]}</a>`).join("");
       if (!soc.length) n.hidden = true;
     });
     const sp = R.sponsors.map(s => {

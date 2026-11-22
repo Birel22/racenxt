@@ -118,8 +118,23 @@
   .auth{width:100%;max-width:400px;display:grid;gap:18px;text-align:center}
   .auth .card{text-align:left;display:grid;gap:14px}
   .ok{color:var(--good)} .no{color:var(--bad)}
-  .steps{display:flex;gap:6px;justify-content:center}
-  .steps i{width:28px;height:4px;border-radius:2px;background:var(--line2)} .steps i.on{background:var(--acc)}
+  .steps{display:flex;gap:6px}
+  .steps i{width:34px;height:4px;border-radius:2px;background:var(--line2)} .steps i.on{background:var(--acc)}
+  .ob{display:grid;gap:22px;margin-top:6px}
+  .ob-top{display:flex;align-items:center;justify-content:space-between;font-size:14px}
+  .ob-h{font-size:36px;line-height:1}
+  .ob-body{display:grid;gap:16px}
+  .ob-list{display:grid;gap:16px}
+  .ob-foot{display:grid;gap:8px;position:sticky;bottom:0;padding:14px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(11,12,15,0),var(--bg) 24px)}
+  .ob-photo{width:100%;aspect-ratio:16/10;border-radius:18px;border:1.5px dashed var(--line2);background:var(--panel) center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0}
+  .ob-photo[style*="background-image"]{border-style:solid}
+  .ob-empty{display:grid;gap:6px;justify-items:center;color:var(--dim)} .ob-empty svg{width:30px;height:30px;color:var(--acc)} .ob-empty b{color:var(--text);font-size:17px} .ob-empty small{font-size:13px}
+  .ob-change{position:absolute;right:12px;bottom:12px;display:flex;gap:6px;align-items:center;background:rgba(11,12,15,.75);backdrop-filter:blur(6px);border-radius:999px;padding:8px 14px;font-weight:600;font-size:14px} .ob-change svg{width:16px;height:16px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .tile{position:relative;display:grid;gap:10px;justify-items:center;align-content:center;min-height:118px;padding:14px 10px;border-radius:16px;border:1.5px solid var(--line2);background:var(--panel);cursor:pointer;text-align:center}
+  .tile .lg{height:40px} .tile .tn{font-size:14px;font-weight:600;line-height:1.25}
+  .tile[aria-checked="true"]{border-color:var(--acc);background:rgba(255,90,31,.08)}
+  .tile[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;line-height:22px;font-weight:700}
 </style>
 </head>
 <body>
@@ -267,40 +282,96 @@ function login(msg){
 }
 
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-function onboarding(another){
-  shell(`<div style="display:grid;gap:18px;margin-top:10px">
-    <div class="steps" aria-hidden="true"><i class="on"></i><i></i></div>
-    <div style="text-align:center"><h1 style="font-size:34px">${another ? "Another Race Hub" : "Create your Race Hub"}</h1><div class="dim" style="margin-top:6px">Your page for fans. You'll add your championships next.</div></div>
-    <form class="card" id="ob" style="display:grid;gap:16px" novalidate>
-      <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" autocomplete="given-name" required></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" autocomplete="family-name" required></div></div>
-      <div class="field"><label class="f" for="o-slug">Page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false" required></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>
-      <div style="text-align:center;font:700 22px 'Barlow Condensed';letter-spacing:.02em" id="o-prev"></div>
-      <button class="btn pri block" id="o-go">Create my page</button>
-      ${another ? `<button type="button" class="btn ghost block" id="o-back">Back</button>` : ""}
-    </form></div>`);
-  let touched = false, avail = false, t;
-  const check = () => { clearTimeout(t); const v = $("#o-slug").value.trim().toLowerCase(); avail = false;
-    if (!/^[a-z0-9-]{2,40}$/.test(v)){ $("#o-avail").innerHTML = "Letters, numbers and dashes (at least 2)."; return; }
-    $("#o-avail").textContent = "Checking…";
-    t = setTimeout(async () => { try { avail = await rpc("slug_available", { p_slug: v }); } catch(e){ avail = false; } if ($("#o-slug").value.trim().toLowerCase() === v) $("#o-avail").innerHTML = avail ? `<span class="ok">✓ Available</span>` : `<span class="no">✗ Already taken. Try another.</span>`; }, 350); };
-  const auto = () => { const f = $("#o-first").value.trim(), l = $("#o-last").value.trim();
-    $("#o-prev").innerHTML = f ? `${esc(f.toUpperCase())} <span style="color:var(--acc)">RACE HUB</span>` : "";
-    if (!touched){ $("#o-slug").value = slugify(f && l ? `${f}-${l}` : f || l); check(); } };
-  $("#o-first").oninput = auto; $("#o-last").oninput = auto;
-  $("#o-slug").oninput = () => { touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
-  if ($("#o-back")) $("#o-back").onclick = () => history.back();
-  $("#ob").onsubmit = async e => {
-    e.preventDefault();
-    if (!need("#o-first", "Add your first name.") || !need("#o-last", "Add your last name.")) return;
-    const slug = $("#o-slug").value.trim().toLowerCase();
-    if (!avail){ alert("Pick a page link that's available."); $("#o-slug").focus(); return; }
-    $("#o-go").disabled = true; $("#o-go").textContent = "Creating…";
+// ---------- sign-up: 3 short steps, so the page is mostly complete from the start ----------
+const SOCIALS = [
+  { k:"instagram", l:"Instagram", base:"https://instagram.com/" },
+  { k:"x", l:"X (Twitter)", base:"https://x.com/" },
+  { k:"tiktok", l:"TikTok", base:"https://tiktok.com/@" },
+  { k:"youtube", l:"YouTube", base:"https://youtube.com/@" },
+  { k:"facebook", l:"Facebook", base:"https://facebook.com/" }
+];
+const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
+const handleOf = (k, url) => { if (!url) return ""; const s = SOCIALS.find(x => x.k === k); return s && url.startsWith(s.base) ? url.slice(s.base.length) : url; };
+async function heroPhoto(file){
+  const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); });
+  const k = Math.min(1, 1800 / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas");
+  cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
+}
+const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", socials:{}, website:"", email:"", picked:new Set() };
+async function onboarding(another){
+  if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", socials:{}, website:"", email:"", picked:new Set() });
+  if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url&order=name"); } catch(e){}
+  OB.another = another;
+  obStep();
+}
+function obStep(){
+  const n = OB.step, titles = ["About you", "Your links", "Your championships"], subs = ["Your name and the photo at the top of your page.", "So fans can follow you. Everything here is optional.", "Pick every championship you race in this season. Calendars, schedules and where to watch fill in by themselves."];
+  const head = `<div class="ob-top"><div class="steps" aria-label="Step ${n} of 3">${[1,2,3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</div><span class="muted">Step ${n} of 3</span></div>
+    <div><h1 class="ob-h">${titles[n-1]}</h1><div class="dim" style="margin-top:6px">${subs[n-1]}</div></div>`;
+  let body = "";
+  if (n === 1) body = `
+    <button type="button" class="ob-photo" id="ob-photo" style="${OB.photoUrl ? `background-image:url('${esc(OB.photoUrl)}')` : ""}">${OB.photoUrl ? `<span class="ob-change">${CAM} Change photo</span>` : `<span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span>`}</button>
+    <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
+    <div class="field"><label class="f" for="o-slug">Your page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" value="${esc(OB.slug)}" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false"></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>`;
+  if (n === 2) body = `
+    <div class="ob-list">${SOCIALS.map(s => `<div class="field"><label class="f" for="o-${s.k}">${s.l}</label><input id="o-${s.k}" value="${esc(handleOf(s.k, OB.socials[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="help">Your username or the full link.</div></div>`).join("")}
+    <div class="field"><label class="f" for="o-web">Website</label><input id="o-web" value="${esc(OB.website)}" inputmode="url" autocomplete="url" autocapitalize="off"></div>
+    <div class="field"><label class="f" for="o-mail">Contact email</label><input id="o-mail" value="${esc(OB.email)}" type="email" inputmode="email" autocomplete="email"><div class="help">Shown on your page so teams, media and partners can reach you.</div></div></div>`;
+  if (n === 3){
+    const groups = Object.keys(SPORT).map(k => [k, ST.series.filter(s => s.sport === k)]).filter(g => g[1].length);
+    body = `<div class="field"><label class="f" for="o-q">Search</label><input id="o-q" type="search" autocomplete="off"></div>
+      <div id="o-champs">${groups.map(([k, list]) => `<div class="grp" data-g>${esc(SPORT[k].l)}</div><div class="tiles">${list.map(s => `<button type="button" class="tile" role="checkbox" aria-checked="${OB.picked.has(s.id)}" data-s="${s.id}"><span class="lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s.short_name.slice(0,5))}</span>`}</span><span class="tn">${esc(s.name)}</span></button>`).join("")}</div>`).join("")}</div>
+      <div class="muted" style="font-size:14px;text-align:center">Can't find yours? Write to us and we'll add it.</div>`;
+  }
+  const next = n < 3 ? `<button class="btn pri block" id="o-next">Continue</button>` : `<button class="btn pri block" id="o-next">${OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"}</button>`;
+  shell(`<div class="ob">${head}<div class="ob-body">${body}</div><div class="ob-foot">${next}${n > 1 ? `<button class="btn ghost block" id="o-back">Back</button>` : OB.another ? `<button class="btn ghost block" id="o-back">Cancel</button>` : ""}</div></div>`);
+  if ($("#o-back")) $("#o-back").onclick = () => { if (n > 1){ obSave(); OB.step--; obStep(); } else history.back(); };
+  if (n === 1){
+    let t;
+    const check = () => { clearTimeout(t); const v = $("#o-slug").value.trim().toLowerCase(); OB.slug = v; OB.avail = false;
+      if (!/^[a-z0-9-]{2,40}$/.test(v)){ $("#o-avail").textContent = "Letters, numbers and dashes (at least 2)."; return; }
+      $("#o-avail").textContent = "Checking…";
+      t = setTimeout(async () => { let ok = false; try { ok = await rpc("slug_available", { p_slug: v }); } catch(e){} if (OB.slug === v){ OB.avail = ok; $("#o-avail").innerHTML = ok ? `<span class="ok">✓ Available</span>` : `<span class="no">✗ Already taken. Try another.</span>`; } }, 350); };
+    const auto = () => { OB.first = $("#o-first").value.trim(); OB.last = $("#o-last").value.trim(); if (!OB.touched){ $("#o-slug").value = slugify(OB.first && OB.last ? `${OB.first}-${OB.last}` : OB.first || OB.last); check(); } };
+    $("#o-first").oninput = auto; $("#o-last").oninput = auto;
+    $("#o-slug").oninput = () => { OB.touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
+    if (OB.slug) check();
+    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files[0]; if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); obSave(); obStep(); }; i.click(); };
+  }
+  if (n === 3){
+    $("#o-q").oninput = e => { const q = e.target.value.trim().toLowerCase(); $$("#o-champs .tile").forEach(b => { const s = ST.series.find(x => x.id === b.dataset.s); b.hidden = q && !(s.name + " " + s.short_name).toLowerCase().includes(q); }); $$("#o-champs [data-g]").forEach(g => { const any = [...g.nextElementSibling.children].some(b => !b.hidden); g.hidden = !any; g.nextElementSibling.hidden = !any; }); };
+    $$("#o-champs .tile").forEach(b => b.onclick = () => { const id = b.dataset.s; OB.picked.has(id) ? OB.picked.delete(id) : OB.picked.add(id); b.setAttribute("aria-checked", OB.picked.has(id)); $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"; });
+  }
+  $("#o-next").onclick = async () => {
+    obSave();
+    if (n === 1){
+      if (!OB.first){ $("#o-first").focus(); return alert("Add your first name."); }
+      if (!OB.last){ $("#o-last").focus(); return alert("Add your last name."); }
+      if (!OB.avail){ $("#o-slug").focus(); return alert("Pick a page link that's available."); }
+    }
+    if (n === 2 && OB.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(OB.email)){ $("#o-mail").focus(); return alert("That contact email doesn't look right."); }
+    if (n < 3){ OB.step++; obStep(); window.scrollTo(0, 0); return; }
+    $("#o-next").disabled = true; $("#o-next").textContent = "Creating your page…";
     try {
-      const id = await rpc("create_profile", { p_slug: slug, p_display_name: `${$("#o-first").value.trim()} ${$("#o-last").value.trim()}`, p_first_name: $("#o-first").value.trim(), p_sport: "motorsport" });
-      localStorage.setItem(CUR, id); toast("Your Race Hub is ready");
-      location.replace(PAGE_BASE + slug);
-    } catch(err){ alert("Couldn't create the page: " + err.message); $("#o-go").disabled = false; $("#o-go").textContent = "Create my page"; }
+      const id = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" });
+      const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
+      if (OB.photo) row.photo_url = await upload(await heroPhoto(OB.photo), `profiles/${id}-${Date.now()}.jpg`);
+      await upd("profiles", id, row);
+      const picked = [...OB.picked]; let ci = 0;
+      for (const sid of picked){
+        let yr = YEAR; try { const up = await api(`events?series_id=eq.${sid}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
+        await ins("entries", { profile_id:id, series_id:sid, year:yr, color: COLORS[ci++ % COLORS.length] });
+      }
+      localStorage.setItem(CUR, id);
+      location.replace(PAGE_BASE + OB.slug);
+    } catch(err){ alert("Couldn't create the page: " + err.message); $("#o-next").disabled = false; $("#o-next").textContent = "Create my Race Hub"; }
   };
+}
+function obSave(){
+  if ($("#o-first")){ OB.first = $("#o-first").value.trim(); OB.last = $("#o-last").value.trim(); OB.slug = $("#o-slug").value.trim().toLowerCase(); }
+  if ($("#o-web")){ SOCIALS.forEach(s => { const v = toUrl(s.k, $("#o-" + s.k).value); if (v) OB.socials[s.k] = v; else delete OB.socials[s.k]; }); OB.website = toUrl("website", $("#o-web").value); OB.email = $("#o-mail").value.trim(); }
 }
 
 // ---------- start ----------

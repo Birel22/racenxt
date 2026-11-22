@@ -76,6 +76,9 @@ s = s.replace('<a class="watch" href="${WATCH[ev.series]}"', '${(ev.watch || WAT
 s = s.replace('${T("watch")}</a></div>`;', '${T("watch")}</a>` : ""}</div>`;')
 rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">',
     '${LOGO[ev.series] ? `<img class="ev-logo${RNX.square[ev.series]?\' sq\':\'\'}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">` : `<span class="ev-logo-txt">${esc(LABEL[ev.series])}</span>`}')
+# single-day events (the athlete's own: tests, appearances) and no race length
+rep("return {big:`${a.getDate()}–${b.getDate()}`,", "return {big: a.getTime()===b.getTime() ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`,")
+rep('<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>', '${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}')
 # small helper used by the I18N patch
 rep('const T = k => I18N[LANG][k];', 'const T = k => I18N[LANG][k];\nconst esc0 = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",\'"\':"&quot;"}[c]));')
 rep('// ===== Langue / Language =====\nconst I18N', '// ===== Langue / Language =====\nrnxDecorate(RNX);\nconst I18N')

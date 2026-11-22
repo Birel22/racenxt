@@ -45,10 +45,13 @@
         cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles) };
       }
     }
-    // custom events (no championship)
-    if (events.some(e => !e.series_id)) {
-      series.push({ slug: "custom", name: "Other events", short_name: "Event" });
-      logo.custom = ""; label.custom = "Event"; official.custom = ""; watch.custom = ""; color.custom = "#8a8d96"; team.custom = null;
+    // the athlete's own events (no championship), grouped by kind
+    const KINDS = { test: ["Testing", "Test", "#9AA3AF"], appearance: ["Appearances", "Appearance", "#C9A86A"], simulator: ["Simulator", "Sim", "#7FA7D9"], media: ["Media", "Media", "#B892D6"], other: ["Other events", "Event", "#8a8d96"] };
+    for (const k of Object.keys(KINDS)) {
+      if (!events.some(e => !e.series_id && (e.kind || "other") === k)) continue;
+      const sl = "x-" + k, [nm, lb, cl] = KINDS[k];
+      series.push({ slug: sl, name: nm, short_name: lb });
+      logo[sl] = ""; label[sl] = lb; official[sl] = ""; watch[sl] = ""; color[sl] = cl; team[sl] = null;
     }
     const slugOfSeries = Object.fromEntries(entries.filter(e => e.series).map(e => [e.series_id, e.series.slug]));
     const byEvent = {};
@@ -56,7 +59,7 @@
     const EVENTS = [], TT = {};
     for (const e of events) {
       if (hidden.has(e.id)) continue;
-      const sl = e.series_id ? slugOfSeries[e.series_id] : "custom";
+      const sl = e.series_id ? slugOfSeries[e.series_id] : "x-" + (e.kind || "other");
       if (!sl) continue;
       const v = e.venues || {};
       const id = e.ext_key || e.id.slice(0, 8);
@@ -81,7 +84,8 @@
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     return {
       profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, carOf, cars, team, color, square,
-      sponsors, pageUrl: location.origin + location.pathname, entries
+      sponsors, pageUrl: location.origin + location.pathname, entries,
+      customEvents: events.filter(e => !e.series_id)
     };
   }
 

@@ -496,7 +496,7 @@ const LABEL = RNX.label;
 const d = s => { const [y,m,dd] = s.split("-").map(Number); return new Date(y, m-1, dd); };
 function dateLabel(ev){
   const a = d(ev.s), b = d(ev.e), M = MSHORT[LANG];
-  return {big:`${a.getDate()}–${b.getDate()}`, small: a.getMonth()===b.getMonth() ? M[a.getMonth()] : `${M[a.getMonth()]} – ${M[b.getMonth()]}`};
+  return {big: a.getTime()===b.getTime() ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`, small: a.getMonth()===b.getMonth() ? M[a.getMonth()] : `${M[a.getMonth()]} – ${M[b.getMonth()]}`};
 }
 EVENTS.sort((x,y)=> x.s.localeCompare(y.s) || x.e.localeCompare(y.e));
 const today = new Date(); today.setHours(0,0,0,0);
@@ -523,7 +523,7 @@ function render(){
           <article class="ev ev2 ${ev.series}${d(ev.e) < today ? " past" : ""}" id="race-${ev.id}">
             <div class="ev-date"><b>${dl.big}</b><small>${dl.small}</small>${LOGO[ev.series] ? `<img class="ev-logo${RNX.square[ev.series]?' sq':''}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">` : `<span class="ev-logo-txt">${esc(LABEL[ev.series])}</span>`}</div>
             <div class="ev-main">
-              <div class="ev-head"><h3 class="ev-name">${esc(L(ev.name))}</h3><span class="ev-meta"><span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>${ev===nextEv?`<span class="ev-next">${T("next")}</span>`:''}</span><button class="share-btn" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button></div>
+              <div class="ev-head"><h3 class="ev-name">${esc(L(ev.name))}</h3><span class="ev-meta">${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}${ev===nextEv?`<span class="ev-next">${T("next")}</span>`:''}</span><button class="share-btn" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button></div>
               <a class="where" href="${mapUrl(ev)}" target="_blank" rel="noopener" title="${T("maps")}"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${esc(L(ev.where))}</a>
               <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.series]] ? `<button class="car-btn" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}" title="${T("carSpecs")}">${CARICON}<span class="car-lbl">${T("carShort")}</span></button>` : ""}</div>
               ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}

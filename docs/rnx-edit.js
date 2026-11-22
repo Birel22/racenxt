@@ -17,6 +17,8 @@
   const LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
   const USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
   const OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></svg>';
+  const CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+  const STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/></svg>';
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ---------- session ----------
@@ -123,6 +125,30 @@
   .rx-menu .rx-out,.rx-menu .rx-out svg{color:#ef5a52}
   .rx-menu hr{border:0;border-top:1px solid #2a2c33;margin:6px 4px}
   .rx-menu-l{font:700 11px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;padding:8px 10px 4px}
+  .rx-season + .rx-season{margin-top:10px}
+  .rx-row-d{font:700 15px 'Barlow Condensed';color:#f4f4f2;display:grid;line-height:1.1}
+  .rx-row-d small{font-size:12px;color:#7d808a}
+  .rx-prow{display:flex;align-items:center;border-bottom:1px solid #23252b}
+  .rx-prow:last-child{border-bottom:0}
+  .rx-prow-main{flex:1;min-width:0;display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;padding:12px 6px 12px 16px;border:0;background:none;color:inherit;cursor:pointer;text-align:left;font:inherit}
+  .rx-prow-main:hover{background:#181a20}
+  .rx-plogo{height:40px;border-radius:8px;background:#0b0c0f;display:flex;align-items:center;justify-content:center;padding:6px}
+  .rx-plogo img{max-width:100%;max-height:28px;object-fit:contain}
+  .rx-ord{display:grid;gap:2px;padding:0 12px 0 4px}
+  .rx-ord button{width:30px;height:22px;border:1px solid #33363d;border-radius:6px;background:#17181d;color:#a9abb2;font-size:9px;cursor:pointer}
+  .rx-ord button:disabled{opacity:.3;cursor:default}
+  .rx-drop{display:flex;align-items:center;gap:14px;padding:14px;border:1.5px dashed #3b3e47;border-radius:14px;background:#0d0e11;cursor:pointer}
+  .rx-drop.over,.rx-drop:hover{border-color:#FF5A1F}
+  .rx-drop > div:last-child{display:grid;gap:2px} .rx-drop b{font-size:15px} .rx-drop small{font-size:13px;color:#8e919b}
+  .rx-drop-pv{width:120px;height:64px;flex:none;border-radius:10px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px}
+  .rx-drop-pv img{max-width:100%;max-height:52px;object-fit:contain}
+  .rx-drop-pv span{font-size:12px;color:#7d808a;text-align:center}
+  .rx-drop + .rx-seg{margin-top:10px}
+  .rx-seg.rx-seg-wrap{flex-wrap:wrap} .rx-seg.rx-seg-wrap button{flex:1 1 30%}
+  .rx-srow{display:grid;grid-template-columns:118px 104px 1fr 40px;gap:8px;align-items:center}
+  .rx-srow select{min-height:48px;padding:0 10px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:15px Barlow,system-ui,sans-serif}
+  .rx-srow .rx-sx{height:44px;width:40px;padding:0;justify-content:center;border-radius:10px}
+  @media (max-width:420px){.rx-srow{grid-template-columns:1fr 1fr 40px}.rx-srow .rx-sl{grid-column:1/3;grid-row:2}}
   .rx-grp2{font:700 12px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:-6px}
   .rx-ph{width:100%;aspect-ratio:16/10;border-radius:16px;border:1.5px dashed #3b3e47;background:#15161b center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0;color:#f4f4f2}
   .rx-ph[style*="background-image"]{border-style:solid}
@@ -331,6 +357,153 @@
     catch (e) { alert("Couldn't add the car: " + e.message); return null; }
   }
 
+  // ---------- partners ----------
+  async function processLogo(file, mode){
+    const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+    const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
+    const scale = /svg/.test(file.type || "") ? 900 / Math.max(iw, ih) : Math.min(1, 900 / Math.max(iw, ih));
+    const w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h), px = d.data;
+    // background = most common colour around the border
+    const border = []; const pick = (x, y) => { const k = (y * w + x) * 4; border.push([px[k], px[k+1], px[k+2], px[k+3]]); };
+    for (let x = 0; x < w; x += Math.max(1, w >> 6)){ pick(x, 0); pick(x, h - 1); }
+    for (let y = 0; y < h; y += Math.max(1, h >> 6)){ pick(0, y); pick(w - 1, y); }
+    const transparentBg = border.filter(b => b[3] < 40).length > border.length * 0.5;
+    const med = i => border.map(b => b[i]).sort((a, b) => a - b)[border.length >> 1];
+    const bg = [med(0), med(1), med(2)];
+    let minX = w, minY = h, maxX = 0, maxY = 0;
+    for (let k = 0; k < px.length; k += 4){
+      let a;
+      if (transparentBg) a = px[k+3];
+      else { const dist = Math.hypot(px[k] - bg[0], px[k+1] - bg[1], px[k+2] - bg[2]); a = Math.max(0, Math.min(255, (dist - 18) * 4)) * (px[k+3] / 255); }
+      if (mode === "white"){ px[k] = px[k+1] = px[k+2] = 255; }
+      px[k+3] = a;
+      if (a > 24){ const i = k >> 2, x = i % w, y = (i / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    }
+    cx.putImageData(d, 0, 0);
+    if (maxX < minX){ minX = 0; minY = 0; maxX = w - 1; maxY = h - 1; }
+    const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.04);
+    const ox = Math.max(0, minX - pad), oy = Math.max(0, minY - pad), ow = Math.min(w, maxX + pad + 1) - ox, oh = Math.min(h, maxY + pad + 1) - oy;
+    const out = document.createElement("canvas"); out.width = ow; out.height = oh;
+    out.getContext("2d").drawImage(cv, ox, oy, ow, oh, 0, 0, ow, oh);
+    return await new Promise(res => out.toBlob(b => res(b), "image/png"));
+  }
+  
+  // logo picker: tap to choose, drop a file, or paste a screenshot
+  function logoDrop(current, mode) {
+    const st = { file: null, mode: mode || "white", preview: current || "" };
+    const html = `<div class="rx-drop" id="rx-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="rx-drop-pv" id="rx-drop-pv">${st.preview ? `<img src="${esc(st.preview)}" alt="">` : `<span>No logo yet</span>`}</div><div><b>Tap to add the logo</b><small>Or drop a file, or paste a screenshot. The background is removed.</small></div></div>
+      <div class="rx-seg" role="radiogroup" aria-label="Logo colours" id="rx-lmode"><button type="button" role="radio" data-m="white" aria-checked="${st.mode === "white"}">White</button><button type="button" role="radio" data-m="original" aria-checked="${st.mode === "original"}">Original colours</button></div>`;
+    const show = async () => {
+      const pv = $("#rx-drop-pv"); if (!pv) return;
+      if (!st.file) { pv.innerHTML = st.preview ? `<img src="${esc(st.preview)}" alt="" style="${st.mode === "white" ? "filter:brightness(0) invert(1)" : ""}">` : `<span>No logo yet</span>`; return; }
+      pv.innerHTML = "<span>Processing…</span>";
+      try { const b = await processLogo(st.file, st.mode); pv.innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; } catch (e) { pv.innerHTML = "<span>Couldn't read this image</span>"; st.file = null; }
+    };
+    const take = f => { if (f && f.type.startsWith("image/")) { st.file = f; show(); } };
+    const onPaste = e => { if (!$("#rx-drop")) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
+    return { html, st, after() {
+      const dz = $("#rx-drop");
+      dz.onclick = async () => take(await pickFile());
+      dz.onkeydown = async e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); take(await pickFile()); } };
+      dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
+      dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
+      document.addEventListener("paste", onPaste);
+      $$("#rx-lmode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#rx-lmode button").forEach(x => x.setAttribute("aria-checked", x === b)); show(); });
+      show();
+    } };
+  }
+  async function editPartner(sp) {
+    const isNew = !sp;
+    const ld = logoDrop(sp ? (sp.logo_original_url || sp.logo_white_url) : "", sp?.display || "white");
+    const r = await sheet(isNew ? "Add a partner" : "Edit partner", `
+      <div><label class="rx-f">Logo</label>${ld.html}</div>
+      <div><label class="rx-f" for="rx-pn">Partner name</label><input id="rx-pn" value="${esc(sp?.name || "")}" autocomplete="off"></div>
+      <div><label class="rx-f" for="rx-pl">Link</label><input id="rx-pl" value="${esc(sp?.link_url || "")}" inputmode="url" autocapitalize="off" autocomplete="off"><div class="rx-help">Optional. Where fans go when they tap the logo.</div></div>`,
+      { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`, after: ld.after,
+        collect() { if (isNew && !ld.st.file) { alert("Add the partner's logo."); return null; } if (!need("#rx-pn", "Add the partner's name.")) return null; return { name: $("#rx-pn").value.trim(), link_url: toUrl("website", $("#rx-pl").value) || null, display: ld.st.mode }; } });
+    if (!r) return;
+    if (r.__delete) return save(() => api(`sponsors?id=eq.${sp.id}`, { method: "DELETE" }), "Partner removed");
+    save(async () => {
+      if (ld.st.file) {
+        const stamp = Date.now();
+        r.logo_white_url = await upload(await processLogo(ld.st.file, "white"), `sponsors/${R.profile.id}-${stamp}-w.png`);
+        r.logo_original_url = await upload(await processLogo(ld.st.file, "original"), `sponsors/${R.profile.id}-${stamp}-o.png`);
+      }
+      if (isNew) await ins("sponsors", { ...r, profile_id: R.profile.id, sort: (R.sponsors.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1) });
+      else await upd("sponsors", sp.id, r);
+    }, isNew ? "Partner added" : "Saved");
+  }
+  async function movePartner(id, dir) {
+    const list = [...R.sponsors].sort((a, b) => (a.sort || 0) - (b.sort || 0)), i = list.findIndex(x => x.id === id), j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    save(() => Promise.all(list.map((x, k) => upd("sponsors", x.id, { sort: k + 1 }))), "Order saved");
+  }
+
+  // ---------- your own events (tests, appearances…) ----------
+  const KINDS = [["test", "Test"], ["appearance", "Appearance"], ["simulator", "Simulator"], ["media", "Media"], ["other", "Other"]];
+  let tzLib = null;
+  const loadTz = () => tzLib || (tzLib = new Promise(res => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tz-lookup@6.1.25/tz.js"; s.onload = () => res(window.tzlookup || null); s.onerror = () => res(null); document.head.appendChild(s); }));
+  async function placeId(name, country) {
+    name = (name || "").trim(); if (!name) return null;
+    const [hit] = await api(`venues?name=ilike.${encodeURIComponent(name.replace(/[%*,()]/g, ""))}&select=id&limit=1`);
+    if (hit) return hit.id;
+    let lat = null, lng = null, tz = null, cc = null, city = null;
+    try {
+      const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent([name, country].filter(Boolean).join(", "))}`, { headers: { "Accept-Language": "en" } }).then(r => r.json());
+      if (g[0]) { lat = +g[0].lat; lng = +g[0].lon; const a = g[0].address || {}; city = a.town || a.city || a.village || a.county || null; cc = (a.country_code || "").toUpperCase() || null; if (!country && a.country) country = a.country; }
+      const lib = await loadTz(); if (lib && lat != null) tz = lib(lat, lng);
+    } catch (e) {}
+    if (!tz) tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const [v] = await ins("venues", { name, city, country: country || "", country_code: cc, lat, lng, timezone: tz });
+    return v.id;
+  }
+  const daysOf = (a, b) => { const out = []; if (!a || !b || b < a) return out; for (let t = new Date(a + "T12:00:00Z"); t <= new Date(b + "T12:00:00Z") && out.length < 14; t.setUTCDate(t.getUTCDate() + 1)) out.push(t.toISOString().slice(0, 10)); return out; };
+  const dayLbl = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  async function editEvent(ev) {
+    const isNew = !ev; let kind = ev?.kind || "test";
+    const ses = ev ? await api(`sessions?event_id=eq.${ev.id}&select=*&order=local_start`) : [];
+    const v = ev?.venues || {};
+    const row = (x, days) => `<div class="rx-srow"><select class="rx-sd" aria-label="Day">${(days.length ? days : [x.day || ""]).map(d => `<option value="${d}"${d === x.day ? " selected" : ""}>${d ? dayLbl(d) : "—"}</option>`).join("")}</select><input type="time" class="rx-st" value="${esc(x.time || "")}" aria-label="Time"><input class="rx-sl" value="${esc(x.label || "")}" aria-label="What" placeholder="What"><button type="button" class="rx-b rx-sx" aria-label="Remove">×</button></div>`;
+    const r = await sheet(isNew ? "Add an event" : "Edit event", `
+      <div><label class="rx-f" id="rx-kl">Type</label><div class="rx-seg rx-seg-wrap" role="radiogroup" aria-labelledby="rx-kl" id="rx-ks">${KINDS.map(([k, l]) => `<button type="button" role="radio" data-k="${k}" aria-checked="${k === kind}">${l}</button>`).join("")}</div></div>
+      <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off"><div class="rx-help">As fans should see it, for example: Rookie test, Fan zone autograph session.</div></div>
+      <div class="rx-two"><div><label class="rx-f" for="rx-es">First day</label><input id="rx-es" type="date" value="${esc(ev?.start_date || "")}"></div><div><label class="rx-f" for="rx-ee">Last day</label><input id="rx-ee" type="date" value="${esc(ev?.end_date || "")}"></div></div>
+      <div class="rx-two"><div><label class="rx-f" for="rx-ep">Place</label><input id="rx-ep" value="${esc(v.name || "")}" autocomplete="off"><div class="rx-help">Circuit, city or venue. Optional.</div></div><div><label class="rx-f" for="rx-ec">Country</label><input id="rx-ec" value="${esc(v.country || "")}" autocomplete="off"></div></div>
+      <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off"><div class="rx-help">Optional.</div></div>
+      <div><label class="rx-f">Times</label><div id="rx-srows" style="display:grid;gap:8px">${ses.map(x => row({ day: x.local_start.slice(0, 10), time: x.local_start.slice(11, 16), label: x.label }, daysOf(ev.start_date, ev.end_date))).join("")}</div><button type="button" class="rx-link" id="rx-sadd" style="margin-top:8px">+ Add a time</button><div class="rx-help">Optional. Local time at the place. Fans can add them to their calendar.</div></div>`,
+      { ok: isNew ? "Add event" : "Save", del: !isNew && ROLE === "owner" ? "Delete" : null, delText: `Delete ${ev?.name || "this event"}?`,
+        after() {
+          $$("#rx-ks button").forEach(b => b.onclick = () => { kind = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); });
+          const days = () => daysOf($("#rx-es").value, $("#rx-ee").value || $("#rx-es").value);
+          $("#rx-es").addEventListener("change", () => { if (!$("#rx-ee").value || $("#rx-ee").value < $("#rx-es").value) $("#rx-ee").value = $("#rx-es").value; });
+          $("#rx-sadd").onclick = () => { const d = days(); if (!d.length) return alert("Set the dates first."); $("#rx-srows").insertAdjacentHTML("beforeend", row({ day: d[0] }, d)); };
+          $("#rx-srows").onclick = e => { if (e.target.closest(".rx-sx")) e.target.closest(".rx-srow").remove(); };
+        },
+        collect() {
+          if (!need("#rx-en", "Give the event a name.") || !need("#rx-es", "Set the first day.")) return null;
+          const s1 = $("#rx-es").value, s2 = $("#rx-ee").value || s1; if (s2 < s1) { alert("The last day is before the first day."); return null; }
+          const times = $$("#rx-srows .rx-srow").map(x => ({ day: x.querySelector(".rx-sd").value, time: x.querySelector(".rx-st").value, label: x.querySelector(".rx-sl").value.trim() })).filter(x => x.time || x.label);
+          if (times.some(x => !x.time || !x.label || !x.day)) { alert("Each time needs a day, an hour and what it is."); return null; }
+          if (times.length && !$("#rx-ep").value.trim()) { alert("Add the place, so the times are in the right local time."); $("#rx-ep").focus(); return null; }
+          return { kind, name: $("#rx-en").value.trim(), start_date: s1, end_date: s2, year: +s1.slice(0, 4), note: $("#rx-eno").value.trim() || null, place: $("#rx-ep").value.trim(), country: $("#rx-ec").value.trim(), times };
+        } });
+    if (!r) return;
+    if (r.__delete) return save(() => api(`events?id=eq.${ev.id}`, { method: "DELETE" }), "Event deleted");
+    save(async () => {
+      const { place, country, times, ...row2 } = r;
+      row2.venue_id = place ? await placeId(place, country) : null;
+      let id = ev?.id;
+      if (isNew) { const [n] = await ins("events", { ...row2, owner_profile_id: R.profile.id }); id = n.id; }
+      else await upd("events", ev.id, { ...row2, updated_at: new Date().toISOString() });
+      await api(`sessions?event_id=eq.${id}`, { method: "DELETE" });
+      if (times.length) await ins("sessions", times.map(x => ({ event_id: id, type: "other", label: x.label, local_start: `${x.day}T${x.time}:00`, duration_min: 60 })));
+    }, isNew ? "Event added" : "Saved");
+  }
+
   // ---------- put the controls on the page ----------
   function mount() {
     const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
@@ -370,6 +543,28 @@
     const anchor = $("#ffdd") || $("#list");
     anchor.parentNode.insertBefore(strip, anchor);
     $("#rx-add").onclick = addChampionship;
+
+    // your own events
+    const evs = [...(R.customEvents || [])].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    const kindL = Object.fromEntries(KINDS);
+    const fmtR = (a, b) => { const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), m = x => x.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }); return a === b ? `${A.getUTCDate()} ${m(A)}` : A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
+    const evCard = document.createElement("section"); evCard.className = "rx-season rx-only"; evCard.id = "rx-events";
+    evCard.innerHTML = `<div class="rx-season-h"><div><b>Your events</b><span>${evs.length ? `${evs.length} event${evs.length > 1 ? "s" : ""}` : "Tests, appearances, simulator days…"}</span></div><button class="rx-b" id="rx-eadd">${PLUS} Add</button></div>
+      ${evs.length ? `<div class="rx-rows">${evs.map(e => `<button class="rx-row rx-row-ev" data-ev="${e.id}" style="--c:#8a8d96"><span class="rx-row-d">${fmtR(e.start_date, e.end_date)}<small>${e.start_date.slice(0, 4)}</small></span><span class="rx-row-t"><b>${esc(e.name)}</b><small>${esc([kindL[e.kind || "other"], e.venues?.name].filter(Boolean).join(" · "))}</small></span><span></span>${CHEV}</button>`).join("")}</div>` : ""}`;
+    strip.insertAdjacentElement("afterend", evCard);
+    $("#rx-eadd").onclick = () => editEvent();
+    evCard.querySelectorAll("[data-ev]").forEach(b => b.onclick = () => editEvent(evs.find(x => x.id === b.dataset.ev)));
+
+    // partners
+    const sps = [...(R.sponsors || [])].sort((a, b) => (a.sort || 0) - (b.sort || 0));
+    const spCard = document.createElement("section"); spCard.className = "rx-season rx-only"; spCard.id = "rx-partners";
+    spCard.innerHTML = `<div class="rx-season-h"><div><b>Partners</b><span>${sps.length ? `${sps.length} logo${sps.length > 1 ? "s" : ""} on your page` : "Add your partners' logos"}</span></div><button class="rx-b" id="rx-padd">${PLUS} Add</button></div>
+      ${sps.length ? `<div class="rx-rows">${sps.map((x, i) => `<div class="rx-prow"><button class="rx-prow-main" data-sp="${x.id}"><span class="rx-plogo"><img src="${esc(x.display === "white" ? (x.logo_white_url || x.logo_original_url) : (x.logo_original_url || x.logo_white_url))}" alt=""></span><span class="rx-row-t"><b>${esc(x.name)}</b><small>${x.link_url ? esc(x.link_url.replace(/^https?:\/\/(www\.)?/, "")) : "No link"}</small></span></button><span class="rx-ord"><button aria-label="Move up" data-up="${x.id}"${i ? "" : " disabled"}>▲</button><button aria-label="Move down" data-dn="${x.id}"${i < sps.length - 1 ? "" : " disabled"}>▼</button></span></div>`).join("")}</div>` : ""}`;
+    evCard.insertAdjacentElement("afterend", spCard);
+    $("#rx-padd").onclick = () => editPartner();
+    spCard.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => editPartner(sps.find(x => x.id === b.dataset.sp)));
+    spCard.querySelectorAll("[data-up]").forEach(b => b.onclick = () => movePartner(b.dataset.up, -1));
+    spCard.querySelectorAll("[data-dn]").forEach(b => b.onclick = () => movePartner(b.dataset.dn, 1));
     strip.querySelectorAll("[data-e]").forEach(b => b.onclick = () => editEntry(R.entries.find(x => x.id === b.dataset.e)));
 
     // car window: your car photo + entry
@@ -391,6 +586,8 @@
       m.innerHTML = `<div class="rx-menu-h">${avatar("rx-av lg")}<div><b>${esc(p.display_name)}</b><small>${esc(ME.email || "")}</small></div></div>
         <button role="menuitem" data-a="profile">${PEN}Edit profile</button>
         <button role="menuitem" data-a="season">${FLAG}Your season</button>
+        <button role="menuitem" data-a="events">${CAL}Your events</button>
+        <button role="menuitem" data-a="partners">${STAR}Partners</button>
         <button role="menuitem" data-a="preview">${EYE}Preview as a fan</button>
         <button role="menuitem" data-a="copy">${LINK}Copy page link</button>
         <hr>${others.length ? `<div class="rx-menu-l">Your other pages</div>${others.map(x => `<button role="menuitem" data-slug="${esc(x.profiles.slug)}" data-id="${x.profiles.id}">${USER}${esc(x.profiles.display_name)}</button>`).join("")}` : ""}
@@ -403,7 +600,7 @@
         if (b.dataset.slug) { localStorage.setItem("rnx_profile", b.dataset.id); location.href = (window.RNX_BASE || "/") + b.dataset.slug; return; }
         const a = b.dataset.a;
         if (a === "profile") editProfile();
-        if (a === "season") $("#rx-season").scrollIntoView({ behavior: "smooth", block: "center" });
+        if (["season", "events", "partners"].includes(a)) $("#rx-" + a).scrollIntoView({ behavior: "smooth", block: "center" });
         if (a === "preview") preview(true);
         if (a === "copy") { try { await navigator.clipboard.writeText(url); busy(true); busy(false, "Link copied"); } catch (er) { prompt("Your page link:", url); } }
         if (a === "new") location.href = (window.RNX_BASE || "/") + "app.html?new=1";

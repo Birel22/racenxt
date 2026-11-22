@@ -131,6 +131,27 @@
   .dr-h b{flex:1;font:700 22px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.03em}
   .dr-b{flex:1;overflow:auto;padding:18px 20px;display:grid;gap:14px;align-content:start}
   .dr-f{display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line2);background:#16171c}
+  .tt-peek{margin-top:6px} .tt-peek summary{cursor:pointer;list-style:none;display:inline-block} .tt-peek summary::-webkit-details-marker{display:none}
+  .tt-box{margin-top:8px;padding:4px 12px;background:#0d0e11;border:1px solid #2d2f37;border-radius:10px;max-width:520px}
+  .tt-box .rc-ses{font-size:13px;padding:6px 0;grid-template-columns:50px 1fr auto}
+  .rc-meta{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--dim);font-size:14px}
+  .rc-meta b{color:var(--text);font-weight:600}
+  .rc-day{font:700 12px Barlow;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin:6px 0 2px}
+  .rc-ses{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px solid #2a2c33;font-size:15px}
+  .rc-ses:last-child{border-bottom:0}
+  .rc-ses time{font-variant-numeric:tabular-nums;font-weight:700}
+  .rc-ses .t{font-size:12px;color:var(--mute)}
+  .rc-ses.race b{color:var(--acc)}
+  .rc-empty{border:1.5px dashed #3b3e47;border-radius:12px;padding:18px;text-align:center;color:var(--dim);display:grid;gap:12px;justify-items:center}
+  .rc-link{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#0d0e11;border:1px solid #3b3e47;border-radius:10px;overflow:hidden}
+  .rc-link a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+  .se-day{background:#0d0e11;border:1px solid #2d2f37;border-radius:12px;padding:12px;display:grid;gap:8px}
+  .se-day h5{margin:0;font:700 14px Barlow;color:var(--text);display:flex;align-items:center}
+  .se-row{display:grid;grid-template-columns:110px 1fr 92px 34px;gap:8px;align-items:center}
+  .se-row input{min-height:40px}
+  .se-row .min{position:relative} .se-row .min input{padding-right:38px} .se-row .min span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mute);pointer-events:none}
+  .se-head{display:grid;grid-template-columns:110px 1fr 92px 34px;gap:8px;font-size:12px;color:var(--mute);font-weight:600}
+  @media (max-width:560px){.se-row,.se-head{grid-template-columns:96px 1fr 34px}.se-row .min,.se-head .h-min{display:none}}
   .fs{background:#1a1b21;border:1px solid #2d2f37;border-radius:14px;padding:16px;display:grid;gap:14px}
   .fs > h4{margin:0;display:flex;align-items:baseline;gap:10px;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--text)}
   .fs > h4 i{width:6px;height:6px;border-radius:50%;background:var(--acc);display:inline-block;transform:translateY(-2px)}
@@ -345,9 +366,9 @@ function drawer(title, layout, values = {}, opts = {}){
       all.push(item); return fieldHtml(item, values[item.k]);
     };
     $("#dr-b").innerHTML = layout.map(one).join("") + (opts.extra || "");
-    $("#dr-f").innerHTML = `${opts.onDelete ? `<button class="btn bad" id="dr-del" style="margin-right:auto">${esc(opts.deleteLabel || "Delete")}</button>` : ""}<button class="btn" id="dr-cancel">Cancel</button><button class="btn pri" id="dr-ok">${esc(opts.ok || "Save")}</button>`;
+    $("#dr-f").innerHTML = `${opts.onDelete ? `<button class="btn bad" id="dr-del" style="margin-right:auto">${esc(opts.deleteLabel || "Delete")}</button>` : ""}<button class="btn" id="dr-cancel">${opts.view ? "Close" : "Cancel"}</button>${opts.view ? "" : `<button class="btn pri" id="dr-ok">${esc(opts.ok || "Save")}</button>`}`;
     $("#dr-cancel").onclick = () => closeDrawer(null);
-    $("#dr-ok").onclick = () => {
+    if ($("#dr-ok")) $("#dr-ok").onclick = () => {
       for (const f of all){ const el = $("#f_" + f.k); if (f.req && el && !el.value.trim()){ el.focus(); el.reportValidity && el.setCustomValidity("Required"); el.reportValidity(); el.setCustomValidity(""); return; } }
       const out = {}; all.forEach(f => out[f.k] = readField(f));
       if (opts.collect) Object.assign(out, opts.collect());
@@ -517,21 +538,48 @@ async function championshipPage(slug, openId){
   if (openId){ const e = evs.find(x => x.id === openId); if (e) editRace(s, e, yr); }
 }
 
-// Race side panel: details + sessions in one place
+// ---------- Race card: a clean view of one race (schedule, where to watch), editing on demand ----------
+const days = (a, b) => { const out = []; if (!a || !b) return out; for (let t = new Date(a + "T12:00:00Z"); t <= new Date(b + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + 1)) out.push(t.toISOString().slice(0,10)); return out; };
+const dayName = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", timeZone:"UTC" });
+const guessType = l => { l = (l || "").toLowerCase(); return /race|course|feature|sprint/.test(l) && !/pre-?race|qualif/.test(l) ? "race" : /quali|hyperpole|pole/.test(l) ? "qualifying" : /practice|fp\d|essais|test|collective/.test(l) ? "practice" : /warm/.test(l) ? "warmup" : "other"; };
+const mins = m => m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? String(m % 60).padStart(2, "0") : ""}` : `${m} min`;
+function sessionList(list){
+  let last = "";
+  return list.map(x => { const d = String(x.local_start).slice(0,10), t = String(x.local_start).replace("T"," ").slice(11,16); const head = d !== last ? `<div class="rc-day">${dayName(d)}</div>` : ""; last = d; return `${head}<div class="rc-ses${x.type === "race" ? " race" : ""}"><time>${t}</time><b>${esc(x.label)}${x.category ? ` <span class="t">${esc(x.category)}</span>` : ""}</b><span class="t">${mins(x.duration_min || 60)}</span></div>`; }).join("");
+}
 async function editRace(s, e, yr){
-  const ss = e ? await api(`sessions?event_id=eq.${e.id}&select=*&order=local_start`) : [];
+  if (!e) return editRaceDetails(s, null, yr);
+  const [ss, [ev]] = await Promise.all([api(`sessions?event_id=eq.${e.id}&select=*&order=local_start`), api(`event_overview?id=eq.${e.id}&select=*`)]);
+  e = ev || e;
+  const venue = e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
+  const busy = aiBusy(e.id);
+  const html = `
+    <section class="fs"><div class="rc-meta"><span><b>${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}</b></span>${venue ? `<span>${esc(venue.name)}${venue.country ? ", " + esc(venue.country) : ""}</span>` : `<span class="chip warn">No circuit</span>`}${e.round ? `<span>Round ${esc(String(e.round))}</span>` : ""}${e.duration_label ? `<span>${esc(e.duration_label)}</span>` : ""}</div>
+      ${e.note ? `<div class="dim" style="font-size:14px">Note on the card: ${esc(e.note)}</div>` : ""}
+      <div><button type="button" class="btn sm" id="rc-edit">Edit race details</button></div></section>
+    <section class="fs"><h4><i></i>Schedule ${venue ? `<small>Local time · ${esc(venue.timezone)}</small>` : ""}</h4>
+      ${ss.length ? `<div>${sessionList(ss)}</div><div class="bar" style="margin:0"><button type="button" class="btn sm" id="rc-sched">Edit schedule</button><span class="grow"></span><button type="button" class="btn sm ai" id="rc-ai"${busy ? " disabled" : ""}>${busy ? "Checking…" : "Check again with AI"}</button></div>`
+        : `<div class="rc-empty"><div><b style="color:var(--text)">No schedule yet</b><div style="font-size:14px;margin-top:4px">${e.end_date < TODAY ? "This race is over." : "The AI checks automatically in race week, or you can do it now."}</div></div><div class="bar" style="margin:0;justify-content:center"><button type="button" class="btn ai pri" id="rc-ai"${busy ? " disabled" : ""}>${busy ? "Searching…" : "Search with AI"}</button><button type="button" class="btn" id="rc-sched">Add manually</button></div></div>`}
+    </section>
+    <section class="fs"><h4><i></i>Where to watch</h4>
+      ${e.watch_url ? `<div class="rc-link"><a href="${esc(e.watch_url)}" target="_blank" rel="noopener">${esc(e.watch_url)}</a><button type="button" class="btn sm" id="rc-wedit">Change</button></div>` : ""}
+      <div id="rc-wform"${e.watch_url ? " hidden" : ""}>${e.watch_url ? "" : `<div class="dim" style="font-size:14px;margin-bottom:10px">Not set yet. The AI looks for it in race week.</div>`}
+        <div class="bar" style="margin:0;flex-wrap:nowrap"><input id="rc-wurl" type="url" placeholder="https://" aria-label="Where to watch link" value="${esc(e.watch_url || "")}"><button type="button" class="btn pri" id="rc-wsave">Save</button></div></div>
+    </section>`;
+  const p = drawer(e.name, [{ html }], {}, { view:true, after(){
+    $("#rc-edit").onclick = () => { closeDrawer(null); editRaceDetails(s, e, yr); };
+    $("#rc-sched").onclick = () => { closeDrawer(null); editSchedule(s, e, ss); };
+    $("#rc-ai").onclick = () => { runAgent({ action:"check_event", event_id:e.id }, `Checking ${s.short_name} ${e.name}`, e.id); $("#rc-ai").disabled = true; $("#rc-ai").textContent = "Searching…"; };
+    if ($("#rc-wedit")) $("#rc-wedit").onclick = () => { $("#rc-wform").hidden = false; $("#rc-wedit").closest(".rc-link").hidden = true; $("#rc-wurl").focus(); };
+    $("#rc-wsave").onclick = () => { const v = $("#rc-wurl").value.trim(); if (v && !/^https?:\/\//.test(v)) return alert("Start the link with https://"); guard(async () => { await upd("events", e.id, { watch_url: v || null, updated_at: new Date().toISOString() }); closeDrawer(null); route(); }, v ? "Link saved" : "Link removed"); };
+  } });
+  await p;
+}
+
+// Race details only (name, dates, circuit)
+async function editRaceDetails(s, e, yr){
   const venue = e && e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
-  const days = d => { const out = []; if (!d.s || !d.e) return out; for (let t = new Date(d.s + "T12:00:00Z"); t <= new Date(d.e + "T12:00:00Z"); t.setUTCDate(t.getUTCDate() + 1)) out.push(t.toISOString().slice(0,10)); return out; };
-  const TYPES = [["practice","Practice"],["qualifying","Qualifying"],["race","Race"],["warmup","Warm-up"],["other","Other"]];
-  const guessType = l => { l = l.toLowerCase(); return /race|course/.test(l) ? "race" : /quali|hyperpole|pole/.test(l) ? "qualifying" : /practice|fp\d|essais|test/.test(l) ? "practice" : /warm/.test(l) ? "warmup" : "other"; };
-  const rowHtml = (x, dlist) => `<div class="srow"><select class="s-day" aria-label="Day">${(dlist.length ? dlist : [x.day || ""]).map(d => `<option value="${d}"${d === x.day ? " selected" : ""}>${d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"}) : "—"}</option>`).join("")}</select><input class="s-time" type="time" value="${esc(x.time || "")}" aria-label="Start time"><input class="s-label lab" value="${esc(x.label || "")}" placeholder="Session name" aria-label="Session name"><select class="s-type" aria-label="Type">${TYPES.map(([v,l]) => `<option value="${v}"${v === (x.type || "practice") ? " selected" : ""}>${l}</option>`).join("")}</select><input class="s-min" type="number" min="1" value="${esc(x.min || 60)}" aria-label="Minutes"><button type="button" class="btn icon sm s-del" aria-label="Remove session">×</button></div>`;
-  const sessInit = ss.map(x => ({ day:x.local_start.slice(0,10), time:x.local_start.slice(11,16), label:x.label, type:x.type, min:x.duration_min, cat:x.category }));
-  const extra = `<section class="fs"><h4><i></i>Sessions <small>Local circuit time${venue ? " · " + esc(venue.timezone) : ""}</small></h4>
-    <div class="sess" id="sess"><div class="srow h"><span>Day</span><span>Time</span><span>Session</span><span>Type</span><span>Min</span><span></span></div></div>
-    <div class="bar" style="margin-top:8px"><button type="button" class="btn sm" id="s-add">+ Add session</button><button type="button" class="btn sm" id="s-pastebtn">Paste timetable</button>${e ? `<span class="grow"></span><button type="button" class="btn sm ai" id="s-ai-race"${aiBusy(e.id) ? " disabled" : ""}>${aiBusy(e.id) ? "Checking…" : "Find timetable with AI"}</button>` : ""}</div>
-    <div id="s-paste" hidden><textarea id="s-pastetxt" placeholder="One per line:  Fri 10:10 Free Practice 1 90\nor  2027-06-12 16:00 Race 1440"></textarea><button type="button" class="btn sm" id="s-pasteok" style="margin-top:6px">Add these sessions</button></div></section>`;
-  const dl = () => days({ s: $("#f_start_date").value, e: $("#f_end_date").value });
-  const r = await drawer(e ? e.name : "Add race", [
+  const r = await drawer(e ? `Edit ${e.name}` : "Add race", [
     { html: venueList() },
     { section:"Race", items:[
       { k:"name", l:"Race name", req:true },
@@ -539,57 +587,61 @@ async function editRace(s, e, yr){
     { section:"Dates & circuit", items:[
       { row:[{ k:"start_date", l:"First day", type:"date", req:true }, { k:"end_date", l:"Last day", type:"date", req:true }] },
       { row:[{ k:"venue_name", l:"Circuit", list:"venues-dl", help:"New circuit? Added with its time zone automatically." }, { k:"country", l:"Country" }] } ] },
-    { section:"For fans", items:[
-      { k:"watch_url", l:"Where to watch", type:"url", help:"The AI fills this in during race week." },
-      { k:"note", l:"Note on the race card", help:"Optional. For example: Official Prologue 8–9 March" } ] }
-  ], e ? { ...e, venue_name: venue?.name || "", country: venue?.country || "" } : { year: yr }, {
-    extra, onDelete: !!e, deleteText: "Delete this race and its sessions?", ok: e ? "Save race" : "Add race",
-    after(){
-      const box = $("#sess");
-      const add = x => { box.insertAdjacentHTML("beforeend", rowHtml(x, dl())); };
-      sessInit.forEach(add);
-      box.addEventListener("click", ev => { if (ev.target.closest(".s-del")) ev.target.closest(".srow").remove(); });
-      box.addEventListener("change", ev => { if (ev.target.classList.contains("s-label")){ const row = ev.target.closest(".srow"); row.querySelector(".s-type").value = guessType(ev.target.value); } });
-      $("#s-add").onclick = () => { const last = $$("#sess .srow:not(.h)").pop(); add({ day: last ? last.querySelector(".s-day").value : dl()[0], time:"", label:"", type:"practice", min:60 }); $$("#sess .s-time").pop().focus(); };
-      $("#s-pastebtn").onclick = () => { $("#s-paste").hidden = !$("#s-paste").hidden; };
-      if ($("#s-ai-race")) $("#s-ai-race").onclick = () => { closeDrawer(null); runAgent({ action:"check_event", event_id:e.id }, `Checking ${s.short_name} ${e.name}`, e.id); };
-      $("#s-pasteok").onclick = () => {
-        const dd = dl();
-        for (const line of $("#s-pastetxt").value.split("\n").map(x => x.trim()).filter(Boolean)){
-          let m = line.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}[:.h]\d{2})\s*[|,;\-–]?\s*(.+?)(?:\s*[|,;]?\s+(\d+)\s*(?:min)?)?$/i), day;
-          if (m) day = m[1];
-          else { m = line.match(/^(mon|tue|wed|thu|fri|sat|sun)\w*\.?\s+(\d{1,2}[:.h]\d{2})\s*[|,;\-–]?\s*(.+?)(?:\s*[|,;]?\s+(\d+)\s*(?:min)?)?$/i); if (m){ const want = ["sun","mon","tue","wed","thu","fri","sat"].indexOf(m[1].slice(0,3).toLowerCase()); day = dd.find(d => new Date(d + "T12:00:00Z").getUTCDay() === want) || dd[0]; } }
-          if (!m){ alert("Couldn't read: " + line); return; }
-          const time = m[2].replace(/[.h]/, ":").padStart(5, "0"), label = m[3].replace(/\s*[|,;]\s*$/, "").trim();
-          add({ day, time, label, type: guessType(label), min: m[4] ? +m[4] : 60 });
-        }
-        $("#s-pastetxt").value = ""; $("#s-paste").hidden = true;
-      };
-      const refreshDays = () => { const dd = dl(); $$("#sess .s-day").forEach(sel => { const v = sel.value; sel.innerHTML = dd.map(d => `<option value="${d}"${d === v ? " selected" : ""}>${new Date(d + "T12:00:00Z").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"})}</option>`).join(""); }); };
-      $("#f_start_date").addEventListener("change", () => { if (!$("#f_end_date").value) $("#f_end_date").value = $("#f_start_date").value; refreshDays(); });
-      $("#f_end_date").addEventListener("change", refreshDays);
-    },
-    collect(){ return { sessions: $$("#sess .srow:not(.h)").map(row => ({ day: row.querySelector(".s-day").value, time: row.querySelector(".s-time").value, label: row.querySelector(".s-label").value.trim(), type: row.querySelector(".s-type").value, min: +row.querySelector(".s-min").value || 60 })).filter(x => x.label || x.time) }; }
+    { section:"Note on the race card", items:[{ k:"note", l:"Note", help:"Optional. For example: Official Prologue 8–9 March" }] }
+  ], e ? { ...e, venue_name: venue?.name || "", country: venue?.country || "" } : {}, {
+    onDelete: !!e, deleteText: "Delete this race and its schedule?", ok: e ? "Save" : "Add race",
+    after(){ $("#f_start_date").addEventListener("change", () => { if (!$("#f_end_date").value) $("#f_end_date").value = $("#f_start_date").value; }); }
   });
-  if (!r) return;
+  if (!r) return e ? editRace(s, e, yr) : null;
   if (r.__delete) return guard(async () => { await del("events", e.id); location.hash = `#/championships/${s.slug}`; route(); }, "Race deleted");
-  const bad = r.sessions.find(x => !x.label || !x.time || !x.day);
-  if (bad){ alert("Each session needs a day, a time and a name."); return editRace(s, e, yr); }
-  if (r.end_date < r.start_date){ alert("The last day is before the first day."); return editRace(s, e, yr); }
-  await guard(async () => {
-    const venue_id = r.venue_name ? await ensureVenue(r.venue_name, r.country) : null;
-    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, watch_url: r.watch_url, note: r.note, updated_at: new Date().toISOString() };
-    let id = e?.id;
-    if (e) await upd("events", e.id, row);
-    else { row.ext_key = extKey(s, row); const [n] = await ins("events", row); id = n.id; }
-    const before = JSON.stringify(sessInit.map(x => [x.day, x.time, x.label, x.type, x.min]));
-    const after = JSON.stringify(r.sessions.map(x => [x.day, x.time, x.label, x.type, x.min]));
-    if (before !== after){
-      await api(`sessions?event_id=eq.${id}`, { method:"DELETE" });
-      if (r.sessions.length) await ins("sessions", r.sessions.sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time)).map(x => ({ event_id:id, label:x.label, type:x.type, local_start:`${x.day}T${x.time}:00`, duration_min:x.min })));
-    }
-        location.hash = `#/championships/${s.slug}`; route();
+  if (r.end_date < r.start_date){ alert("The last day is before the first day."); return editRaceDetails(s, e, yr); }
+  let saved = null;
+  const ok = await guard(async () => {
+    const venue_id = r.venue_name ? await ensureVenue(r.venue_name, r.country) : (e?.venue_id || null);
+    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, note: r.note, updated_at: new Date().toISOString() };
+    if (e){ await upd("events", e.id, row); saved = { ...e, ...row }; }
+    else { row.ext_key = extKey(s, row); [saved] = await ins("events", row); }
   }, e ? "Race saved" : "Race added");
+  if (ok){ await route(); editRace(s, saved, yr); }
+}
+
+// Schedule editor: one block per day, each session = time + name + length
+async function editSchedule(s, e, ss){
+  const dl = days(e.start_date, e.end_date);
+  const venue = e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
+  const byDay = Object.fromEntries(dl.map(d => [d, []]));
+  ss.forEach(x => { const d = String(x.local_start).slice(0,10); (byDay[d] = byDay[d] || []).push({ time: String(x.local_start).replace("T"," ").slice(11,16), label: x.label, min: x.duration_min, type: x.type, cat: x.category }); });
+  const row = x => `<div class="se-row"><input type="time" class="se-t" value="${esc(x.time || "")}" aria-label="Start time"><input class="se-l" value="${esc(x.label || "")}" placeholder="Session name" aria-label="Session name" data-type="${esc(x.type || "")}" data-cat="${esc(x.cat || "")}"><div class="min"><input type="number" min="1" class="se-m" value="${esc(String(x.min || 60))}" aria-label="Length in minutes"><span>min</span></div><button type="button" class="btn icon sm se-x" aria-label="Remove session">×</button></div>`;
+  const html = `<section class="fs"><h4><i></i>${esc(e.name)} <small>Local circuit time${venue ? " · " + esc(venue.timezone) : ""}</small></h4>
+    ${Object.keys(byDay).sort().map(d => `<div class="se-day" data-day="${d}"><h5>${dayName(d)}</h5><div class="se-head"><span>Time</span><span>Session</span><span class="h-min">Length</span><span></span></div><div class="se-rows">${byDay[d].map(row).join("")}</div><div><button type="button" class="btn sm se-add">+ Add session</button></div></div>`).join("")}
+    <details><summary class="muted" style="cursor:pointer;font-size:13px;font-weight:600">Paste a whole timetable instead</summary><div style="display:grid;gap:8px;margin-top:10px"><textarea id="se-paste" placeholder="One session per line, for example:\nFri 10:10 Free Practice 1 90\nSat 15:00 Race 240"></textarea><div><button type="button" class="btn sm" id="se-pasteok">Add these sessions</button></div></div></details></section>`;
+  const r = await drawer("Schedule", [{ html }], {}, { ok:"Save schedule", after(){
+    const add = (d, x) => { const box = document.querySelector(`.se-day[data-day="${d}"] .se-rows`); box.insertAdjacentHTML("beforeend", row(x)); return box.lastElementChild; };
+    $("#dr-b").addEventListener("click", ev => {
+      if (ev.target.closest(".se-x")) ev.target.closest(".se-row").remove();
+      const a = ev.target.closest(".se-add"); if (a){ const d = a.closest(".se-day").dataset.day; add(d, { min:60 }).querySelector(".se-t").focus(); }
+    });
+    $$(".se-day").forEach(dd => { if (!dd.querySelector(".se-row")) add(dd.dataset.day, { min:60 }); });
+    $("#se-pasteok").onclick = () => {
+      for (const line of $("#se-paste").value.split("\n").map(x => x.trim()).filter(Boolean)){
+        let m = line.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}[:.h]\d{2})\s*[|,;\-–]?\s*(.+?)(?:\s*[|,;]?\s+(\d+)\s*(?:min)?)?$/i), day;
+        if (m) day = m[1];
+        else { m = line.match(/^(mon|tue|wed|thu|fri|sat|sun)\w*\.?\s+(\d{1,2}[:.h]\d{2})\s*[|,;\-–]?\s*(.+?)(?:\s*[|,;]?\s+(\d+)\s*(?:min)?)?$/i); if (m){ const want = ["sun","mon","tue","wed","thu","fri","sat"].indexOf(m[1].slice(0,3).toLowerCase()); day = dl.find(d => new Date(d + "T12:00:00Z").getUTCDay() === want); } }
+        if (!m || !day || !document.querySelector(`.se-day[data-day="${day}"]`)){ alert("Couldn't read: " + line); return; }
+        const empty = [...document.querySelectorAll(`.se-day[data-day="${day}"] .se-row`)].find(r => !r.querySelector(".se-l").value && !r.querySelector(".se-t").value); if (empty) empty.remove();
+        add(day, { time: m[2].replace(/[.h]/, ":").padStart(5, "0"), label: m[3].trim(), min: m[4] ? +m[4] : 60 });
+      }
+      $("#se-paste").value = ""; $("#se-paste").closest("details").open = false;
+    };
+  }, collect(){ return { rows: $$(".se-day").flatMap(dd => [...dd.querySelectorAll(".se-row")].map(r => ({ day: dd.dataset.day, time: r.querySelector(".se-t").value, label: r.querySelector(".se-l").value.trim(), min: +r.querySelector(".se-m").value || 60, type: r.querySelector(".se-l").dataset.type, cat: r.querySelector(".se-l").dataset.cat }))).filter(x => x.time || x.label) }; } });
+  if (!r) return editRace(s, e);
+  const bad = r.rows.find(x => !x.time || !x.label);
+  if (bad){ alert("Each session needs a time and a name."); return editSchedule(s, e, ss); }
+  const ok = await guard(async () => {
+    await api(`sessions?event_id=eq.${e.id}`, { method:"DELETE" });
+    if (r.rows.length) await ins("sessions", r.rows.sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time)).map(x => ({ event_id:e.id, label:x.label, type: x.type && guessType(x.label) === "other" ? x.type : guessType(x.label), category: x.cat || null, local_start:`${x.day}T${x.time}:00`, duration_min:x.min })));
+  }, "Schedule saved");
+  if (ok){ await route(); editRace(s, e); }
 }
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const extKey = (s, row) => row.round ? `${s.slug}-${row.year}-r${row.round}` : `${s.slug}-${row.year}-${slugify(row.name)}`;
@@ -670,8 +722,8 @@ async function processLogo(file, mode){
 }
 async function uploadMedia(blob, path){
   const t = await token();
-  const r = await fetch(`${C.url}/storage/v1/object/media/${path}`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"image/png", "x-upsert":"true" }, body: blob });
-  if (!r.ok) throw new Error("upload failed (" + r.status + ")");
+  const r = await fetch(`${C.url}/storage/v1/object/media/${path}`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type": blob.type || "image/png" }, body: blob });
+  if (!r.ok){ let m = ""; try { m = (await r.json()).message || ""; } catch(e){} throw new Error(`upload failed (${r.status}${m ? ": " + m : ""})`); }
   return `${C.url}/storage/v1/object/public/media/${path}`;
 }
 function logoPicker(current){
@@ -833,7 +885,7 @@ function pretty(p){
   if (p.kind === "event_change") return [pl.start_date && `${fmtRange(pl.start_date, pl.end_date || pl.start_date)} ${pl.start_date.slice(0,4)}`, pl.name, pl.duration_label, pl.circuit?.name].filter(Boolean).join("\n");
   return JSON.stringify(pl, null, 2);
 }
-const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<span class="chip good" style="margin-top:4px">Timetable: ${e.sessions.length} sessions</span>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
+const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<details class="tt-peek" open><summary><span class="chip good">Timetable · ${e.sessions.length} sessions</span></summary><div class="tt-box">${sessionList(e.sessions)}</div></details>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
 async function current(p){
   if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}  ${s.label}  (${s.duration_min} min)`).join("\n") : "No sessions yet"; }
   if (p.kind === "watch_link"){ if (p.event_id){ const [e] = await api(`events?id=eq.${p.event_id}&select=watch_url`); if (e?.watch_url) return e.watch_url; } return D.series.find(x => x.id === p.series_id)?.watch_url || "No link yet"; }

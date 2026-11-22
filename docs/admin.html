@@ -196,7 +196,8 @@ async function api(path, opt = {}){
   const r = await fetch(`${C.url}/rest/v1/${path}`, { ...opt, headers:{ apikey:C.key, Authorization:`Bearer ${t || C.key}`, "Content-Type":"application/json", Prefer:"return=representation", ...(opt.headers||{}) } });
   if (!r.ok){ let m = r.status + ""; try { const j = await r.json(); m = j.message || j.hint || m; } catch(e){} throw new Error(m); }
   if (opt.withCount){ const cr = r.headers.get("content-range") || ""; return { rows: await r.json(), total: +(cr.split("/")[1] || 0) }; }
-  return r.status === 204 ? null : r.json();
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : null;
 }
 const rpc = (fn, args) => api(`rpc/${fn}`, { method:"POST", body: JSON.stringify(args || {}) });
 const ins = (t, row) => api(t, { method:"POST", body: JSON.stringify(row) });

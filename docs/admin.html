@@ -46,6 +46,32 @@
   .ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
   .ph h1{font:700 26px 'Barlow Condensed';letter-spacing:.02em;text-transform:uppercase;margin:0;flex:1;min-width:0}
   .crumb{font-size:13px;color:var(--mute);margin-bottom:6px}
+  .back{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px 0 8px;margin-bottom:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--dim);text-decoration:none;font-weight:600;font-size:14px}
+  .back:hover{color:var(--text);border-color:var(--line2)}
+  .back svg{width:18px;height:18px}
+  /* sport picker: tiles, ready for many sports */
+  .sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:300px;overflow-y:auto;padding:2px}
+  .sp-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:92px;padding:12px 8px;border:1.5px solid var(--line2);border-radius:12px;background:#202128;color:var(--dim);cursor:pointer;font-weight:600;font-size:14px}
+  .sp-tile:hover{border-color:var(--mute);color:var(--text)}
+  .sp-tile .sp-ic{width:44px;max-height:26px}
+  .sp-tile[aria-checked="true"]{border-color:var(--acc);color:var(--text);background:rgba(255,90,31,.08)}
+  .sp-tile[aria-checked="true"]::after{content:"✓";position:absolute;top:6px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;line-height:18px;text-align:center}
+  .sp-find{margin-bottom:8px}
+  /* sport filter menu */
+  .menu-wrap{position:relative}
+  .menu-pop{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:320px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:6px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .menu-pop button{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border:0;border-radius:8px;background:none;color:var(--dim);font-weight:600;cursor:pointer;text-align:left}
+  .menu-pop button:hover,.menu-pop button:focus-visible{background:var(--panel);color:var(--text)}
+  .menu-pop button.on{color:var(--text)} .menu-pop button.on::after{content:"✓";margin-left:auto;color:var(--acc)}
+  .menu-pop .sp-ic,.btn .sp-ic{width:28px;max-height:16px}
+  /* AI setup window */
+  .ai-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .ai-box{background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:26px 24px 20px;width:min(440px,100%);text-align:center}
+  .ai-box h2{font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em;margin:14px 0 4px}
+  .ai-box .spin{width:38px;height:38px;border-width:3px;margin:0 auto}
+  .ai-box ul{list-style:none;padding:0;margin:18px 0;text-align:left;display:grid;gap:8px;font-size:14px;color:var(--dim)}
+  .ai-box li::before{content:"✦";color:var(--acc);margin-right:10px}
+  .ai-box .t{font-variant-numeric:tabular-nums}
   .crumb a{color:var(--dim);text-decoration:none} .crumb a:hover{color:var(--text)}
   h3{font:700 14px Barlow;letter-spacing:.1em;text-transform:uppercase;margin:24px 0 10px;color:var(--mute)}
   .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
@@ -57,10 +83,11 @@
   .btn.bad{color:var(--bad)}
   .btn.sm{height:30px;padding:0 10px;font-size:13px;border-radius:8px}
   .btn.icon{width:32px;padding:0;justify-content:center}
-  input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:38px;width:100%}
+  input,select,textarea{background:#202128;border:1px solid var(--line2);border-radius:10px;padding:9px 12px;min-height:42px;width:100%;font-size:15px}
+  input::placeholder,textarea::placeholder{color:#5d6069}
   textarea{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:13px}
   input:focus,select:focus,textarea:focus,.btn:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
-  label.f{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 4px}
+  label.f{display:block;font-size:13px;font-weight:600;color:var(--dim);margin:0 0 6px}
   .help{font-size:12px;color:var(--mute);margin-top:4px}
   .search{position:relative;max-width:320px;flex:1;min-width:180px}
   .search input{padding-left:34px}
@@ -171,6 +198,8 @@ const I = {
   pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   car:'<svg viewBox="-0.6 0.1 23.4 6.6" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" style="width:22px"><path stroke-width="0.9" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><circle stroke-width="0.9" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.9" cx="18.45" cy="5.15" r="1.4"/></svg>',
   menu:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'
 };
 
@@ -211,7 +240,7 @@ function aiDock(){ let d = $("#ai-dock"); if (!d){ d = document.createElement("d
 function showRuns(){
   const d = aiDock();
   d.querySelectorAll(".ai-run").forEach(n => n.remove());
-  Object.values(RUNS).forEach(r => d.insertAdjacentHTML("afterbegin", `<div class="ai-card ai-run"><span class="spin"></span><div class="grow"><b>${esc(r.label)}</b><div class="muted" style="font-size:13px">The AI is reading the official site. Usually 1–3 minutes. You can keep working.</div></div></div>`));
+  Object.values(RUNS).filter(r => !(r.hooks?.quiet && r.hooks.quiet())).forEach(r => d.insertAdjacentHTML("afterbegin", `<div class="ai-card ai-run"><span class="spin"></span><div class="grow"><b>${esc(r.label)}</b><div class="muted" style="font-size:13px">The AI is reading the official site. Usually 1–3 minutes. You can keep working.</div></div></div>`));
 }
 function aiNotice(msg, toReview){
   const d = aiDock(), n = document.createElement("div");
@@ -222,13 +251,13 @@ function aiNotice(msg, toReview){
   d.appendChild(n);
 }
 const aiBusy = key => Object.values(RUNS).some(r => r.key === key);
-async function runAgent(body, label, key){
+async function runAgent(body, label, key, hooks = {}){
   if (aiBusy(key)) return toast("Already checking…");
   const t = await token();
   let j = {}, ok = false;
   try { const r = await fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify(body) }); ok = r.ok; j = await r.json().catch(() => ({})); } catch(e){ j = { error: e.message }; }
   if (!ok || !j.run_id) return alert("The AI couldn't start: " + (j.error || "no answer"));
-  RUNS[j.run_id] = { label, key, t0: Date.now() };
+  RUNS[j.run_id] = { label, key, t0: Date.now(), hooks, discover: body.action === "discover" };
   showRuns(); pollRun(j.run_id);
 }
 async function pollRun(id){
@@ -237,6 +266,8 @@ async function pollRun(id){
   try { [run] = await api(`check_runs?id=eq.${id}&select=result,summary,error`); } catch(e){}
   if ((!run || run.result === "running") && Date.now() - meta.t0 < 6 * 60e3) return pollRun(id);
   delete RUNS[id]; showRuns();
+  if (meta.discover && run && run.result !== "error") await whitenLogo(meta.key);
+  if (meta.hooks.done && meta.hooks.done(run)) return;
   if (!run || run.result === "running") aiNotice(`${meta.label}: no answer after 6 minutes. Try again in a moment.`);
   else if (run.result === "error") aiNotice(`${meta.label} didn't work: ${run.error || "unknown error"}`);
   else aiNotice(`${meta.label}: ${run.summary || "done."}`, run.result === "proposal");
@@ -350,6 +381,7 @@ async function route(){
   try {
     await loadRef();
     if (page === "championships" && a) await championshipPage(decodeURIComponent(a), b);
+    else if (page === "review" && a) await review(decodeURIComponent(a));
     else await ({ dashboard, championships, review, users, circuits, vehicles }[page] || dashboard)();
   } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
 }
@@ -394,12 +426,18 @@ const PAGE = 25;
 async function championships(){
   $("#main").innerHTML = `<div class="ph"><h1>Championships</h1><button class="btn pri" id="c-add">+ Add championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="c-q" placeholder="Search championships" value="${esc(CQ.q)}" aria-label="Search championships"></label>
-      <div class="seg" id="c-sport" role="group" aria-label="Sport"><button data-sp="" class="${CQ.sport ? "" : "on"}">All</button>${Object.entries(SPORT).map(([k, v]) => `<button data-sp="${k}" class="${CQ.sport === k ? "on" : ""}">${v.i}${v.l}</button>`).join("")}</div>
+      <div class="menu-wrap"><button class="btn" id="c-sport" aria-haspopup="true" aria-expanded="false">${CQ.sport ? SPORT[CQ.sport].i + SPORT[CQ.sport].l : "All sports"} ${I.chev}</button>
+        <div class="menu-pop" id="c-sport-pop" hidden role="menu"><button role="menuitemradio" data-sp="" class="${CQ.sport ? "" : "on"}">All sports</button>${Object.entries(SPORT).map(([k, v]) => `<button role="menuitemradio" data-sp="${k}" class="${CQ.sport === k ? "on" : ""}">${v.i}${v.l}</button>`).join("")}</div></div>
       <label class="sw" style="font-size:14px"><input type="checkbox" id="c-attn"${CQ.attn ? " checked" : ""}> Needs attention</label></div>
     <div id="c-list"><p class="muted">Loading…</p></div>`;
   $("#c-add").onclick = () => editSeries();
   let t; $("#c-q").oninput = e => { clearTimeout(t); t = setTimeout(() => { CQ.q = e.target.value.trim(); CQ.page = 0; loadList(); }, 250); };
-  $$("#c-sport button").forEach(b => b.onclick = () => { CQ.sport = b.dataset.sp; CQ.page = 0; $$("#c-sport button").forEach(x => x.classList.toggle("on", x === b)); loadList(); });
+  const sb = $("#c-sport"), pop = $("#c-sport-pop");
+  const closePop = () => { pop.hidden = true; sb.setAttribute("aria-expanded", "false"); };
+  sb.onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; sb.setAttribute("aria-expanded", String(!pop.hidden)); if (!pop.hidden) pop.querySelector("button.on, button")?.focus(); };
+  pop.onkeydown = e => { const items = [...pop.querySelectorAll("button")], i = items.indexOf(document.activeElement); if (e.key === "ArrowDown"){ e.preventDefault(); items[(i + 1) % items.length].focus(); } else if (e.key === "ArrowUp"){ e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); } else if (e.key === "Escape"){ closePop(); sb.focus(); } };
+  if (!window.__popClose){ window.__popClose = true; document.addEventListener("click", e => { if (!e.target.closest(".menu-wrap")){ const p = $("#c-sport-pop"); if (p){ p.hidden = true; $("#c-sport")?.setAttribute("aria-expanded", "false"); } } }); }
+  $$("#c-sport-pop button").forEach(b => b.onclick = () => { CQ.sport = b.dataset.sp; CQ.page = 0; championships(); });
   $("#c-attn").onchange = e => { CQ.attn = e.target.checked; CQ.page = 0; loadList(); };
   loadList();
 }
@@ -427,6 +465,7 @@ let SEASON = {};
 async function championshipPage(slug, openId){
   const s = D.series.find(x => x.slug === slug);
   if (!s){ $("#main").innerHTML = `<p class="dim">Championship not found.</p>`; return; }
+  if (s.logo_url && s.logo_url.includes("-agent-") && !aiBusy(s.id)) whitenLogo(s.id).then(ok => { if (ok){ const im = $(".head-card img"); const n = D.series.find(x => x.id === s.id); if (im && n) im.src = n.logo_url; } });
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
   const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
   const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
@@ -434,7 +473,7 @@ async function championshipPage(slug, openId){
   const schedChip = e => e.session_count ? `<span class="chip good">${e.session_count} sessions</span>` : (e.end_date < TODAY ? '<span class="chip">–</span>' : '<span class="chip warn">Missing</span>');
   const table = list => `<div class="tbl"><table><tr><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
       ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
-  $("#main").innerHTML = `<div class="crumb"><a href="#/championships">Championships</a> / ${esc(s.name)}</div>
+  $("#main").innerHTML = `<a class="back" href="#/championships">${I.back}All championships</a>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
       <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.watch_url ? `<a href="${esc(s.watch_url)}" target="_blank" rel="noopener">Where to watch ↗</a>` : `<span class="chip warn">No where-to-watch link</span>`}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
@@ -581,8 +620,9 @@ async function importCalendar(s, yr, existing){
 // Logo: drop / paste / pick any image (even a screenshot); background removed, made white for the dark pages
 async function processLogo(file, mode){
   const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
-  const scale = Math.min(1, 900 / Math.max(img.width, img.height));
-  const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+  const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
+  const scale = /svg/.test(file.type || "") ? 900 / Math.max(iw, ih) : Math.min(1, 900 / Math.max(iw, ih));
+  const w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
   const d = cx.getImageData(0, 0, w, h), px = d.data;
@@ -633,47 +673,116 @@ function logoPicker(current){
     $$("#lg-mode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#lg-mode button").forEach(x => x.classList.toggle("on", x === b)); run(); });
   } };
 }
+function sportPicker(cur){
+  const many = Object.keys(SPORT).length > 8;
+  const html = `<div style="grid-column:1/-1"><label class="f" id="sp-lab">Sport *</label>${many ? `<input class="sp-find" id="sp-find" placeholder="Search sports" aria-label="Search sports">` : ""}
+    <div class="sp-grid" id="sp-pick" role="radiogroup" aria-labelledby="sp-lab">${Object.entries(SPORT).map(([k, v]) => `<button type="button" class="sp-tile" role="radio" data-sp="${k}" aria-checked="${cur === k}" tabindex="${cur === k || (!cur && k === Object.keys(SPORT)[0]) ? 0 : -1}">${v.i}<span>${v.l}</span></button>`).join("")}</div></div>`;
+  const st = { v: cur || "" };
+  return { html, st, after(){
+    const tiles = $$("#sp-pick .sp-tile");
+    const pick = b => { st.v = b.dataset.sp; tiles.forEach(x => { x.setAttribute("aria-checked", x === b); x.tabIndex = x === b ? 0 : -1; }); };
+    tiles.forEach((b, i) => { b.onclick = () => pick(b); b.onkeydown = e => { const d = { ArrowRight:1, ArrowDown:1, ArrowLeft:-1, ArrowUp:-1 }[e.key]; if (d){ e.preventDefault(); const vis = tiles.filter(t => !t.hidden); const n = vis[(vis.indexOf(b) + d + vis.length) % vis.length]; n.focus(); pick(n); } }; });
+    if ($("#sp-find")) $("#sp-find").oninput = e => { const q = e.target.value.toLowerCase(); tiles.forEach(t => t.hidden = !t.textContent.toLowerCase().includes(q)); };
+  } };
+}
+async function addSeries(){
+  const sp = sportPicker("");
+  const r = await drawer("Add championship", [
+    { k:"name", l:"Full championship name", req:true },
+    { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
+    { html: sp.html }
+  ], {}, { ok:"Add and find with AI", after: sp.after });
+  if (!r) return;
+  if (!sp.st.v){ alert("Choose a sport."); return addSeries(); }
+  const row = { name:r.name, short_name:r.short_name || r.name, sport:sp.st.v, slug: slugify(r.short_name && r.short_name !== r.name ? r.short_name : r.name).slice(0, 40) };
+  if (D.series.some(x => x.slug === row.slug)) row.slug = (row.slug + "-" + Date.now().toString(36).slice(-3)).slice(0, 44);
+  let n;
+  try { [n] = await ins("series", row); await loadRef(); } catch(e){ return alert("Couldn't add it: " + e.message); }
+  aiSetup(n);
+}
+// Full-screen progress while the AI sets up a new championship, then straight to review
+function aiSetup(n){
+  const label = n.short_name && n.short_name !== n.name ? n.short_name : n.name;
+  const m = document.createElement("div");
+  m.className = "ai-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "ai-h");
+  m.innerHTML = `<div class="ai-box"><div class="spin"></div><h2 id="ai-h">Setting up ${esc(label)}</h2><div class="dim">Usually about 30–60 seconds · <span class="t" id="ai-t">0s</span></div>
+    <ul><li>Official website</li><li>Logo, turned white for the pages</li><li>Season calendar and circuits</li><li>Where to watch</li></ul>
+    <div class="bar" style="justify-content:center;margin:0"><button class="btn" id="ai-bg">Keep working, notify me</button></div></div>`;
+  document.body.appendChild(m);
+  const t0 = Date.now(), tick = setInterval(() => { const el = $("#ai-t"); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
+  let open = true;
+  const close = () => { open = false; clearInterval(tick); m.remove(); showRuns(); };
+  $("#ai-bg").onclick = () => { close(); location.hash = `#/championships/${n.slug}`; };
+  $("#ai-bg").focus();
+  runAgent({ action:"discover", series_id:n.id }, `Setting up ${label}`, n.id, {
+    quiet: () => open,
+    done(run){
+      if (!open) return false;
+      clearInterval(tick);
+      if (run && run.result === "proposal"){ close(); location.hash = `#/review/${n.slug}`; return true; }
+      const box = m.querySelector(".ai-box");
+      box.innerHTML = run && run.result === "no_change"
+        ? `<h2>${esc(label)} is ready</h2><p class="dim">${esc(run.summary || "")}</p><div class="bar" style="justify-content:center;margin:0"><button class="btn pri" id="ai-ok">Open championship</button></div>`
+        : `<h2>That didn't work</h2><p class="dim">${esc(run?.error || "No answer from the AI yet.")}</p><div class="bar" style="justify-content:center;margin:0"><button class="btn" id="ai-ok">Open championship</button><button class="btn pri" id="ai-retry">Try again</button></div>`;
+      $("#ai-ok").onclick = () => { close(); location.hash = `#/championships/${n.slug}`; };
+      if ($("#ai-retry")) $("#ai-retry").onclick = () => { close(); aiSetup(n); };
+      $("#ai-ok").focus();
+      return true;
+    }
+  });
+}
+// The AI copies the official logo as-is; turn it white with the background removed, like hand-added logos
+async function whitenLogo(sid){
+  const [x] = await api(`series?id=eq.${sid}&select=id,slug,logo_url`);
+  if (!x?.logo_url || !x.logo_url.includes("-agent-")) return false;
+  try {
+    const blob = await (await fetch(x.logo_url)).blob();
+    const white = await processLogo(blob, "white");
+    const url = await uploadMedia(white, `series/${x.slug}-${Date.now()}.png`);
+    await upd("series", x.id, { logo_url: url });
+    await loadRef();
+    return true;
+  } catch(e){ return false; }
+}
 async function editSeries(s, src){
-  const lp = logoPicker(s?.logo_url);
-  let sport = s?.sport || "";
-  const sportHtml = `<div><label class="f">Sport *</label><div class="seg" id="sp-pick" role="radiogroup" aria-label="Sport">${Object.entries(SPORT).map(([k, v]) => `<button type="button" role="radio" data-sp="${k}" class="${sport === k ? "on" : ""}" aria-checked="${sport === k}">${v.i}${v.l}</button>`).join("")}</div></div>`;
-  const r = await drawer(s ? `Edit ${s.short_name || s.name}` : "Add championship", [
+  if (!s) return addSeries();
+  const lp = logoPicker(s.logo_url);
+  const sp = sportPicker(s.sport || "");
+  const r = await drawer(`Edit ${s.short_name || s.name}`, [
     { html: lp.html },
-    { k:"name", l:"Full championship name", req:true, ph:"European Le Mans Series" },
-    { k:"short_name", l:"Short name", ph:"ELMS" },
-    { html: sportHtml },
-    ...(s ? [] : [{ html:`<label class="sw" style="grid-column:1/-1;font-size:14px"><input type="checkbox" id="f_ai" checked> Let the AI find the logo, official site, calendar and where to watch</label>` }]),
-    { html:`<details style="grid-column:1/-1"${s ? "" : ""}><summary class="muted" style="cursor:pointer;font-size:13px;letter-spacing:.06em;text-transform:uppercase">Agent settings (optional)</summary><div style="display:grid;gap:12px;margin-top:12px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s?.website_url)}${fieldHtml({ k:"urls", l:"Official pages the agent reads (one per line)", type:"textarea", ph:"https://www.europeanlemansseries.com/en/calendar" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", ph:"Timetables are in a PDF at the bottom of each race page." }, src?.agent_instructions || "")}</div></details>` }
-  ], s || {}, { onDelete: !!s, deleteText:"Delete this championship, all its races and every user's entry in it?", ok: s ? "Save" : "Add championship",
-    after(){ lp.after(); $$("#sp-pick button").forEach(b => b.onclick = () => { sport = b.dataset.sp; $$("#sp-pick button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); }); },
-    collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "", ai: !!$("#f_ai")?.checked }; }
+    { k:"name", l:"Full championship name", req:true },
+    { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
+    { html: sp.html },
+    { html:`<details style="grid-column:1/-1"><summary class="muted" style="cursor:pointer;font-size:13px;font-weight:600">Agent settings</summary><div style="display:grid;gap:12px;margin-top:12px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the agent reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
+  ], s, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
+    after(){ lp.after(); sp.after(); },
+    collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("series", s.id); location.hash = "#/championships"; route(); }, "Championship deleted");
-  if (!sport){ alert("Pick a sport: Sportscars, Formula or Motorbikes."); return editSeries(s, src); }
-  const { urls, instr, ai, ...row } = r;
-  row.sport = sport;
+  if (!sp.st.v){ alert("Choose a sport."); return editSeries(s, src); }
+  const { urls, instr, ...row } = r;
+  row.sport = sp.st.v;
   row.short_name = row.short_name || row.name;
-  if (!s) row.slug = slugify(r.short_name && r.short_name !== r.name ? r.short_name : r.name).slice(0, 40);
   const list = (urls || "").split("\n").map(u => u.trim()).filter(Boolean);
   const domains = [...new Set([...list, row.website_url || ""].map(u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return null; } }).filter(Boolean))];
   await guard(async () => {
-    const slug = s ? s.slug : row.slug;
-    if (lp.st.blob) row.logo_url = await uploadMedia(lp.st.blob, `series/${slug}-${Date.now()}.png`);
-    const id = s ? (await upd("series", s.id, row), s.id) : (await ins("series", row))[0].id;
-    await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id:id, urls:list.map(url => ({ url })), allowed_domains:domains, agent_instructions: instr || "" }) });
-    if (!s && ai) runAgent({ action:"discover", series_id:id }, `Setting up ${row.short_name}`, id);
+    if (lp.st.blob) row.logo_url = await uploadMedia(lp.st.blob, `series/${s.slug}-${Date.now()}.png`);
+    await upd("series", s.id, row);
+    await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id:s.id, urls:list.map(url => ({ url })), allowed_domains:domains, agent_instructions: instr || "" }) });
     await loadRef();
-    location.hash = `#/championships/${slug}`; route();
-  }, s ? "Saved" : "Championship added");
+    route();
+  }, "Saved");
 }
 
 // ---------- Review queue ----------
-async function review(){
-  const ps = await api("proposals?status=eq.pending&select=*,events(name,start_date),check_runs(kind,ran_at)&order=created_at");
+async function review(slug){
+  const only = slug ? D.series.find(x => x.slug === slug) : null;
+  const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
   const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Where to watch", new_season:"New season" };
-  $("#main").innerHTML = `<div class="ph"><h1>Review queue</h1><button class="btn" id="rv-new">+ Create a change by hand</button></div>` +
+  $("#main").innerHTML = (only ? `<a class="back" href="#/review">${I.back}Whole review queue</a>` : "") + `<div class="ph"><h1>${only ? `Review ${esc(only.short_name || only.name)}` : "Review queue"}</h1>${only ? `<a class="btn" href="#/championships/${esc(only.slug)}">Open championship</a>` : `<button class="btn" id="rv-new">+ Create a change by hand</button>`}</div>` +
+    (only && only.logo_url ? `<div class="card head-card" style="margin-bottom:12px"><img src="${esc(only.logo_url)}" alt=""><div class="dim" style="font-size:14px">Logo found by the AI and turned white. Not right? Change it in <a href="#/championships/${esc(only.slug)}">Edit championship</a>.</div></div>` : "") +
     (ps.length ? ps.map(p => `<div class="card" style="margin-bottom:12px" data-p="${p.id}">
       <div class="bar"><div class="grow"><span class="chip warn">${KIND[p.kind] || p.kind}</span> <b>${esc(ser[p.series_id]?.short_name || "")} ${esc(p.events?.name || "")}</b><div class="muted" style="font-size:13px">${p.check_runs ? `Agent · ${p.check_runs.kind} check · ` : "By hand · "}${ago(p.created_at)}</div></div></div>
       ${p.evidence?.url ? `<div style="font-size:13px;margin-bottom:8px">Source: <a href="${esc(p.evidence.url)}" target="_blank" rel="noopener">${esc(p.evidence.url)}</a></div>` : ""}
@@ -685,7 +794,7 @@ async function review(){
   for (const p of ps){
     const box = document.querySelector(`[data-p="${p.id}"]`);
     current(p).then(t => box.querySelector(".now").textContent = t);
-    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); route(); }, "Approved and published");
+    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
     box.querySelector('[data-act="edit"]').onclick = async () => {
       const r = await drawer("Edit proposal", [{ k:"payload", l:"Data (local circuit times)", type:"textarea" }], { payload: JSON.stringify(p.payload, null, 2) }, { ok:"Approve with changes" });
@@ -693,7 +802,7 @@ async function review(){
       guard(async () => { await rpc("apply_proposal", { p_id:p.id, p_payload:pl }); route(); }, "Approved and published");
     };
   }
-  $("#rv-new").onclick = manualProposal;
+  if ($("#rv-new")) $("#rv-new").onclick = manualProposal;
 }
 function pretty(p){
   const pl = p.payload || {};
@@ -760,7 +869,7 @@ async function editProfile(p){
 async function openProfile(id){
   const [[p], ens, sps] = await Promise.all([api(`profiles?id=eq.${id}&select=*`), api(`entries?profile_id=eq.${id}&select=*,series(short_name,name),vehicles(name)&order=year.desc`), api(`sponsors?profile_id=eq.${id}&select=*&order=sort`)]);
   const page = new URL(`./${p.slug}`, location.href.split("#")[0]).href;
-  $("#main").innerHTML = `<div class="crumb"><a href="#/users">Users</a> / ${esc(p.display_name)}</div>
+  $("#main").innerHTML = `<a class="back" href="#/users">${I.back}All users</a>
     <div class="ph"><h1>${esc(p.display_name)}</h1>${p.published ? '<span class="chip good">Published</span>' : '<span class="chip">Draft</span>'}<a class="btn" href="${esc(page)}" target="_blank" rel="noopener">Open page ↗</a><button class="btn" id="p-edit">Edit</button></div>
     <h3>Championships</h3>
     ${ens.length ? `<div class="tbl"><table><tr><th>Championship</th><th>Team</th><th class="hide-m">Vehicle</th><th>#</th><th class="hide-m">Colour</th></tr>${ens.map((e, i) => `<tr class="click" data-e="${i}"><td><b>${esc(e.series?.short_name)}</b> ${e.year}</td><td>${esc(e.team || "")}</td><td class="hide-m dim">${esc(e.vehicles?.name || "")}</td><td>${esc(e.car_number || "")}</td><td class="hide-m">${e.color ? `<span class="light" style="background:${esc(e.color)}"></span>` : ""}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No championships yet.</div>`}

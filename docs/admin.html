@@ -1066,25 +1066,40 @@ async function editVenue(v){
   if (r.country_code) r.country_code = r.country_code.toUpperCase();
   await guard(async () => { v ? await upd("venues", v.id, r) : await ins("venues", r); route(); }, "Circuit saved");
 }
+// Vehicle specs: one fixed list, used by every user page
+const VFIELDS = [
+  { k:"engine", l:"Engine", help:"For example: Gibson GK428 4.2 L V8, naturally aspirated" },
+  { k:"hybrid", l:"Hybrid system", help:"Leave empty if there's none" },
+  { k:"power", l:"Power", help:"For example: 680 hp (500 kW)" },
+  { k:"max_rpm", l:"Max rpm", help:"For example: 9,000 rpm" },
+  { k:"gearbox", l:"Gearbox", help:"For example: 7-speed sequential" },
+  { k:"weight", l:"Weight", help:"For example: 1,030 kg" },
+  { k:"dimensions", l:"Dimensions", help:"For example: 5,100 × 2,000 mm (L × W)" }
+];
+const DRIVE = { awd:"AWD", rwd:"RWD", fwd:"FWD" };
 async function vehicles(){
   const rows = [...D.vehicles].sort((a, b) => (a.status === "pending" ? 0 : 1) - (b.status === "pending" ? 0 : 1) || a.name.localeCompare(b.name));
   listPage("Vehicles", rows, [
-    { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>` }, { l:"Category", f:v => esc(v.category || ""), m:1 },
-    { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : '<span class="chip warn">To approve</span>' }
+    { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>` }, { l:"Engine", f:v => `<span class="dim">${esc(v.engine || "")}</span>`, m:1 },
+    { l:"Drivetrain", f:v => esc(DRIVE[v.drivetrain] || "–"), m:1 },
+    { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : '<span class="chip warn">Added by a user · to approve</span>' }
   ], () => editVehicle(), editVehicle, "+ Add vehicle");
 }
 async function editVehicle(v){
+  let drive = v?.drivetrain || "";
+  const driveHtml = `<div><label class="f">Drivetrain</label><div class="seg" id="dv-pick" role="radiogroup" aria-label="Drivetrain">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" class="${drive === k ? "on" : ""}" aria-checked="${drive === k}">${l}</button>`).join("")}</div><div class="help">All-wheel, rear-wheel or front-wheel drive. Tap again to clear.</div></div>`;
   const r = await drawer(v ? v.name : "Add vehicle", [
-    { k:"name", l:"Name", req:true, ph:"ORECA 07" },
-    { row:[{ k:"manufacturer", l:"Manufacturer" }, { k:"category", l:"Category", ph:"LMP2" }] },
-    { k:"photo_url", l:"Photo (image link)", type:"url" },
-    { k:"specs", l:"Specs, one per line – Label: value", type:"textarea", ph:"Engine: Gibson V8 4.2 L\nPower: ~600 hp" },
-    { k:"approved", l:"Catalogue", type:"bool", l2:"Approved – every user can pick it" }
-  ], { ...(v || {}), specs:(v?.specs || []).map(s => `${s.label}: ${s.value}`).join("\n"), approved: v ? v.status === "approved" : true }, { onDelete: !!v });
+    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }] },
+    { section:"Specs", sub:"Shown on every page that uses this car", items:[
+      VFIELDS[0], VFIELDS[1], VFIELDS[2], { html: driveHtml },
+      { row:[VFIELDS[3], VFIELDS[4]] }, { row:[VFIELDS[5], VFIELDS[6]] } ] },
+    { section:"Catalogue", items:[{ k:"approved", l:"Availability", type:"bool", l2:"In the catalogue: every user can pick it" }] }
+  ], { ...(v || {}), approved: v ? v.status === "approved" : true }, { onDelete: !!v, deleteText:"Delete this vehicle? Pages using it will show no car.",
+    after(){ $$("#dv-pick button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-pick button").forEach(x => { x.classList.toggle("on", x.dataset.d === drive); x.setAttribute("aria-checked", x.dataset.d === drive); }); }); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("vehicles", v.id); route(); }, "Deleted");
-  const row = { name:r.name, manufacturer:r.manufacturer, category:r.category, photo_url:r.photo_url, status: r.approved ? "approved" : "pending",
-    specs:(r.specs || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(":"); return i > 0 ? { label:l.slice(0, i).trim(), value:l.slice(i + 1).trim() } : { label:l, value:"" }; }) };
+  const row = { name:r.name, drivetrain: drive || null, status: r.approved ? "approved" : "pending" };
+  VFIELDS.forEach(f => row[f.k] = r[f.k] || null);
   await guard(async () => { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); route(); }, "Vehicle saved");
 }
 
@@ -1105,6 +1120,7 @@ async function start(){
   ME = await fetch(`${C.url}/auth/v1/user`, { headers:{ apikey:C.key, Authorization:`Bearer ${await token()}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
   if (!ME){ S.set(null); return login(); }
   let isAdmin = false; try { isAdmin = await rpc("am_i_admin"); } catch(e){}
+  if (!isAdmin && new URLSearchParams(location.search).get("stay") === null){ try { localStorage.setItem("rnx_user_sess", localStorage.getItem("rnx_admin_sess")); } catch(e){} location.replace("app.html"); return; }
   if (!isAdmin){
     $("#app").innerHTML = `<div class="login"><div class="brand" style="font-size:40px">RACEN<span class="x">X</span>T</div><div class="card" style="margin-top:20px;text-align:left"><b>Signed in as ${esc(ME.email)}</b><p class="dim">This account isn't an admin yet. Share this ID with the Racenxt team to get access:</p><pre>${esc(ME.id)}</pre><button class="btn" id="lo" style="margin-top:10px">Sign out</button></div></div>`;
     $("#lo").onclick = () => { S.set(null); location.reload(); };

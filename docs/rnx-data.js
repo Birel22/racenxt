@@ -1,7 +1,15 @@
 // Racenxt fan page: loads an athlete's data from the database and maps it to the page's structures.
 (function () {
   const C = window.RNX_CONFIG;
-  const H = { apikey: C.key, Authorization: "Bearer " + C.key };
+  // The page owner (signed in on the Racenxt app in this browser) can preview an unpublished page
+  const sess = (() => { for (const k of ["rnx_user_sess", "rnx_admin_sess"]) { try { const s = JSON.parse(localStorage.getItem(k) || "null"); if (s && s.access_token && s.expires_at > Date.now() / 1000 + 30) return s; } catch (e) {} } return null; })();
+  const H = { apikey: C.key, Authorization: "Bearer " + (sess ? sess.access_token : C.key) };
+  // Car specs: the fixed list from the admin library (old free-form lists still work)
+  const DRIVE = { awd: "All-wheel drive (AWD)", rwd: "Rear-wheel drive (RWD)", fwd: "Front-wheel drive (FWD)" };
+  const carSpecs = v => {
+    const list = [["Engine", v.engine], ["Hybrid system", v.hybrid], ["Power", v.power], ["Drivetrain", DRIVE[v.drivetrain] || ""], ["Max rpm", v.max_rpm], ["Gearbox", v.gearbox], ["Weight", v.weight], ["Dimensions", v.dimensions]].filter(x => x[1]);
+    return list.length ? list : (v.specs || []).map(x => [x.label, x.value]);
+  };
   const get = p => fetch(C.url + "/rest/v1/" + p, { headers: H }).then(r => { if (!r.ok) throw new Error(r.status + " " + p); return r.json(); });
 
   // Page address: racenxt.com/<slug> (served by 404.html on static hosting) or ?a=<slug>
@@ -33,7 +41,7 @@
       team[s.slug] = { num: en.car_number || "", team: en.team || "", mates: en.teammates || [] };
       if (en.vehicles) {
         const v = en.vehicles; carOf[s.slug] = v.id;
-        cars[v.id] = { name: v.name, img: v.photo_url || "", specs: (v.specs || []).map(x => [x.label, x.value]) };
+        cars[v.id] = { name: v.name, img: v.photo_url || "", specs: carSpecs(v) };
       }
     }
     // custom events (no championship)
@@ -81,7 +89,14 @@
     if (!slug) { message("Race Hub", "Open an athlete's page, for example racenxt.com/louis"); return null; }
     try {
       const [prof] = await get(`profiles?slug=eq.${encodeURIComponent(slug)}&select=*`);
-      if (!prof || !prof.published) { message("Page not found", "This Race Hub doesn’t exist or isn’t published yet."); return null; }
+      if (!prof) { message("Page not found", "This Race Hub doesn’t exist or isn’t published yet."); return null; }
+      if (!prof.published) {
+        // only members get here (RLS): show a small preview banner
+        const b = document.createElement("div");
+        b.textContent = "Preview · only you can see this page until it's published";
+        b.style.cssText = "position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9999;background:#FF5A1F;color:#fff;font:600 13px Barlow,system-ui,sans-serif;padding:7px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap";
+        document.addEventListener("DOMContentLoaded", () => document.body.appendChild(b)); if (document.body) document.body.appendChild(b);
+      }
       const [entries, overrides, sponsors] = await Promise.all([
         get(`entries?profile_id=eq.${prof.id}&select=*,series(*),vehicles(*)`),
         get(`event_overrides?profile_id=eq.${prof.id}&select=*`),

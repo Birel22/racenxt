@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     return new Response(L.join("\r\n") + "\r\n", {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": `${ids.length ? "attachment" : "inline"}; filename="${file}"`,
+        "Content-Disposition": `inline; filename="${file}"`,
         "Cache-Control": "public, max-age=300",
         "Access-Control-Allow-Origin": "*",
       },

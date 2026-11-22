@@ -18,7 +18,9 @@ def cut(start_marker, end_marker, new, include_end=True):
 s = re.sub(r'<title>.*?</title>', '<title>Race Hub</title>', s, count=1, flags=re.S)
 s = re.sub(r'\n<meta (name|property)="(description|og:[^"]*|twitter:[^"]*)"[^>]*>', '', s)
 s = re.sub(r'\n<link rel="(manifest|apple-touch-icon|icon)"[^>]*>', '', s)
-rep('</head>', '<script src="config.js"></script>\n<script src="rnx-data.js"></script>\n</head>')
+rep('</head>', '<script src="config.js"></script>\n<script src="rnx-edit.js"></script>\n<script src="rnx-data.js"></script>\n</head>')
+# car photo: only when the user added one (each user adds their own livery)
+rep('<img class="car-img" src="${c.img}" alt="${esc(c.name)}">', '${c.img ? `<img class="car-img" src="${c.img}" alt="${esc(c.name)}">` : ""}')
 
 # ---------- markup ----------
 cut('<img class="photo"', '<div class="lang"',
@@ -78,6 +80,7 @@ rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.serie
 rep('const T = k => I18N[LANG][k];', 'const T = k => I18N[LANG][k];\nconst esc0 = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",\'"\':"&quot;"}[c]));')
 rep('// ===== Langue / Language =====\nconst I18N', '// ===== Langue / Language =====\nrnxDecorate(RNX);\nconst I18N')
 
+s = s.replace("@louisdeletraz-calendar", "@racenxt")
 for bad in ["louis-calendar", "Louis Delétraz", "louisdeletraz"]:
     for m in re.finditer(re.escape(bad), s):
         print("leftover:", bad, s[max(0,m.start()-60):m.end()+40].replace("\n"," "))

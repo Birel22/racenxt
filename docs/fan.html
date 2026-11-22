@@ -399,6 +399,7 @@
   @media (max-width:360px){ .ev.ev2 .tt-btn span{display:none} .ev.ev2 .tt-btn{padding:0 9px} .ev.ev2 .where{-webkit-line-clamp:1} .ev.ev2 .ev-name{font-size:18px} }
 </style>
 <script src="config.js"></script>
+<script src="rnx-edit.js"></script>
 <script src="rnx-data.js"></script>
 </head>
 <body>
@@ -591,7 +592,7 @@ function icsDate(dt){ return dt.toISOString().replace(/[-:]/g,"").replace(/\.\d{
 function buildICS(ev, t, ks){
   const now = icsDate(new Date());
   const vev = ks.map(k => { const s = t.sessions[k]; const st = new Date(s.utc), en = new Date(st.getTime()+s.min*60000); const nm = `${t.title} – ${s.label.en}`;
-    return ["BEGIN:VEVENT",`UID:${ev.id}-${k}-2027@louisdeletraz-calendar`,`DTSTAMP:${now}`,`DTSTART:${icsDate(st)}`,`DTEND:${icsDate(en)}`,`SUMMARY:${icsEsc(nm)}`,`LOCATION:${icsEsc(t.loc)}`,`DESCRIPTION:${icsEsc("Louis Delétraz · "+t.title+" · "+t.src)}`,"BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(nm)}`,"TRIGGER:-PT15M","END:VALARM","END:VEVENT"].join("\r\n"); });
+    return ["BEGIN:VEVENT",`UID:${ev.id}-${k}-2027@racenxt`,`DTSTAMP:${now}`,`DTSTART:${icsDate(st)}`,`DTEND:${icsDate(en)}`,`SUMMARY:${icsEsc(nm)}`,`LOCATION:${icsEsc(t.loc)}`,`DESCRIPTION:${icsEsc("Louis Delétraz · "+t.title+" · "+t.src)}`,"BEGIN:VALARM","ACTION:DISPLAY",`DESCRIPTION:${icsEsc(nm)}`,"TRIGGER:-PT15M","END:VALARM","END:VEVENT"].join("\r\n"); });
   return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Louis Deletraz//Calendar 2027//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",...vev,"END:VCALENDAR"].join("\r\n")+"\r\n";
 }
 function updateCue(){
@@ -670,7 +671,7 @@ function fillCar(series){
   const c = CARS[CAR_OF[series]], tm = TEAM[series]; if (!c) return;
   document.getElementById("tt-hdc").innerHTML = `<div class="tt-head ${series}"><h3 id="tt-title">${esc(c.name)}</h3><small>${LABEL[series]}${tm ? " · #" + tm.num : ""}</small></div>`;
   const teamBlock = tm ? `<div class="team-box"><span class="team-num">#${tm.num}</span><div><b>${esc(tm.team)}</b><span>${T("drivers")}: ${[P.display_name, ...tm.mates].map(esc).join(", ")}</span></div></div>` : "";
-  document.getElementById("tt-body").innerHTML = `<img class="car-img" src="${c.img}" alt="${esc(c.name)}">${teamBlock}<div class="car-specs">${c.specs.map(([k,v]) => `<div class="spec"><span>${esc(L(k))}</span><span>${esc(L(v))}</span></div>`).join("")}</div>`;
+  document.getElementById("tt-body").innerHTML = `${c.img ? `<img class="car-img" src="${c.img}" alt="${esc(c.name)}">` : ""}${teamBlock}<div class="car-specs">${c.specs.map(([k,v]) => `<div class="spec"><span>${esc(L(k))}</span><span>${esc(L(v))}</span></div>`).join("")}</div>`;
   document.getElementById("tt-ft").innerHTML = "";
 }
 document.addEventListener("click", e => {

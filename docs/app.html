@@ -233,14 +233,6 @@ async function loadMembers(){
   const m = ST.members.find(x => x.profiles?.id === want) || ST.members[0];
   ST.profile = m?.profiles || null; ST.role = m?.role || null;
 }
-async function loadHub(){
-  const p = ST.profile;
-  [ST.series, ST.entries, ST.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,logo_url&order=name"),
-    api(`entries?profile_id=eq.${p.id}&select=*,series(id,slug,name,short_name,sport,logo_url),vehicles(*)&order=year.desc,created_at`),
-    api("vehicles?select=*&order=name")
-  ]);
-}
 const hubTitle = p => `${esc((p.first_name || p.display_name || "").toUpperCase())} <span>RACE HUB</span>`;
 
 // ---------- screens ----------
@@ -296,7 +288,7 @@ function onboarding(another){
     if (!touched){ $("#o-slug").value = slugify(f && l ? `${f}-${l}` : f || l); check(); } };
   $("#o-first").oninput = auto; $("#o-last").oninput = auto;
   $("#o-slug").oninput = () => { touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
-  if ($("#o-back")) $("#o-back").onclick = () => boot();
+  if ($("#o-back")) $("#o-back").onclick = () => history.back();
   $("#ob").onsubmit = async e => {
     e.preventDefault();
     if (!need("#o-first", "Add your first name.") || !need("#o-last", "Add your last name.")) return;
@@ -306,127 +298,9 @@ function onboarding(another){
     try {
       const id = await rpc("create_profile", { p_slug: slug, p_display_name: `${$("#o-first").value.trim()} ${$("#o-last").value.trim()}`, p_first_name: $("#o-first").value.trim(), p_sport: "motorsport" });
       localStorage.setItem(CUR, id); toast("Your Race Hub is ready");
-      await boot(); addChampionship();
+      location.replace(PAGE_BASE + slug);
     } catch(err){ alert("Couldn't create the page: " + err.message); $("#o-go").disabled = false; $("#o-go").textContent = "Create my page"; }
   };
-}
-
-function hub(){
-  const p = ST.profile, url = PAGE_BASE + p.slug;
-  const lg = s => s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc((s?.short_name || "?").slice(0, 5))}</span>`;
-  shell(`
-    <section class="card hub">
-      <button class="avatar" id="h-photo" aria-label="Change photo" style="${p.photo_url ? `background-image:url('${esc(p.photo_url)}')` : ""}">${p.photo_url ? "" : "Add photo"}<span class="cam">${CAM}</span></button>
-      <input type="file" id="h-file" accept="image/*" hidden>
-      <h1>${hubTitle(p)}</h1>
-      <div class="link"><code>${esc(url.replace(/^https?:\/\//, ""))}</code><button class="btn sm" id="h-copy">Copy</button><a class="btn sm" href="${esc(url)}" target="_blank" rel="noopener">Preview</a></div>
-      <div>${p.published ? `<span class="chip good">Live</span>` : `<span class="chip warn">Draft · only you can see it</span>`}</div>
-      <button class="btn sm ghost" id="h-edit">Edit name and link</button>
-    </section>
-    <div class="sec"><h2>Your season</h2>${ST.entries.length ? `<button class="btn sm pri" id="h-add">+ Add</button>` : ""}</div>
-    ${ST.entries.length ? `<div class="entries">${ST.entries.map(en => `<button class="entry" data-e="${en.id}" style="--c:${esc(en.color || "#8a8d96")}"><div class="lg">${lg(en.series)}</div><div><b>${esc(en.series?.name || "")}</b><div class="meta">${[en.car_number ? "#" + esc(en.car_number) : "", esc(en.team || ""), esc(en.vehicles?.name || "")].filter(Boolean).join(" · ") || "Add your number, team and car"}</div></div><span class="yr">${en.year}</span></button>`).join("")}</div>`
-      : `<div class="empty"><div><b style="color:var(--text);font-size:17px">No championship yet</b><div style="margin-top:4px">Pick the championships you race in: your calendar, schedules and where to watch fill in by themselves.</div></div><button class="btn pri" id="h-add">+ Add a championship</button></div>`}
-    <p class="muted" style="font-size:13px;text-align:center;margin-top:28px">Coming next: partners' logos, social links and your own events.</p>`);
-  $("#h-add").onclick = () => addChampionship();
-  $("#h-copy").onclick = async () => { try { await navigator.clipboard.writeText(url); toast("Link copied"); } catch(e){ prompt("Copy your link:", url); } };
-  $("#h-photo").onclick = () => $("#h-file").click();
-  $("#h-file").onchange = () => { const f = $("#h-file").files[0]; if (!f) return; guard(async () => { const blob = await squarePhoto(f); const u = await upload(blob, `profiles/${p.id}-${Date.now()}.jpg`); await upd("profiles", p.id, { photo_url:u, updated_at:new Date().toISOString() }); p.photo_url = u; hub(); }, "Photo updated"); };
-  $("#h-edit").onclick = editProfile;
-  $$("[data-e]").forEach(b => b.onclick = () => editEntry(ST.entries.find(x => x.id === b.dataset.e)));
-}
-
-async function editProfile(){
-  const p = ST.profile;
-  const r = await sheet("Name and link", `
-    <div class="two"><div class="field"><label class="f" for="p-first">First name</label><input id="p-first" value="${esc(p.first_name || "")}"><div class="help">Used for "${esc((p.first_name || "Name").toUpperCase())} RACE HUB".</div></div>
-    <div class="field"><label class="f" for="p-name">Full name</label><input id="p-name" value="${esc(p.display_name)}"></div></div>
-    <div class="field"><label class="f">Page link</label><div class="link" style="max-width:none"><code>${esc((PAGE_BASE + p.slug).replace(/^https?:\/\//, ""))}</code></div><div class="help">To change your link, contact us: people may already have the old one.</div></div>`,
-    { collect(){ if (!need("#p-first", "Add a first name.") || !need("#p-name", "Add your full name.")) return null; return { first_name:$("#p-first").value.trim(), display_name:$("#p-name").value.trim() }; } });
-  if (!r) return;
-  await guard(async () => { await upd("profiles", p.id, { ...r, updated_at:new Date().toISOString() }); Object.assign(p, r); hub(); }, "Saved");
-}
-
-// ---------- add a championship: pick, then details ----------
-async function addChampionship(){
-  const have = new Set(ST.entries.map(e => e.series_id + ":" + e.year));
-  const groups = Object.keys(SPORT).map(k => [k, ST.series.filter(s => s.sport === k)]).filter(g => g[1].length);
-  const item = s => `<button class="pick" data-s="${s.id}"><div class="lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s.short_name.slice(0, 5))}</span>`}</div><div><b>${esc(s.name)}</b><small>${esc(s.short_name !== s.name ? s.short_name : "")}</small></div><span>${SPORT[s.sport]?.i || ""}</span></button>`;
-  const html = `<div class="field"><label class="f" for="c-q">Search</label><input id="c-q" type="search" autocomplete="off"></div>
-    <div id="c-list">${groups.map(([k, list]) => `<div class="grp" data-g>${esc(SPORT[k].l)}</div><div class="picks">${list.map(item).join("")}</div>`).join("")}</div>
-    <div class="muted" style="font-size:14px;text-align:center">Can't find yours? Write to us and we'll add it.</div>`;
-  let picked = null;
-  const r = await sheet("Add a championship", html, { footer:false, after(){
-    $("#c-q").oninput = e => { const q = e.target.value.trim().toLowerCase(); $$("#c-list .pick").forEach(b => { const s = ST.series.find(x => x.id === b.dataset.s); b.hidden = q && !(s.name + " " + s.short_name).toLowerCase().includes(q); }); $$("#c-list [data-g]").forEach(g => { g.hidden = !![...g.nextElementSibling.querySelectorAll(".pick")].every(b => b.hidden); g.nextElementSibling.hidden = g.hidden; }); };
-    $$("#c-list .pick").forEach(b => b.onclick = () => { picked = ST.series.find(x => x.id === b.dataset.s); closeSheet(picked); });
-  } });
-  if (!r) return;
-  // default season: this year if the championship still has races this year, otherwise next year
-  let yr = YEAR;
-  try { const up = await api(`events?series_id=eq.${r.id}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
-  if (have.has(r.id + ":" + yr) && !have.has(r.id + ":" + (yr + 1))) yr = yr + 1;
-  editEntry({ series_id:r.id, series:r, year:yr, color: COLORS.find(c => !ST.entries.some(e => (e.color || "").toUpperCase() === c)) || COLORS[0] });
-}
-
-async function editEntry(en){
-  const isNew = !en.id, s = en.series || ST.series.find(x => x.id === en.series_id);
-  let year = en.year, color = (en.color || COLORS[0]).toUpperCase(), vehicle = en.vehicles || ST.vehicles.find(v => v.id === en.vehicle_id) || null;
-  const years = [...new Set([YEAR, YEAR + 1, year])].sort();
-  const vchip = () => vehicle ? `<div class="vchip"><b>${esc(vehicle.name)}</b>${vehicle.status === "pending" ? `<span class="chip">Yours</span>` : ""}<button type="button" class="btn sm" id="v-change">Change</button></div>` : `<div class="vp"><input id="v-q" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="v-list" aria-label="Search the car catalogue"><div class="vp-list" id="v-list" role="listbox" hidden></div></div><div class="help">Type to search the catalogue.</div>`;
-  const html = `
-    <div style="display:flex;align-items:center;gap:14px"><div class="lg" style="width:80px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s?.short_name || "")}</span>`}</div><b style="font-size:17px">${esc(s?.name || "")}</b></div>
-    <div class="field"><label class="f" id="y-lab">Season</label><div class="seg" role="radiogroup" aria-labelledby="y-lab" id="y-seg">${years.map(y => `<button type="button" role="radio" data-y="${y}" aria-checked="${y === year}">${y}</button>`).join("")}</div></div>
-    <div class="two"><div class="field"><label class="f" for="e-num">Car number</label><input id="e-num" value="${esc(en.car_number || "")}" inputmode="numeric" autocomplete="off"></div>
-      <div class="field"><label class="f" for="e-cat">Class</label><input id="e-cat" value="${esc(en.category || "")}" autocomplete="off"></div></div>
-    <div class="field"><label class="f" for="e-team">Team</label><input id="e-team" value="${esc(en.team || "")}" autocomplete="off"></div>
-    <div class="field"><label class="f" for="e-mates">Teammates</label><input id="e-mates" value="${esc((en.teammates || []).join(", "))}" autocomplete="off"><div class="help">Separate names with commas.</div></div>
-    <div class="field"><label class="f">Car</label><div id="v-box">${vchip()}</div><div class="help">Not in the catalogue? <button type="button" class="btn sm ghost" id="v-new" style="height:auto;padding:0;border:0;color:var(--acc)">Add your car</button></div></div>
-    <div class="field"><label class="f" id="c-lab">Colour on your page</label><div class="swatches" role="radiogroup" aria-labelledby="c-lab" id="c-sw">${COLORS.map(c => `<button type="button" class="sw" role="radio" aria-label="${c}" data-c="${c}" aria-checked="${c === color}" style="background:${c}"></button>`).join("")}<label class="sw-custom" title="Custom colour"><input type="color" id="c-custom" value="${esc(color)}" aria-label="Custom colour" style="opacity:0;width:100%;height:100%;min-height:0;padding:0;border:0;cursor:pointer"></label></div></div>`;
-  const bindV = () => {
-    if ($("#v-change")) $("#v-change").onclick = () => { vehicle = null; $("#v-box").innerHTML = vchip(); bindV(); $("#v-q").focus(); };
-    const q = $("#v-q"); if (!q) return;
-    const list = $("#v-list");
-    const show = () => { const t = q.value.trim().toLowerCase(); const hits = ST.vehicles.filter(v => !t || v.name.toLowerCase().includes(t)).slice(0, 12);
-      list.innerHTML = hits.map(v => `<button type="button" role="option" data-v="${v.id}">${esc(v.name)}${v.status === "pending" ? ` <small>· yours</small>` : ""}${v.engine ? `<br><small>${esc(v.engine)}</small>` : ""}</button>`).join("") || `<div class="muted" style="padding:10px 12px;font-size:14px">No car found. Use "Add your car" below.</div>`;
-      list.hidden = false; q.setAttribute("aria-expanded", "true");
-      list.querySelectorAll("[data-v]").forEach(b => b.onmousedown = ev => { ev.preventDefault(); vehicle = ST.vehicles.find(v => v.id === b.dataset.v); $("#v-box").innerHTML = vchip(); bindV(); }); };
-    q.onfocus = show; q.oninput = show; q.onblur = () => setTimeout(() => { list.hidden = true; q.setAttribute("aria-expanded", "false"); }, 120);
-  };
-  const r = await sheet(isNew ? "Your entry" : "Edit entry", html, { ok: isNew ? "Add to my season" : "Save", del: !isNew && ST.role === "owner" ? "Remove" : null, delText:`Remove ${s?.name} ${year} from your page?`, focus:false,
-    after(){
-      $$("#y-seg button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#y-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); });
-      $$("#c-sw .sw").forEach(b => b.onclick = () => { color = b.dataset.c; $$("#c-sw .sw").forEach(x => x.setAttribute("aria-checked", x === b)); });
-      $("#c-custom").oninput = e => { color = e.target.value.toUpperCase(); $$("#c-sw .sw").forEach(x => x.setAttribute("aria-checked", "false")); };
-      bindV();
-      $("#v-new").onclick = async () => { const draft = { car_number:$("#e-num").value, category:$("#e-cat").value, team:$("#e-team").value, teammates:$("#e-mates").value.split(",").map(x => x.trim()).filter(Boolean) };
-        sheetResolve = null; const v = await newVehicle(); editEntry({ ...en, ...draft, year, color, vehicles: v || vehicle, vehicle_id: (v || vehicle)?.id || null }); };
-    },
-    collect(){ return { year, color, car_number:$("#e-num").value.trim() || null, category:$("#e-cat").value.trim() || null, team:$("#e-team").value.trim() || null,
-      teammates:$("#e-mates").value.split(",").map(x => x.trim()).filter(Boolean), vehicle_id: vehicle?.id || null }; } });
-  if (!r) return;
-  if (r.__delete) return guard(async () => { await api(`entries?id=eq.${en.id}`, { method:"DELETE" }); await loadHub(); hub(); }, "Removed");
-  if (!/^#[0-9A-F]{6}$/i.test(r.color)) r.color = COLORS[0];
-  await guard(async () => {
-    if (isNew) await ins("entries", { profile_id: ST.profile.id, series_id: en.series_id, ...r });
-    else await upd("entries", en.id, r);
-    await loadHub(); hub();
-  }, isNew ? "Added to your season" : "Saved").catch(() => {});
-}
-
-// a car that isn't in the catalogue yet: same fixed spec list as the admin library
-async function newVehicle(){
-  let drive = "";
-  const r = await sheet("Add your car", `
-    <div class="dim" style="font-size:14px">Fill in what you know. Leave a box empty if it doesn't apply (for example no hybrid system).</div>
-    <div class="field"><label class="f" for="nv-name">Name</label><input id="nv-name" autocomplete="off"><div class="help">As fans know it. Our team checks it before it joins the catalogue for everyone.</div></div>
-    ${VFIELDS.slice(0, 3).map(f => `<div class="field"><label class="f" for="nv-${f.k}">${f.l}</label><input id="nv-${f.k}" autocomplete="off"></div>`).join("")}
-    <div class="field"><label class="f" id="dv-lab">Drivetrain</label><div class="seg" role="radiogroup" aria-labelledby="dv-lab" id="dv-seg">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" aria-checked="false">${l}</button>`).join("")}</div></div>
-    <div class="two">${VFIELDS.slice(3, 5).map(f => `<div class="field"><label class="f" for="nv-${f.k}">${f.l}</label><input id="nv-${f.k}" autocomplete="off"></div>`).join("")}</div>
-    <div class="two">${VFIELDS.slice(5).map(f => `<div class="field"><label class="f" for="nv-${f.k}">${f.l}</label><input id="nv-${f.k}" autocomplete="off"></div>`).join("")}</div>`,
-    { ok:"Add car", after(){ $$("#dv-seg button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-seg button").forEach(x => x.setAttribute("aria-checked", x.dataset.d === drive)); }); },
-      collect(){ if (!need("#nv-name", "Give the car a name.")) return null; const row = { name:$("#nv-name").value.trim(), drivetrain: drive || null }; VFIELDS.forEach(f => row[f.k] = $("#nv-" + f.k).value.trim() || null); return row; } });
-  if (!r) return null;
-  try { const [v] = await ins("vehicles", { ...r, status:"pending", created_by_profile: ST.profile.id }); ST.vehicles.push(v); toast("Car added"); return v; }
-  catch(e){ alert("Couldn't add the car: " + e.message); return null; }
 }
 
 // ---------- start ----------
@@ -438,7 +312,9 @@ async function boot(){
   try {
     await loadMembers();
     if (!ST.profile) return onboarding(false);
-    await loadHub(); hub();
+    if (new URLSearchParams(location.search).has("new")) return onboarding(true);
+    // your page is the editor: same page fans see, with edit controls
+    location.replace(PAGE_BASE + ST.profile.slug);
   } catch(e){ shell(`<div class="empty" style="margin-top:30px">Couldn't load your page: ${esc(e.message)}<button class="btn" onclick="location.reload()">Try again</button></div>`); }
 }
 boot();

@@ -40,8 +40,9 @@
       watch[s.slug] = ""; /* one where-to-watch link per race, set in race week */ color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
       team[s.slug] = { num: en.car_number || "", team: en.team || "", mates: en.teammates || [] };
       if (en.vehicles) {
-        const v = en.vehicles; carOf[s.slug] = v.id;
-        cars[v.id] = { name: v.name, img: v.photo_url || "", specs: carSpecs(v) };
+        // specs from the library, photo = the user's own livery
+        carOf[s.slug] = en.id;
+        cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles) };
       }
     }
     // custom events (no championship)
@@ -80,7 +81,7 @@
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     return {
       profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, carOf, cars, team, color, square,
-      sponsors, pageUrl: location.origin + location.pathname
+      sponsors, pageUrl: location.origin + location.pathname, entries
     };
   }
 
@@ -92,7 +93,7 @@
       if (!prof) { message("Page not found", "This Race Hub doesn’t exist or isn’t published yet."); return null; }
       if (!prof.published) {
         // only members get here (RLS): show a small preview banner
-        const b = document.createElement("div");
+        const b = document.createElement("div"); b.id = "rnx-preview";
         b.textContent = "Preview · only you can see this page until it's published";
         b.style.cssText = "position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9999;background:#FF5A1F;color:#fff;font:600 13px Barlow,system-ui,sans-serif;padding:7px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap";
         document.addEventListener("DOMContentLoaded", () => document.body.appendChild(b)); if (document.body) document.body.appendChild(b);
@@ -108,7 +109,9 @@
       const ids = events.map(e => e.id);
       const sessions = ids.length ? await get(`session_times?event_id=in.(${ids.join(",")})&select=*&order=local_start`) : [];
       fetch(C.url + "/rest/v1/rpc/track_view", { method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ p_slug: slug }) }).catch(() => {});
-      return build({ prof, entries, overrides, sponsors, events, sessions });
+      const R = build({ prof, entries, overrides, sponsors, events, sessions });
+      if (sess && window.rnxEditInit) window.rnxEditInit(R);   // owner signed in: edit controls on top of the page
+      return R;
     } catch (err) {
       console.error(err);
       message("Can’t load this page", "Please check your connection and try again.");

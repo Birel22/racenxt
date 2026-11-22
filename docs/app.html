@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="rnx-social.js"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -340,6 +341,7 @@ function obStep(){
     if (OB.slug) check();
     $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files[0]; if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); obSave(); obStep(); }; i.click(); };
   }
+  if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
   if (n === 3){
     $("#o-q").oninput = e => { const q = e.target.value.trim().toLowerCase(); $$("#o-champs .tile").forEach(b => { const s = ST.series.find(x => x.id === b.dataset.s); b.hidden = q && !(s.name + " " + s.short_name).toLowerCase().includes(q); }); $$("#o-champs [data-g]").forEach(g => { const any = [...g.nextElementSibling.children].some(b => !b.hidden); g.hidden = !any; g.nextElementSibling.hidden = !any; }); };
     $$("#o-champs .tile").forEach(b => b.onclick = () => { const id = b.dataset.s; OB.picked.has(id) ? OB.picked.delete(id) : OB.picked.add(id); b.setAttribute("aria-checked", OB.picked.has(id)); $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"; });

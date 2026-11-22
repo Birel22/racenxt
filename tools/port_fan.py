@@ -18,7 +18,7 @@ def cut(start_marker, end_marker, new, include_end=True):
 s = re.sub(r'<title>.*?</title>', '<title>Race Hub</title>', s, count=1, flags=re.S)
 s = re.sub(r'\n<meta (name|property)="(description|og:[^"]*|twitter:[^"]*)"[^>]*>', '', s)
 s = re.sub(r'\n<link rel="(manifest|apple-touch-icon|icon)"[^>]*>', '', s)
-rep('</head>', '<script src="config.js"></script>\n<script src="rnx-edit.js"></script>\n<script src="rnx-data.js"></script>\n</head>')
+rep('</head>', '<script src="config.js"></script>\n<script src="rnx-social.js"></script>\n<script src="rnx-edit.js"></script>\n<script src="rnx-data.js"></script>\n</head>')
 # car photo: only when the user added one (each user adds their own livery)
 rep('<img class="car-img" src="${c.img}" alt="${esc(c.name)}">', '${c.img ? `<img class="car-img" src="${c.img}" alt="${esc(c.name)}">` : ""}')
 

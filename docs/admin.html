@@ -349,7 +349,7 @@ async function loadList(){
   const status = s => s.last_check_result === "error" ? ["bad","Agent error"] : s.pending_proposals > 0 ? ["warn", `${s.pending_proposals} to review`] : s.missing_soon > 0 ? ["warn","Schedule missing"] : s.last_check_at ? ["good","Up to date"] : ["","Not checked yet"];
   const col = { good:"var(--good)", warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" };
   $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th class="hide-m">Next race</th><th>Status</th></tr>
-    ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.short_name)}</b> <span class="dim">${esc(s.name)}</span></td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="hide-m dim nowrap">${s.next_race_name ? `${esc(s.next_race_name)} · ${fmtD(s.next_race_date)}` : "–"}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
+    ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.name)}</b> <span class="dim">(${esc(s.short_name)})</span></td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="hide-m dim nowrap">${s.next_race_name ? `${esc(s.next_race_name)} · ${fmtD(s.next_race_date)}` : "–"}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
     <div class="pager">${from + 1}–${Math.min(from + PAGE, total)} of ${total} <button class="btn sm" id="pg-prev"${CQ.page ? "" : " disabled"}>‹</button><button class="btn sm" id="pg-next"${from + PAGE < total ? "" : " disabled"}>›</button></div>`
     : `<div class="card empty">No championship found.</div>`;
   $$("[data-slug]").forEach(r => r.onclick = () => location.hash = `#/championships/${r.dataset.slug}`);
@@ -363,30 +363,38 @@ let SEASON = {};
 async function championshipPage(slug, openId){
   const s = D.series.find(x => x.slug === slug);
   if (!s){ $("#main").innerHTML = `<p class="dim">Championship not found.</p>`; return; }
-  const years = (await api(`events?series_id=eq.${s.id}&select=year`)).map(e => e.year);
-  const set = [...new Set([...years, YEAR, YEAR + 1])].sort();
-  if (openId){ const [e] = await api(`events?id=eq.${openId}&select=year`); if (e) SEASON[slug] = e.year; }
-  const yr = SEASON[slug] || (years.includes(YEAR + 1) && !years.includes(YEAR) ? YEAR + 1 : (years.length ? Math.max(...years.filter(y => y <= YEAR + 1), YEAR) : YEAR));
-  SEASON[slug] = yr;
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
-  const evs = await api(`event_overview?series_id=eq.${s.id}&year=eq.${yr}&select=*&order=start_date`);
+  const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
+  const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
   const watchChip = w => w === "specific" ? '<span class="chip good">Specific link</span>' : w === "default" ? '<span class="chip">Championship link</span>' : '<span class="chip warn">Missing</span>';
   const schedChip = e => e.session_count ? `<span class="chip good">${e.session_count} sessions</span>` : (e.end_date < TODAY ? '<span class="chip">–</span>' : '<span class="chip warn">Missing</span>');
-  $("#main").innerHTML = `<div class="crumb"><a href="#/championships">Championships</a> / ${esc(s.short_name)}</div>
+  const table = list => `<div class="tbl"><table><tr><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
+      ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
+  $("#main").innerHTML = `<div class="crumb"><a href="#/championships">Championships</a> / ${esc(s.name)}</div>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
-      <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}</div>
+      <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)} <span class="muted">(${esc(s.short_name)})</span></div>
       <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.watch_url ? `<a href="${esc(s.watch_url)}" target="_blank" rel="noopener">Where to watch ↗</a>` : `<span class="chip warn">No where-to-watch link</span>`}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
       <button class="btn" id="s-edit">Edit championship</button></div>
-    <div class="bar"><div class="seg" role="tablist" aria-label="Season">${set.map(y => `<button role="tab" data-y="${y}" class="${y === yr ? "on" : ""}" aria-selected="${y === yr}">${y}</button>`).join("")}</div>
+    <div class="bar"><label class="search">${I.search}<input id="e-q" placeholder="Search races, circuits…" aria-label="Search races"></label>
       <span class="grow"></span><button class="btn" id="e-import">Import calendar</button><button class="btn pri" id="e-add">+ Add race</button></div>
-    ${evs.length ? `<div class="tbl"><table><tr><th>Rd</th><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
-      ${evs.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td class="num">${e.round ?? "–"}</td><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)}</td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`
-      : `<div class="card empty">No races for ${yr} yet. Add them one by one or import the whole calendar.</div>`}`;
+    <div id="e-up">${upcoming.length ? table(upcoming) : `<div class="card empty">No upcoming races. Add them one by one or import the whole calendar.</div>`}</div>
+    <div id="e-res" hidden></div>
+    ${past.length ? `<details id="e-past" style="margin-top:22px"><summary class="btn sm" style="list-style:none;display:inline-flex">Past races (${past.length})</summary><div style="margin-top:10px">${table(past)}</div></details>` : ""}`;
   $("#s-edit").onclick = () => editSeries(s, src);
-  $$("[data-y]").forEach(b => b.onclick = () => { SEASON[slug] = +b.dataset.y; route(); });
+  const yr = upcoming[0] ? +upcoming[0].start_date.slice(0,4) : YEAR;
   $("#e-add").onclick = () => editRace(s, null, yr);
-  $("#e-import").onclick = () => importCalendar(s, yr, evs.length);
-  $$("tr[data-id]").forEach(r => r.onclick = () => { const e = evs.find(x => x.id === r.dataset.id); editRace(s, e, yr); });
+  $("#e-import").onclick = () => importCalendar(s, yr, evs.filter(e => e.year === yr).length);
+  const bind = () => $$("tr[data-id]").forEach(r => r.onclick = () => editRace(s, evs.find(x => x.id === r.dataset.id), yr));
+  bind();
+  $("#e-q").oninput = ev => {
+    const q = ev.target.value.trim().toLowerCase();
+    const up = $("#e-up"), res = $("#e-res"), pa = $("#e-past");
+    if (!q){ up.hidden = false; res.hidden = true; if (pa) pa.hidden = false; return; }
+    const hits = evs.filter(e => [e.name, e.venue_name, e.venue_city, e.venue_country, e.start_date].join(" ").toLowerCase().includes(q));
+    up.hidden = true; if (pa) pa.hidden = true; res.hidden = false;
+    res.innerHTML = hits.length ? table(hits) : `<div class="card empty">No race matches “${esc(q)}”.</div>`;
+    bind();
+  };
   if (openId){ const e = evs.find(x => x.id === openId); if (e) editRace(s, e, yr); }
 }
 
@@ -457,8 +465,7 @@ async function editRace(s, e, yr){
       await api(`sessions?event_id=eq.${id}`, { method:"DELETE" });
       if (r.sessions.length) await ins("sessions", r.sessions.sort((a, b) => (a.day + a.time).localeCompare(b.day + b.time)).map(x => ({ event_id:id, label:x.label, type:x.type, local_start:`${x.day}T${x.time}:00`, duration_min:x.min })));
     }
-    SEASON[s.slug] = row.year;
-    location.hash = `#/championships/${s.slug}`; route();
+        location.hash = `#/championships/${s.slug}`; route();
   }, e ? "Race saved" : "Race added");
 }
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -501,7 +508,7 @@ async function importCalendar(s, yr, existing){
       row.ext_key = extKey(s, row);
       await ins("events", row);
     }
-    SEASON[s.slug] = yr; route();
+    route();
   }, `${rows.length} races imported`);
 }
 

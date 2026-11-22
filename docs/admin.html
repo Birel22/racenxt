@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Racenxt Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 Barlow,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--text)}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 16px 60px}
+  header{display:flex;align-items:center;gap:14px;justify-content:space-between;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .brand{font:800 italic 26px 'Barlow Condensed',sans-serif;letter-spacing:-.5px}
+  .brand .x{background:linear-gradient(90deg,var(--acc) 50%,var(--text) 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:2px}
+  .brand small{font:600 12px Barlow;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-style:normal;margin-left:8px}
+  .who{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+  nav.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;scrollbar-width:none}
+  nav.tabs button{flex:none;height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);background:var(--panel);font:600 14px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;color:var(--dim);cursor:pointer}
+  nav.tabs button[aria-pressed=true]{background:var(--text);color:#0b0c0f;border-color:var(--text)}
+  nav.tabs .badge{display:inline-block;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--acc);color:#fff;font-size:11px;margin-left:6px;padding:0 5px}
+  h2{font:700 22px 'Barlow Condensed';letter-spacing:.03em;text-transform:uppercase;margin:0 0 12px}
+  h3{font:700 16px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px;color:var(--dim)}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .bar .grow{flex:1}
+  .btn{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:600;white-space:nowrap}
+  .btn:hover{border-color:#3a3d45}
+  .btn.pri{background:var(--text);color:#0b0c0f;border-color:var(--text)}
+  .btn.good{background:var(--good);color:#0b0c0f;border-color:var(--good)}
+  .btn.bad{color:var(--bad)}
+  .btn.sm{height:30px;padding:0 10px;font-size:13px;border-radius:8px}
+  input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:38px;width:100%}
+  textarea{min-height:90px;resize:vertical}
+  input:focus,select:focus,textarea:focus,.btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+  label.f{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 4px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font:600 12px Barlow;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);background:var(--panel2)}
+  tr:last-child td{border-bottom:0}
+  tr.click{cursor:pointer} tr.click:hover td{background:#1a1b21}
+  .tbl{overflow-x:auto;border-radius:12px}
+  .muted{color:var(--mute)} .dim{color:var(--dim)}
+  .light{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+  .chip{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;border:1px solid var(--line);color:var(--dim)}
+  .chip.good{color:var(--good);border-color:#2f5a35} .chip.warn{color:var(--warn);border-color:#5a4a1a} .chip.bad{color:var(--bad);border-color:#5a2420}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;width:min(640px,94vw);max-height:90vh}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  .dlg-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+  .dlg-b{padding:16px;display:grid;gap:12px}
+  .dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .login{max-width:380px;margin:12vh auto;text-align:center}
+  .login .card{text-align:left;display:grid;gap:12px;margin-top:20px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#0b0c0f;padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.on{opacity:1}
+  pre{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;max-height:260px;overflow:auto;margin:0}
+  .diff{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sw{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .sw input{width:auto;min-height:0}
+  @media (max-width:620px){.two,.diff{grid-template-columns:1fr} th.hide-m,td.hide-m{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<dialog id="dlg"><form method="dialog" id="dlg-form"><div class="dlg-h"><b id="dlg-t"></b><button class="btn sm" value="cancel" formnovalidate aria-label="Close">×</button></div><div class="dlg-b" id="dlg-b"></div><div class="dlg-f" id="dlg-f"></div></form></dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(() => {
+const C = window.RNX_CONFIG;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2200); };
+const TZS = (Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : ["Europe/Paris","Europe/London","America/New_York"]);
+const YEAR = new Date().getFullYear();
+
+// ---------- auth (Supabase magic link, no library) ----------
+const S = { get(){ try { return JSON.parse(localStorage.getItem("rnx_admin_sess") || "null"); } catch(e){ return null; } }, set(v){ try { v ? localStorage.setItem("rnx_admin_sess", JSON.stringify(v)) : localStorage.removeItem("rnx_admin_sess"); } catch(e){} } };
+function readHash(){
+  if (!location.hash.includes("access_token")) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  S.set({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_at: Date.now()/1000 + (+h.get("expires_in") || 3600) });
+  history.replaceState(null, "", location.pathname + location.search);
+}
+async function token(){
+  let s = S.get(); if (!s) return null;
+  if (s.expires_at - 60 < Date.now()/1000){
+    const r = await fetch(`${C.url}/auth/v1/token?grant_type=refresh_token`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
+    if (!r.ok){ S.set(null); return null; }
+    const j = await r.json(); s = { access_token:j.access_token, refresh_token:j.refresh_token, expires_at: Date.now()/1000 + j.expires_in }; S.set(s);
+  }
+  return s.access_token;
+}
+async function api(path, opt = {}){
+  const t = await token();
+  const r = await fetch(`${C.url}/rest/v1/${path}`, { ...opt, headers:{ apikey:C.key, Authorization:`Bearer ${t || C.key}`, "Content-Type":"application/json", Prefer:"return=representation", ...(opt.headers||{}) } });
+  if (!r.ok){ let m = r.status + ""; try { const j = await r.json(); m = j.message || j.hint || m; } catch(e){} throw new Error(m); }
+  return r.status === 204 ? null : r.json();
+}
+const rpc = (fn, args) => api(`rpc/${fn}`, { method:"POST", body: JSON.stringify(args || {}) });
+const ins = (t, row) => api(t, { method:"POST", body: JSON.stringify(row) });
+const upd = (t, id, row, key = "id") => api(`${t}?${key}=eq.${id}`, { method:"PATCH", body: JSON.stringify(row) });
+const del = (t, id, key = "id") => api(`${t}?${key}=eq.${id}`, { method:"DELETE" });
+
+// ---------- dialog form helper ----------
+function form(title, fields, values = {}, opts = {}){
+  return new Promise(resolve => {
+    $("#dlg-t").textContent = title;
+    $("#dlg-b").innerHTML = fields.map(f => {
+      const v = values[f.k] ?? f.def ?? "";
+      const id = "f_" + f.k;
+      let input;
+      if (f.type === "select") input = `<select id="${id}" ${f.req ? "required" : ""}>${f.empty !== false ? `<option value="">—</option>` : ""}${f.options.map(o => `<option value="${esc(o.v)}"${String(o.v) === String(v) ? " selected" : ""}>${esc(o.l)}</option>`).join("")}</select>`;
+      else if (f.type === "textarea") input = `<textarea id="${id}" placeholder="${esc(f.ph || "")}">${esc(v)}</textarea>`;
+      else if (f.type === "bool") input = `<label class="sw"><input type="checkbox" id="${id}"${v ? " checked" : ""}> ${esc(f.l2 || "")}</label>`;
+      else input = `<input id="${id}" type="${f.type || "text"}" value="${esc(v)}" ${f.req ? "required" : ""} placeholder="${esc(f.ph || "")}"${f.step ? ` step="${f.step}"` : ""}>`;
+      return `<div${f.half ? ' class="half"' : ""}><label class="f" for="${id}">${esc(f.l)}</label>${input}${f.help ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(f.help)}</div>` : ""}</div>`;
+    }).join("");
+    $("#dlg-f").innerHTML = `${opts.onDelete ? `<button class="btn bad" value="delete" formnovalidate style="margin-right:auto">Delete</button>` : ""}<button class="btn" value="cancel" formnovalidate>Cancel</button><button class="btn pri" value="ok">${esc(opts.ok || "Save")}</button>`;
+    const d = $("#dlg");
+    d.onclose = async () => {
+      if (d.returnValue === "ok"){
+        const out = {};
+        for (const f of fields){
+          const el = $("#f_" + f.k);
+          let v = f.type === "bool" ? el.checked : el.value.trim();
+          if (f.type === "number") v = v === "" ? null : +v;
+          else if (v === "" && f.type !== "bool") v = null;
+          out[f.k] = v;
+        }
+        resolve(out);
+      } else if (d.returnValue === "delete"){
+        if (confirm(opts.deleteText || "Delete this item? This can't be undone.")) resolve({ __delete: true }); else resolve(null);
+      } else resolve(null);
+    };
+    d.returnValue = ""; d.showModal();
+  });
+}
+async function guard(fn, okMsg){ try { await fn(); if (okMsg) toast(okMsg); } catch(e){ alert("Couldn't save: " + e.message); } }
+
+// ---------- data cache ----------
+const D = { series: [], venues: [], vehicles: [] };
+async function loadRef(){
+  [D.series, D.venues, D.vehicles] = await Promise.all([
+    api("series?select=*&order=name"), api("venues?select=*&order=name"), api("vehicles?select=*&order=name")
+  ]);
+}
+const seriesOpts = () => D.series.map(s => ({ v: s.id, l: `${s.short_name} – ${s.name}` }));
+const venueOpts = () => D.venues.map(v => ({ v: v.id, l: `${v.name}${v.city ? " · " + v.city : ""} (${v.country})` }));
+const vehicleOpts = () => D.vehicles.map(v => ({ v: v.id, l: `${v.name}${v.status === "pending" ? " (pending)" : ""}` }));
+
+// ---------- screens ----------
+let TAB = "dashboard", PENDING = 0;
+const TABS = [["dashboard","Dashboard"],["races","Races"],["review","Review"],["series","Championships"],["venues","Circuits"],["vehicles","Vehicles"],["profiles","Athletes"]];
+function shell(inner){
+  $("#app").innerHTML = `<header><div class="brand">RACEN<span class="x">X</span>T<small>Admin</small></div><div class="who"><span id="who-mail"></span><button class="btn sm" id="logout">Sign out</button></div></header>
+  <nav class="tabs">${TABS.map(([k,l]) => `<button data-tab="${k}" aria-pressed="${k===TAB}">${l}${k==="review" && PENDING ? `<span class="badge">${PENDING}</span>` : ""}</button>`).join("")}</nav><section id="main">${inner || ""}</section>`;
+  $("#logout").onclick = () => { S.set(null); location.reload(); };
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { TAB = b.dataset.tab; route(); });
+}
+async function route(){
+  shell('<p class="muted">Loading…</p>');
+  try {
+    PENDING = (await api("proposals?status=eq.pending&select=id")).length;
+    shell();
+    await ({ dashboard, races, review, series: seriesScreen, venues: venuesScreen, vehicles: vehiclesScreen, profiles: profilesScreen })[TAB]();
+  } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
+}
+
+// Dashboard: one light per championship + events this week missing data
+async function dashboard(){
+  await loadRef();
+  const today = new Date(); const iso = d => d.toISOString().slice(0,10);
+  const in7 = new Date(Date.now() + 7*864e5);
+  const [events, runs, props, sess] = await Promise.all([
+    api(`events?series_id=not.is.null&year=gte.${YEAR}&select=id,series_id,name,start_date,end_date,watch_url&order=start_date`),
+    api("check_runs?select=series_id,result,ran_at&order=ran_at.desc&limit=500"),
+    api("proposals?status=eq.pending&select=series_id"),
+    api("sessions?select=event_id")
+  ]);
+  const hasTT = new Set(sess.map(s => s.event_id));
+  const week = events.filter(e => e.end_date >= iso(today) && e.start_date <= iso(in7));
+  const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
+  const missing = week.filter(e => !hasTT.has(e.id) || !(e.watch_url || ser[e.series_id]?.watch_url));
+  const cards = D.series.map(s => {
+    const last = runs.find(r => r.series_id === s.id);
+    const p = props.filter(x => x.series_id === s.id).length;
+    const n = events.filter(e => e.series_id === s.id).length;
+    const st = last && last.result === "error" ? ["bad","Error on last check"] : p ? ["warn", `${p} proposal${p>1?"s":""} waiting`] : last ? ["good","Up to date"] : ["", "Not checked yet"];
+    const col = { good:"var(--good)", warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" }[st[0]];
+    return `<div class="card"><div style="display:flex;align-items:center;justify-content:space-between"><b>${esc(s.short_name)}</b><span class="chip">${n} races</span></div><div class="dim" style="font-size:13px;margin:4px 0 10px">${esc(s.name)}</div><div style="font-size:13px"><span class="light" style="background:${col}"></span>${st[1]}${last ? `<span class="muted"> · ${new Date(last.ran_at).toLocaleDateString()}</span>` : ""}</div></div>`;
+  }).join("");
+  $("#main").innerHTML = `
+    <div class="bar"><h2 class="grow" style="margin:0">Dashboard</h2><button class="btn" id="q-series">+ Championship</button><button class="btn pri" id="q-event">+ Race</button></div>
+    <h3>This week – missing information</h3>
+    ${missing.length ? `<div class="tbl"><table><tr><th>Race</th><th>Dates</th><th>Missing</th></tr>${missing.map(e => `<tr class="click" data-ev="${e.id}"><td>${esc(ser[e.series_id]?.short_name)} ${esc(e.name)}</td><td>${e.start_date} → ${e.end_date}</td><td>${[!hasTT.has(e.id) ? '<span class="chip warn">Timetable</span>' : "", !(e.watch_url || ser[e.series_id]?.watch_url) ? '<span class="chip warn">Where to watch</span>' : ""].join(" ")}</td></tr>`).join("")}</table></div>` : `<p class="muted">Nothing missing for races in the next 7 days.</p>`}
+    <h3>Championships</h3><div class="grid">${cards}</div>`;
+  $("#q-series").onclick = () => editSeries();
+  $("#q-event").onclick = () => editEvent(null, {});
+  document.querySelectorAll("[data-ev]").forEach(r => r.onclick = () => { TAB = "races"; RACE_OPEN = r.dataset.ev; route(); });
+}
+
+// Races: championship + year → events → sessions
+let RACE_SERIES = null, RACE_YEAR = YEAR + 1, RACE_OPEN = null;
+async function races(){
+  await loadRef();
+  if (RACE_OPEN){ const [e] = await api(`events?id=eq.${RACE_OPEN}&select=series_id,year`); if (e){ RACE_SERIES = e.series_id; RACE_YEAR = e.year; } }
+  if (!RACE_SERIES && D.series[0]) RACE_SERIES = D.series[0].id;
+  const years = []; for (let y = YEAR - 1; y <= YEAR + 2; y++) years.push(y);
+  const evs = RACE_SERIES ? await api(`events?series_id=eq.${RACE_SERIES}&year=eq.${RACE_YEAR}&select=*,venues(name,city,timezone)&order=start_date`) : [];
+  const counts = evs.length ? await api(`sessions?event_id=in.(${evs.map(e => e.id).join(",")})&select=event_id`) : [];
+  const n = id => counts.filter(c => c.event_id === id).length;
+  $("#main").innerHTML = `
+    <div class="bar"><h2 class="grow" style="margin:0">Races</h2></div>
+    <div class="bar"><select id="r-series" style="max-width:340px">${seriesOpts().map(o => `<option value="${o.v}"${o.v===RACE_SERIES?" selected":""}>${esc(o.l)}</option>`).join("")}</select>
+      <select id="r-year" style="max-width:110px">${years.map(y => `<option${y===RACE_YEAR?" selected":""}>${y}</option>`).join("")}</select>
+      <span class="grow"></span><button class="btn pri" id="r-add">+ Add race</button></div>
+    ${evs.length ? `<div class="tbl"><table><tr><th>Rd</th><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Sessions</th></tr>${evs.map(e => `<tr class="click" data-id="${e.id}"><td class="muted">${e.round ?? "–"}</td><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}</td><td class="hide-m dim">${esc(e.venues?.name || "")}</td><td style="white-space:nowrap">${e.start_date.slice(8)}.${e.start_date.slice(5,7)} – ${e.end_date.slice(8)}.${e.end_date.slice(5,7)}</td><td>${n(e.id) ? `<span class="chip good">${n(e.id)}</span>` : '<span class="chip">none</span>'}</td></tr>`).join("")}</table></div>` : `<p class="muted">No races for this championship and year yet.</p>`}
+    <div id="r-detail"></div>`;
+  $("#r-series").onchange = e => { RACE_SERIES = e.target.value; RACE_OPEN = null; route(); };
+  $("#r-year").onchange = e => { RACE_YEAR = +e.target.value; RACE_OPEN = null; route(); };
+  $("#r-add").onclick = () => editEvent(null, { series_id: RACE_SERIES, year: RACE_YEAR });
+  document.querySelectorAll("tr[data-id]").forEach(r => r.onclick = () => { RACE_OPEN = r.dataset.id; showEvent(evs.find(e => e.id === RACE_OPEN)); });
+  if (RACE_OPEN){ const e = evs.find(x => x.id === RACE_OPEN); if (e) showEvent(e); }
+}
+async function showEvent(e){
+  const ss = await api(`sessions?event_id=eq.${e.id}&select=*&order=local_start`);
+  const tz = e.venues?.timezone || "";
+  $("#r-detail").innerHTML = `<div class="card" style="margin-top:16px">
+    <div class="bar"><div class="grow"><b style="font:700 20px 'Barlow Condensed';text-transform:uppercase">${esc(e.name)}</b><div class="dim" style="font-size:13px">${esc(e.venues?.name || "No circuit")} · ${e.start_date} → ${e.end_date}${e.ext_key ? ` · <span class="muted">${esc(e.ext_key)}</span>` : ""}</div></div><button class="btn" id="e-edit">Edit race</button></div>
+    <h3 style="margin-top:6px">Sessions <span class="muted" style="text-transform:none;letter-spacing:0">(local circuit time${tz ? ", " + esc(tz) : ""})</span></h3>
+    ${ss.length ? `<div class="tbl"><table><tr><th>Day & time</th><th>Session</th><th class="hide-m">Type</th><th>Length</th></tr>${ss.map(s => `<tr class="click" data-s="${s.id}"><td>${new Date(s.local_start.slice(0,10)+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"})} <b>${s.local_start.slice(11,16)}</b></td><td>${esc(s.label)}</td><td class="hide-m dim">${s.type}</td><td class="dim">${s.duration_min} min</td></tr>`).join("")}</table></div>` : `<p class="muted">No sessions yet.</p>`}
+    <div class="bar" style="margin-top:10px"><button class="btn pri" id="s-add">+ Add session</button><button class="btn" id="s-paste">Paste timetable</button></div></div>`;
+  $("#e-edit").onclick = () => editEvent(e);
+  $("#s-add").onclick = () => editSession(e, null, ss);
+  $("#s-paste").onclick = () => pasteTimetable(e);
+  document.querySelectorAll("[data-s]").forEach(r => r.onclick = () => editSession(e, ss.find(s => s.id === r.dataset.s), ss));
+  $("#r-detail").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+async function editEvent(e, defaults = {}){
+  const v = e || defaults;
+  const r = await form(e ? "Edit race" : "Add race", [
+    { k:"series_id", l:"Championship", type:"select", options: seriesOpts(), req:true },
+    { k:"year", l:"Year", type:"number", req:true, def: RACE_YEAR },
+    { k:"round", l:"Round", type:"number" },
+    { k:"name", l:"Race name", req:true, ph:"24 Hours of Le Mans" },
+    { k:"venue_id", l:"Circuit", type:"select", options: venueOpts(), help:"Missing? Add it in Circuits first." },
+    { k:"start_date", l:"First day", type:"date", req:true },
+    { k:"end_date", l:"Last day", type:"date", req:true },
+    { k:"duration_label", l:"Race length", ph:"24h, 4h, 2 × 4h" },
+    { k:"watch_url", l:"Where to watch (only if different from the championship)", type:"url" },
+    { k:"note", l:"Note shown on the card", ph:"Official Prologue: 8–9 March" }
+  ], v, { onDelete: !!e, deleteText: "Delete this race and all its sessions?" });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("events", e.id); RACE_OPEN = null; route(); }, "Race deleted");
+  const s = D.series.find(x => x.id === r.series_id);
+  if (!e && s) r.ext_key = r.round ? `${s.slug}-${r.year}-r${r.round}` : `${s.slug}-${r.year}-${(r.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  await guard(async () => {
+    if (e) await upd("events", e.id, { ...r, updated_at: new Date().toISOString() });
+    else { const [n] = await ins("events", r); RACE_OPEN = n.id; }
+    RACE_SERIES = r.series_id; RACE_YEAR = r.year; TAB = "races"; route();
+  }, "Race saved");
+}
+async function editSession(e, s, all){
+  const last = all[all.length - 1];
+  const r = await form(s ? "Edit session" : "Add session", [
+    { k:"label", l:"Session name", req:true, ph:"Free Practice 1" },
+    { k:"type", l:"Type", type:"select", empty:false, options:[["practice","Practice"],["qualifying","Qualifying"],["race","Race"],["warmup","Warm-up"],["other","Other"]].map(([v,l]) => ({v,l})) },
+    { k:"date", l:"Day (local)", type:"date", req:true, def: last ? last.local_start.slice(0,10) : e.start_date },
+    { k:"time", l:"Start time (local circuit time)", type:"time", req:true },
+    { k:"duration_min", l:"Length (minutes)", type:"number", def: 60 },
+    { k:"category", l:"Category (optional)", ph:"LMP2" }
+  ], s ? { ...s, date: s.local_start.slice(0,10), time: s.local_start.slice(11,16) } : {}, { onDelete: !!s });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("sessions", s.id); showEvent(e); }, "Session deleted");
+  const row = { label:r.label, type:r.type || "practice", local_start:`${r.date}T${r.time}:00`, duration_min:r.duration_min || 60, category:r.category };
+  await guard(async () => { if (s) await upd("sessions", s.id, row); else await ins("sessions", { ...row, event_id: e.id }); showEvent(e); }, "Session saved");
+}
+// Paste lines like "Fri 12 Jun 10:10 Free Practice 1 90" or "2027-06-12 16:00 | Race | 1440"
+async function pasteTimetable(e){
+  const r = await form("Paste timetable", [{ k:"txt", l:"One session per line: date, time, name, minutes", type:"textarea", ph:"2027-06-12 10:10 | Free Practice 1 | 90\n2027-06-13 16:00 | Race | 1440" }], {}, { ok:"Add sessions" });
+  if (!r || !r.txt) return;
+  const rows = [];
+  for (const line of r.txt.split("\n").map(l => l.trim()).filter(Boolean)){
+    const m = line.match(/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2})\s*[|,;\-–]?\s*(.+?)(?:\s*[|,;]\s*(\d+))?$/);
+    if (!m){ alert("Couldn't read: " + line); return; }
+    const label = m[3].replace(/\s*[|,;]\s*$/, "").trim(), low = label.toLowerCase();
+    rows.push({ event_id:e.id, label, local_start:`${m[1]}T${m[2].padStart(5,"0")}:00`, duration_min: m[4] ? +m[4] : 60,
+      type: /race/.test(low) ? "race" : /quali|hyperpole/.test(low) ? "qualifying" : /practice|fp\d|essais/.test(low) ? "practice" : /warm/.test(low) ? "warmup" : "other" });
+  }
+  await guard(async () => { await ins("sessions", rows); showEvent(e); }, `${rows.length} sessions added`);
+}
+
+// Review queue
+async function review(){
+  await loadRef();
+  const ps = await api("proposals?status=eq.pending&select=*,events(name,start_date),check_runs(kind,ran_at)&order=created_at");
+  const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
+  const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Where to watch", new_season:"New season" };
+  $("#main").innerHTML = `<div class="bar"><h2 class="grow" style="margin:0">Review queue</h2><button class="btn" id="rv-new">+ Create a change by hand</button></div>` +
+    (ps.length ? ps.map(p => `<div class="card" style="margin-bottom:12px" data-p="${p.id}">
+      <div class="bar"><div class="grow"><span class="chip warn">${KIND[p.kind] || p.kind}</span> <b>${esc(ser[p.series_id]?.short_name || "")} ${esc(p.events?.name || "")}</b><div class="muted" style="font-size:13px">${p.check_runs ? `Agent · ${p.check_runs.kind} check · ` : "By hand · "}${new Date(p.created_at).toLocaleString()}</div></div></div>
+      ${p.evidence?.url ? `<div style="font-size:13px;margin-bottom:8px">Source: <a href="${esc(p.evidence.url)}" target="_blank" rel="noopener">${esc(p.evidence.url)}</a></div>` : ""}
+      ${p.evidence?.excerpt ? `<blockquote class="dim" style="margin:0 0 10px;padding-left:10px;border-left:3px solid var(--line);font-size:13px">${esc(p.evidence.excerpt)}</blockquote>` : ""}
+      <div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>
+      <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject</button><button class="btn" data-act="edit">Edit</button><button class="btn good" data-act="approve">Approve</button></div></div>`).join("")
+    : `<p class="muted">No proposals waiting. Agents' findings appear here for approval.</p>`);
+  for (const p of ps){
+    const box = document.querySelector(`[data-p="${p.id}"]`);
+    current(p).then(t => box.querySelector(".now").textContent = t);
+    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id: p.id }); route(); }, "Approved and published");
+    box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id: p.id, p_reason: why }); route(); }, "Rejected"); };
+    box.querySelector('[data-act="edit"]').onclick = async () => {
+      const r = await form("Edit proposal", [{ k:"payload", l:"Data (JSON, local circuit times)", type:"textarea" }], { payload: JSON.stringify(p.payload, null, 2) }, { ok:"Approve with changes" });
+      if (!r) return; let pl; try { pl = JSON.parse(r.payload); } catch(e){ return alert("That's not valid JSON."); }
+      guard(async () => { await rpc("apply_proposal", { p_id: p.id, p_payload: pl }); route(); }, "Approved and published");
+    };
+  }
+  $("#rv-new").onclick = manualProposal;
+}
+function pretty(p){
+  const pl = p.payload || {};
+  if (p.kind === "timetable") return (pl.sessions || []).map(s => `${s.local_start}  ${s.label}  (${s.duration_min || 60} min)`).join("\n");
+  return JSON.stringify(pl, null, 2);
+}
+async function current(p){
+  if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}  ${s.label}  (${s.duration_min} min)`).join("\n") : "No sessions yet"; }
+  if (p.event_id){ const [e] = await api(`events?id=eq.${p.event_id}&select=name,start_date,end_date,duration_label,watch_url,note`); return e ? JSON.stringify(e, null, 2) : "—"; }
+  return "—";
+}
+async function manualProposal(){
+  const evs = await api(`events?series_id=not.is.null&year=gte.${YEAR}&select=id,series_id,name,start_date&order=start_date`);
+  const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
+  const r = await form("Create a change", [
+    { k:"kind", l:"Type", type:"select", empty:false, options:[["timetable","Timetable"],["watch_link","Where to watch"],["event_change","Race change"]].map(([v,l]) => ({v,l})) },
+    { k:"event_id", l:"Race", type:"select", req:true, options: evs.map(e => ({ v:e.id, l:`${ser[e.series_id]?.short_name} ${e.name} (${e.start_date})` })) },
+    { k:"url", l:"Source (official page)", type:"url" },
+    { k:"payload", l:"Data (JSON)", type:"textarea", ph:'{"sessions":[{"type":"race","label":"Race","local_start":"2027-06-12 16:00","duration_min":1440}]}' }
+  ], {}, { ok:"Add to queue" });
+  if (!r) return; let pl; try { pl = JSON.parse(r.payload || "{}"); } catch(e){ return alert("That's not valid JSON."); }
+  const e = evs.find(x => x.id === r.event_id);
+  guard(async () => { await ins("proposals", { kind:r.kind, event_id:r.event_id, series_id:e.series_id, payload:pl, evidence:{ url:r.url || "" } }); route(); }, "Added to the queue");
+}
+
+// Generic list screens
+async function listScreen(title, rows, cols, onAdd, onOpen, addLabel){
+  $("#main").innerHTML = `<div class="bar"><h2 class="grow" style="margin:0">${title}</h2><input id="flt" placeholder="Search" style="max-width:220px"><button class="btn pri" id="add">${addLabel}</button></div>
+  <div class="tbl"><table><tr>${cols.map(c => `<th${c.m ? ' class="hide-m"' : ""}>${c.l}</th>`).join("")}</tr>${rows.map((r, i) => `<tr class="click" data-i="${i}">${cols.map(c => `<td${c.m ? ' class="hide-m"' : ""}>${c.f(r)}</td>`).join("")}</tr>`).join("")}</table></div>`;
+  $("#add").onclick = onAdd;
+  document.querySelectorAll("tr[data-i]").forEach(tr => tr.onclick = () => onOpen(rows[+tr.dataset.i]));
+  $("#flt").oninput = e => { const q = e.target.value.toLowerCase(); document.querySelectorAll("tr[data-i]").forEach(tr => tr.hidden = !tr.textContent.toLowerCase().includes(q)); };
+}
+async function seriesScreen(){
+  await loadRef();
+  listScreen("Championships", D.series, [
+    { l:"Name", f:s => `<b>${esc(s.short_name)}</b> <span class="dim">${esc(s.name)}</span>` },
+    { l:"Sport", f:s => esc(s.sport), m:1 }, { l:"Where to watch", f:s => s.watch_url ? '<span class="chip good">set</span>' : '<span class="chip">none</span>' }
+  ], () => editSeries(), editSeries, "+ Add championship");
+}
+async function editSeries(s){
+  const src = s ? (await api(`series_sources?series_id=eq.${s.id}&select=*`))[0] : null;
+  const r = await form(s ? "Edit championship" : "Add championship", [
+    { k:"name", l:"Full name", req:true }, { k:"short_name", l:"Short name", req:true, ph:"ELMS" },
+    { k:"slug", l:"Code (lowercase, no spaces)", req:true, ph:"elms" }, { k:"sport", l:"Sport", def:"motorsport" },
+    { k:"website_url", l:"Official website", type:"url" }, { k:"watch_url", l:"Where to watch", type:"url" }, { k:"logo_url", l:"Logo (image URL)", type:"url" },
+    { k:"urls", l:"Pages the agent reads (one per line)", type:"textarea", ph:"https://www.europeanlemansseries.com/en/season" },
+    { k:"allowed", l:"Allowed domains (comma separated)", ph:"europeanlemansseries.com" },
+    { k:"instr", l:"Agent instructions for this championship", type:"textarea" }
+  ], { ...(s || {}), urls: (src?.urls || []).map(u => u.url).join("\n"), allowed: (src?.allowed_domains || []).join(", "), instr: src?.agent_instructions || "" }, { onDelete: !!s, deleteText:"Delete this championship, all its races and athletes' entries?" });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("series", s.id); route(); }, "Deleted");
+  const { urls, allowed, instr, ...row } = r; row.slug = (row.slug || "").toLowerCase();
+  await guard(async () => {
+    const id = s ? (await upd("series", s.id, row), s.id) : (await ins("series", row))[0].id;
+    const srow = { series_id:id, urls:(urls || "").split("\n").map(u => u.trim()).filter(Boolean).map(url => ({ url })), allowed_domains:(allowed || "").split(",").map(x => x.trim()).filter(Boolean), agent_instructions: instr || "" };
+    await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(srow) });
+    route();
+  }, "Championship saved");
+}
+async function venuesScreen(){
+  await loadRef();
+  listScreen("Circuits", D.venues, [
+    { l:"Circuit", f:v => `<b>${esc(v.name)}</b>` }, { l:"Place", f:v => esc([v.city, v.country].filter(Boolean).join(", ")), m:1 }, { l:"Time zone", f:v => esc(v.timezone) }
+  ], () => editVenue(), editVenue, "+ Add circuit");
+}
+async function editVenue(v){
+  const r = await form(v ? "Edit circuit" : "Add circuit", [
+    { k:"name", l:"Circuit name", req:true }, { k:"city", l:"Town / region" }, { k:"country", l:"Country", req:true },
+    { k:"country_code", l:"Country code (2 letters, for the flag)", ph:"FR" },
+    { k:"timezone", l:"Time zone", type:"select", req:true, options: TZS.map(t => ({ v:t, l:t.replace(/_/g," ") })) },
+    { k:"lat", l:"Latitude (optional)", type:"number", step:"any" }, { k:"lng", l:"Longitude (optional)", type:"number", step:"any" }
+  ], v || {}, { onDelete: !!v });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("venues", v.id); route(); }, "Deleted");
+  if (r.country_code) r.country_code = r.country_code.toUpperCase();
+  await guard(async () => { v ? await upd("venues", v.id, r) : await ins("venues", r); route(); }, "Circuit saved");
+}
+async function vehiclesScreen(){
+  await loadRef();
+  const rows = [...D.vehicles].sort((a, b) => (a.status === "pending" ? -1 : 0) - (b.status === "pending" ? -1 : 0));
+  listScreen("Vehicles", rows, [
+    { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>` }, { l:"Category", f:v => esc(v.category || ""), m:1 },
+    { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : '<span class="chip warn">Pending approval</span>' }
+  ], () => editVehicle(), editVehicle, "+ Add vehicle");
+}
+async function editVehicle(v){
+  const r = await form(v ? "Edit vehicle" : "Add vehicle", [
+    { k:"name", l:"Name", req:true, ph:"ORECA 07" }, { k:"manufacturer", l:"Manufacturer" }, { k:"category", l:"Category", ph:"LMP2" },
+    { k:"photo_url", l:"Photo (image URL)", type:"url" },
+    { k:"specs", l:"Specs, one per line: Label: value", type:"textarea", ph:"Engine: Gibson V8 4.2 L\nPower: ~600 hp" },
+    { k:"approved", l:"Catalogue", type:"bool", l2:"Approved – visible to every athlete" }
+  ], { ...(v || {}), specs: (v?.specs || []).map(s => `${s.label}: ${s.value}`).join("\n"), approved: v ? v.status === "approved" : true }, { onDelete: !!v });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("vehicles", v.id); route(); }, "Deleted");
+  const row = { name:r.name, manufacturer:r.manufacturer, category:r.category, photo_url:r.photo_url, status: r.approved ? "approved" : "pending",
+    specs: (r.specs || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(":"); return i > 0 ? { label:l.slice(0, i).trim(), value:l.slice(i + 1).trim() } : { label:l, value:"" }; }) };
+  await guard(async () => { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); route(); }, "Vehicle saved");
+}
+
+// Athletes (manual onboarding while the athlete app is being built)
+async function profilesScreen(){
+  await loadRef();
+  const ps = await api("profiles?select=*,subscriptions(status)&order=display_name");
+  listScreen("Athletes", ps, [
+    { l:"Athlete", f:p => `<b>${esc(p.display_name)}</b> <span class="muted">/${esc(p.slug)}</span>` },
+    { l:"Page", f:p => p.published ? '<span class="chip good">Published</span>' : '<span class="chip">Draft</span>' },
+    { l:"Subscription", f:p => esc(p.subscriptions?.status || "–"), m:1 }
+  ], () => editProfile(), openProfile, "+ Add athlete");
+}
+const SOC = ["instagram","facebook","x","youtube","tiktok","website"];
+async function editProfile(p){
+  const r = await form(p ? "Edit athlete" : "Add athlete", [
+    { k:"display_name", l:"Full name", req:true }, { k:"first_name", l:"First name (for “<Name> Race Hub”)" },
+    { k:"slug", l:"Page address (racenxt.com/…)", req:true, ph:"louis" }, { k:"sport", l:"Sport", def:"motorsport" },
+    { k:"hero_url", l:"Main photo (image URL)", type:"url" }, { k:"photo_url", l:"Profile photo (image URL)", type:"url" }, { k:"logo_url", l:"Personal logo (image URL)", type:"url" },
+    ...SOC.map(s => ({ k:"s_" + s, l: s === "x" ? "X" : s[0].toUpperCase() + s.slice(1), type:"url" })),
+    { k:"published", l:"Page", type:"bool", l2:"Published – visible to fans" }
+  ], { ...(p || {}), ...Object.fromEntries(SOC.map(s => ["s_" + s, p?.socials?.[s] || ""])) }, { onDelete: !!p, deleteText:"Delete this athlete and everything on their page?" });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("profiles", p.id); route(); }, "Deleted");
+  const socials = {}; SOC.forEach(s => { if (r["s_" + s]) socials[s] = r["s_" + s]; delete r["s_" + s]; });
+  const row = { ...r, socials, slug:(r.slug || "").toLowerCase(), updated_at: new Date().toISOString() };
+  await guard(async () => {
+    if (p){ await upd("profiles", p.id, row); openProfile({ ...p, ...row }); }
+    else { const [n] = await ins("profiles", row); await ins("subscriptions", { profile_id:n.id, status:"active", provider:"manual" }); openProfile(n); }
+  }, "Athlete saved");
+}
+async function openProfile(p){
+  await loadRef();
+  const [ens, sps] = await Promise.all([api(`entries?profile_id=eq.${p.id}&select=*,series(short_name,name),vehicles(name)&order=year.desc`), api(`sponsors?profile_id=eq.${p.id}&select=*&order=sort`)]);
+  const page = new URL(`./${p.slug}`, location.href).href;
+  $("#main").innerHTML = `<div class="bar"><button class="btn sm" id="back">← Athletes</button><h2 class="grow" style="margin:0">${esc(p.display_name)}</h2><a class="btn" href="${esc(page)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Open page ↗</a><button class="btn" id="p-edit">Edit</button></div>
+    <h3>Championships</h3>
+    ${ens.length ? `<div class="tbl"><table><tr><th>Championship</th><th>Team</th><th class="hide-m">Vehicle</th><th>#</th><th class="hide-m">Colour</th></tr>${ens.map((e, i) => `<tr class="click" data-e="${i}"><td><b>${esc(e.series?.short_name)}</b> ${e.year}</td><td>${esc(e.team || "")}</td><td class="hide-m dim">${esc(e.vehicles?.name || "")}</td><td>${esc(e.car_number || "")}</td><td class="hide-m">${e.color ? `<span class="light" style="background:${esc(e.color)}"></span>${esc(e.color)}` : ""}</td></tr>`).join("")}</table></div>` : `<p class="muted">No championships yet.</p>`}
+    <div class="bar" style="margin-top:8px"><button class="btn pri" id="en-add">+ Add championship</button></div>
+    <h3>Sponsors</h3>
+    ${sps.length ? `<div class="tbl"><table><tr><th>Sponsor</th><th class="hide-m">Link</th><th>Logo</th></tr>${sps.map((s, i) => `<tr class="click" data-sp="${i}"><td><b>${esc(s.name)}</b></td><td class="hide-m dim">${esc(s.link_url || "")}</td><td>${s.logo_original_url ? `<img src="${esc(s.logo_original_url)}" alt="" style="height:22px;max-width:90px;object-fit:contain;${s.display === "white" ? "filter:brightness(0) invert(1)" : ""}">` : ""}</td></tr>`).join("")}</table></div>` : `<p class="muted">No sponsors yet.</p>`}
+    <div class="bar" style="margin-top:8px"><button class="btn pri" id="sp-add">+ Add sponsor</button></div>`;
+  $("#back").onclick = () => route();
+  $("#p-edit").onclick = () => editProfile(p);
+  $("#en-add").onclick = () => editEntry(p);
+  $("#sp-add").onclick = () => editSponsor(p, null, sps.length);
+  document.querySelectorAll("[data-e]").forEach(r => r.onclick = () => editEntry(p, ens[+r.dataset.e]));
+  document.querySelectorAll("[data-sp]").forEach(r => r.onclick = () => editSponsor(p, sps[+r.dataset.sp]));
+}
+async function editEntry(p, en){
+  const r = await form(en ? "Edit championship entry" : "Add championship entry", [
+    { k:"series_id", l:"Championship", type:"select", options: seriesOpts(), req:true },
+    { k:"year", l:"Season", type:"number", req:true, def: YEAR + 1 },
+    { k:"team", l:"Team" }, { k:"car_number", l:"Car number" }, { k:"category", l:"Category", ph:"LMP2" },
+    { k:"vehicle_id", l:"Vehicle", type:"select", options: vehicleOpts(), help:"Missing? Add it in Vehicles." },
+    { k:"teammates", l:"Teammates (comma separated)" },
+    { k:"color", l:"Colour for this championship", type:"color", def:"#8a8d96" }
+  ], en ? { ...en, teammates:(en.teammates || []).join(", ") } : {}, { onDelete: !!en });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("entries", en.id); openProfile(p); }, "Removed");
+  const row = { ...r, profile_id:p.id, teammates:(r.teammates || "").split(",").map(x => x.trim()).filter(Boolean) };
+  await guard(async () => { en ? await upd("entries", en.id, row) : await ins("entries", row); openProfile(p); }, "Saved – all races of that season are on the page");
+}
+async function editSponsor(p, s, n = 0){
+  const r = await form(s ? "Edit sponsor" : "Add sponsor", [
+    { k:"name", l:"Name", req:true }, { k:"logo_original_url", l:"Logo (image URL)", type:"url" },
+    { k:"link_url", l:"Link", type:"url" },
+    { k:"display", l:"Show logo", type:"select", empty:false, options:[{ v:"white", l:"In white (matches the dark page)" }, { v:"original", l:"In original colours" }] },
+    { k:"sort", l:"Order", type:"number", def:n }
+  ], s || {}, { onDelete: !!s });
+  if (!r) return;
+  if (r.__delete) return guard(async () => { await del("sponsors", s.id); openProfile(p); }, "Removed");
+  await guard(async () => { s ? await upd("sponsors", s.id, r) : await ins("sponsors", { ...r, profile_id:p.id }); openProfile(p); }, "Sponsor saved");
+}
+
+// ---------- start ----------
+async function login(msg){
+  $("#app").innerHTML = `<div class="login"><div class="brand" style="font-size:40px">RACEN<span class="x">X</span>T</div><div class="muted" style="letter-spacing:.14em;text-transform:uppercase;font-size:12px;margin-top:4px">Admin</div>
+    <form class="card" id="lf"><label class="f" for="em">Email</label><input id="em" type="email" required autocomplete="email" placeholder="you@example.com"><button class="btn pri" style="height:42px">Send me a sign-in link</button><div class="muted" style="font-size:13px" id="lmsg">${esc(msg || "We'll email you a link. No password needed.")}</div></form></div>`;
+  $("#lf").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("#em").value.trim();
+    const r = await fetch(`${C.url}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ email, create_user:true }) });
+    $("#lmsg").textContent = r.ok ? `Check your inbox: we sent a link to ${email}.` : "Couldn't send the link. Try again in a minute.";
+  };
+}
+async function start(){
+  readHash();
+  if (!(await token())) return login();
+  const me = await fetch(`${C.url}/auth/v1/user`, { headers:{ apikey:C.key, Authorization:`Bearer ${await token()}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!me){ S.set(null); return login(); }
+  let isAdmin = false; try { isAdmin = await rpc("am_i_admin"); } catch(e){}
+  if (!isAdmin){
+    $("#app").innerHTML = `<div class="login"><div class="brand" style="font-size:40px">RACEN<span class="x">X</span>T</div><div class="card" style="margin-top:20px;text-align:left"><b>Signed in as ${esc(me.email)}</b><p class="dim">This account isn't an admin yet. Share this ID with the Racenxt team to get access:</p><pre>${esc(me.id)}</pre><button class="btn" id="lo" style="margin-top:10px">Sign out</button></div></div>`;
+    $("#lo").onclick = () => { S.set(null); location.reload(); };
+    return;
+  }
+  await route();
+  const w = document.getElementById("who-mail"); if (w) w.textContent = me.email;
+}
+start();
+})();
+</script>
+</body>
+</html>

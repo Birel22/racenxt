@@ -8,7 +8,10 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const SB = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AKEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
-const MODEL = "claude-sonnet-5-5";
+// Haiku 5.5 does the reading (about 20x cheaper); Sonnet 5.5 steps in only if Haiku's answer can't be used.
+// Everything still goes through human review before fans see it.
+const FAST = "claude-haiku-5-5", STRONG = "claude-sonnet-5-5";
+const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
@@ -30,35 +33,56 @@ async function isAdmin(token: string) {
 }
 
 // ---------- Claude with web search + web fetch ----------
-type Usage = { input: number; output: number; searches: number; fetches: number; cost_usd?: number };
-// Sonnet 5.5: $2 per million input tokens, $10 per million output tokens; web search $10 per 1,000 searches; web fetch free
-const costOf = (u: Usage) => Math.round((u.input * 2 / 1e6 + u.output * 10 / 1e6 + u.searches * 0.01) * 10000) / 10000;
-async function claude(system: string, user: string, maxFetch = 12) {
+type Usage = { input: number; output: number; searches: number; fetches: number; cost_usd: number; model?: string };
+// Prices per million tokens. Haiku 5.5: $0.10 / $0.50 when a request's prompt is up to 100k tokens, $0.50 / $2.50 above.
+// Sonnet 5.5: $2 / $10. Web search: $10 per 1,000 searches. Web fetch: no extra charge.
+function priceOf(model: string, inp: number, out: number) {
+  if (model === FAST) return inp > 100000 ? inp * 0.5 / 1e6 + out * 2.5 / 1e6 : inp * 0.1 / 1e6 + out * 0.5 / 1e6;
+  return inp * 2 / 1e6 + out * 10 / 1e6;
+}
+const newUsage = (): Usage => ({ input: 0, output: 0, searches: 0, fetches: 0, cost_usd: 0 });
+function addUsage(a: Usage, b: Usage) { a.input += b.input; a.output += b.output; a.searches += b.searches; a.fetches += b.fetches; a.cost_usd = Math.round((a.cost_usd + b.cost_usd) * 10000) / 10000; a.model = a.model ? `${a.model} + ${b.model}` : b.model; return a; }
+// Ask with Haiku first; if the answer isn't usable JSON, ask Sonnet once.
+async function ask(system: string, user: string, maxFetch = 8) {
+  const total = newUsage();
+  let last = "";
+  for (const model of [FAST, STRONG]) {
+    try {
+      const r = await claude(model, system, user, maxFetch);
+      addUsage(total, r.usage);
+      return { out: parseJson(r.text), usage: total };
+    } catch (e) { last = String((e as Error).message || e); /* try the stronger model */ }
+  }
+  throw new Error(last || "The AI's answer couldn't be read");
+}
+async function claude(model: string, system: string, user: string, maxFetch: number) {
   const tools: any[] = [
-    { type: "web_search_20250305", name: "web_search", max_uses: 6 },
-    { type: "web_fetch_20250910", name: "web_fetch", max_uses: maxFetch, max_content_tokens: 60000 },
+    { type: "web_search_20250305", name: "web_search", max_uses: 4 },
+    // smaller page extracts keep each request short (and under Haiku's 100k price step)
+    { type: "web_fetch_20250910", name: "web_fetch", max_uses: maxFetch, max_content_tokens: 15000 },
   ];
   const messages: any[] = [{ role: "user", content: user }];
-  const usage: Usage = { input: 0, output: 0, searches: 0, fetches: 0 };
+  const usage = newUsage(); usage.model = model;
   let text = "";
   for (let i = 0; i < 8; i++) {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "anthropic-beta": "web-fetch-2025-09-10", "content-type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 16000, system, messages, tools }),
+      body: JSON.stringify({ model, max_tokens: 16000, system, messages, tools }),
     });
     const j = await r.json();
     if (!r.ok) throw new Error(`AI ${r.status}: ${j?.error?.message || JSON.stringify(j).slice(0, 200)}`);
-    usage.input += j.usage?.input_tokens || 0;
-    usage.output += j.usage?.output_tokens || 0;
-    usage.searches += j.usage?.server_tool_use?.web_search_requests || 0;
+    const inp = (j.usage?.input_tokens || 0) + (j.usage?.cache_read_input_tokens || 0) + (j.usage?.cache_creation_input_tokens || 0), outp = j.usage?.output_tokens || 0;
+    usage.input += inp; usage.output += outp; usage.cost_usd += priceOf(model, inp, outp);
+    const se = j.usage?.server_tool_use?.web_search_requests || 0;
+    usage.searches += se; usage.cost_usd += se * 0.01;
     usage.fetches += j.usage?.server_tool_use?.web_fetch_requests || 0;
     messages.push({ role: "assistant", content: j.content });
     if (j.stop_reason === "pause_turn") continue;
     text = (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
     break;
   }
-  usage.cost_usd = costOf(usage);
+  usage.cost_usd = Math.round(usage.cost_usd * 10000) / 10000;
   return { text, usage };
 }
 function parseJson(text: string) {
@@ -77,11 +101,63 @@ function cleanSessions(list: any[], start: string, end: string) {
     .map((x: any) => ({ label: x.label, type: TYPES.includes(x.type) ? x.type : "other", local_start: x.local_start, duration_min: Math.max(1, Math.round(+x.duration_min || 60)), category: x.category || null }));
 }
 
+// ---------- logo: try the AI's candidates, then logos found in the official homepage's HTML ----------
+function abs(u: string, base: string) { try { return new URL(u.trim().replace(/&amp;/g, "&"), base).href; } catch { return ""; } }
+async function logoCandidatesFromHtml(site: string) {
+  const out: { url?: string; svg?: string }[] = [];
+  try {
+    const r = await fetch(site, { headers: { "User-Agent": UA, "Accept": "text/html" }, redirect: "follow" });
+    if (!r.ok) return out;
+    const html = (await r.text()).slice(0, 800000);
+    const base = r.url || site;
+    // <img> tags mentioning "logo" (src, data-src, srcset), header ones first
+    const header = (html.match(/<header[\s\S]*?<\/header>/i) || [""])[0];
+    for (const chunk of [header, html]) {
+      for (const tag of chunk.match(/<img\b[^>]*>/gi) || []) {
+        if (!/logo/i.test(tag)) continue;
+        const src = (tag.match(/\bsrc=["']([^"']+)["']/i) || tag.match(/\bdata-src=["']([^"']+)["']/i) || [])[1]
+          || ((tag.match(/\bsrcset=["']([^"']+)["']/i) || [])[1] || "").split(",").pop()?.trim().split(/\s+/)[0];
+        if (src && !src.startsWith("data:")) out.push({ url: abs(src, base) });
+      }
+      // inline <svg> marked as a logo
+      for (const m of chunk.matchAll(/<(a|div|span)\b[^>]*logo[^>]*>\s*(<svg[\s\S]*?<\/svg>)/gi)) out.push({ svg: m[2] });
+      for (const m of chunk.matchAll(/<svg\b[^>]*logo[^>]*>[\s\S]*?<\/svg>/gi)) out.push({ svg: m[0] });
+    }
+  } catch (_) { /* site unreachable */ }
+  return out.slice(0, 8);
+}
+async function storeLogo(slug: string, cands: { url?: string; svg?: string }[]) {
+  for (const c of cands) {
+    try {
+      let body: ArrayBuffer | string, type: string;
+      if (c.svg) {
+        if (c.svg.length < 200) continue;
+        body = c.svg.includes("xmlns=") ? c.svg : c.svg.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"'); type = "image/svg+xml";
+      } else {
+        const img = await fetch(c.url!, { headers: { "User-Agent": UA, "Accept": "image/*,*/*" }, redirect: "follow" });
+        if (!img.ok) continue;
+        type = (img.headers.get("content-type") || "").split(";")[0];
+        const ext = (c.url!.split("?")[0].match(/\.(svg|png|webp|jpe?g)$/i) || [])[1]?.toLowerCase();
+        if (!type.startsWith("image/")) type = ext === "svg" ? "image/svg+xml" : ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : ext ? "image/jpeg" : "";
+        if (!type) continue;
+        body = await img.arrayBuffer();
+        if (body.byteLength < 300) continue;
+      }
+      const ext = type.includes("svg") ? "svg" : type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
+      const path = `series/${slug}-agent-${Date.now()}.${ext}`;
+      const up = await fetch(`${SB}/storage/v1/object/media/${path}`, { method: "POST", headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": type, "x-upsert": "true" }, body });
+      if (up.ok) return `${SB}/storage/v1/object/public/media/${path}`;
+    } catch (_) { /* next candidate */ }
+  }
+  return null;
+}
+
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
 - Use the championship's OFFICIAL website as the source of truth for dates, timetables and broadcast information. Use web search only to find that official site or pages on it. Never take dates or times from news sites, fan sites, Wikipedia or ticket resellers.
 - Times must be LOCAL CIRCUIT TIME exactly as published (no conversion). Format YYYY-MM-DD HH:MM, 24-hour.
 - Never guess. If something is not published on the official site, leave it out or set it to null.
+- Be economical: open each page at most once, go straight to the calendar / race pages, and stop as soon as you have the answer.
 - Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
 
 // ---------- discover: official site, logo, calendar ----------
@@ -95,19 +171,18 @@ Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
 Task:
 1. Find the official website of this championship.
-2. Find the official logo as a direct image URL (PNG, SVG or JPG) hosted on the official site or its CDN.
+2. Find the championship's official logo: up to 3 direct, absolute image URLs (SVG or PNG preferred), e.g. the logo image in the official site's header. If the official site doesn't expose one, a Wikimedia Commons file of the official logo (upload.wikimedia.org) is acceptable as the last candidate.
 3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}).
 4. For each race weekend: round number, official race name, first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
 5. Timetables: for the next upcoming race weekends, check the race page on the official site. If the official timetable (HTML or PDF) is already published, list every on-track session of THIS championship (practice, qualifying, hyperpole, warm-up, races) in local circuit time. If it is not published yet, set "sessions": null. Don't spend more than a few page reads on this; stop at the first race whose timetable is not published.
 6. Find the championship's usual official place to watch (streaming service, YouTube channel or TV page), if published.
 JSON schema:
-{"website_url": string|null, "logo_url": string|null, "calendar_url": string|null, "watch_url": string|null,
+{"website_url": string|null, "logo_urls": [string], "calendar_url": string|null, "watch_url": string|null,
  "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null},
    "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "duration_min": number|null, "category": string|null}] | null}]}],
  "notes": string}`;
-  const { text, usage } = await claude(RULES, user, 16);
-  const out = parseJson(text);
+  const { out, usage } = await ask(RULES, user, 10);
   const site = out.website_url || series.website_url;
   const domain = host(site || "");
   const props: string[] = [];
@@ -120,18 +195,14 @@ JSON schema:
   if (!series.website_url && site) upd.website_url = site;
   // the championship's usual stream is only a hint for race-week checks (fans see one link per race)
   if (out.watch_url && !series.watch_url) upd.watch_url = out.watch_url;
-  // logo: copied to our storage when the championship has none yet
-  if (!series.logo_url && out.logo_url) {
-    try {
-      const img = await fetch(out.logo_url);
-      const type = img.headers.get("content-type") || "";
-      if (img.ok && type.startsWith("image/")) {
-        const ext = type.includes("svg") ? "svg" : type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-        const path = `series/${series.slug}-agent-${Date.now()}.${ext}`;
-        const up = await fetch(`${SB}/storage/v1/object/media/${path}`, { method: "POST", headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": type, "x-upsert": "true" }, body: await img.arrayBuffer() });
-        if (up.ok) upd.logo_url = `${SB}/storage/v1/object/public/media/${path}`;
-      }
-    } catch (_) { /* logo is optional */ }
+  // logo: copied to our storage when the championship has none yet (the admin turns it white and asks for confirmation)
+  let logoNote = "";
+  if (!series.logo_url) {
+    const aiC = [...(out.logo_urls || []), out.logo_url].filter((u: any) => typeof u === "string" && /^https?:/.test(u)).map((url: string) => ({ url }));
+    const wiki = aiC.filter(c => /wikimedia|wikipedia/.test(c.url)), own = aiC.filter(c => !/wikimedia|wikipedia/.test(c.url));
+    const fromHtml = site ? await logoCandidatesFromHtml(site) : [];
+    const logo = await storeLogo(series.slug, [...own, ...fromHtml, ...wiki]);
+    if (logo) upd.logo_url = logo; else logoNote = " No logo found: add one on the review page.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
 
@@ -167,7 +238,7 @@ JSON schema:
       evidence: { url: out.calendar_url || site, excerpt: out.notes || "" } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetable already out for ${ttFound}; the others are checked closer to each race)`);
   }
-  const summary = props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.";
+  const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: [site, out.calendar_url].filter(Boolean).map((url: string) => ({ url })) };
 }
 
@@ -190,8 +261,7 @@ JSON schema:
 {"timetable_found": boolean, "source_url": string|null, "excerpt": string|null,
  "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "duration_min": number|null, "category": string|null}],
  "watch_url": string|null}`;
-  const { text, usage } = await claude(RULES, user);
-  const out = parseJson(text);
+  const { out, usage } = await ask(RULES, user, 6);
   const props: string[] = [];
   const sessions = cleanSessions(out.sessions, ev.start_date, ev.end_date);
   if (out.timetable_found && sessions.length) {

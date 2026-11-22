@@ -78,7 +78,8 @@
   .grow{flex:1}
   .btn{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
   .btn:hover{border-color:var(--line2)}
-  .btn.pri{background:var(--text);color:#0b0c0f;border-color:var(--text)}
+  .btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .btn.pri:hover{background:#ff6f3a;border-color:#ff6f3a}
   .btn.good{background:var(--good);color:#0b0c0f;border-color:var(--good)}
   .btn.bad{color:var(--bad)}
   .btn.sm{height:30px;padding:0 10px;font-size:13px;border-radius:8px}
@@ -121,14 +122,24 @@
   .head-card .links{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
   .head-card .links a{color:var(--dim)}
   /* drawer */
-  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(720px,100vw);background:var(--panel);border-left:1px solid var(--line);z-index:30;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(0,0,0,.45)}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(720px,100vw);background:#111216;border-left:1px solid var(--line);z-index:30;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(0,0,0,.45)}
   body.drawer-on .drawer{transform:none}
   body.drawer-on .scrim2{display:block}
   .scrim2{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:25}
-  .dr-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
-  .dr-h b{flex:1;font:700 18px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.03em}
-  .dr-b{flex:1;overflow:auto;padding:16px;display:grid;gap:14px;align-content:start}
-  .dr-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
+  .dr-h{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--line2);background:#16171c;box-shadow:inset 0 3px 0 var(--acc)}
+  .dr-h b{flex:1;font:700 22px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.03em}
+  .dr-b{flex:1;overflow:auto;padding:18px 20px;display:grid;gap:14px;align-content:start}
+  .dr-f{display:flex;gap:8px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line2);background:#16171c}
+  .fs{background:#1a1b21;border:1px solid #2d2f37;border-radius:14px;padding:16px;display:grid;gap:14px}
+  .fs > h4{margin:0;display:flex;align-items:baseline;gap:10px;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--text)}
+  .fs > h4 i{width:6px;height:6px;border-radius:50%;background:var(--acc);display:inline-block;transform:translateY(-2px)}
+  .fs > h4 small{font-weight:500;letter-spacing:0;text-transform:none;color:var(--mute);font-size:13px}
+  .drawer input,.drawer select,.drawer textarea{background:#0d0e11;border-color:#3b3e47;color:var(--text)}
+  .drawer input:hover,.drawer select:hover,.drawer textarea:hover{border-color:#50545e}
+  .drawer label.f{color:#e9e9e6}
+  .drawer .help{color:#8e919b}
+  .drawer .sp-tile{background:#0d0e11;border-color:#3b3e47}
+  .drawer .drop{background:#0d0e11;border-color:#3b3e47}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .sess{display:grid;gap:6px}
   .srow{display:grid;grid-template-columns:128px 118px 1fr 116px 70px 32px;gap:6px;align-items:center}
@@ -198,6 +209,7 @@ const I = {
   pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   car:'<svg viewBox="-0.6 0.1 23.4 6.6" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" style="width:22px"><path stroke-width="0.9" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><circle stroke-width="0.9" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.9" cx="18.45" cy="5.15" r="1.4"/></svg>',
   menu:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
   back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   chev:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
   search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'
@@ -263,14 +275,14 @@ async function runAgent(body, label, key, hooks = {}){
 async function pollRun(id){
   await new Promise(r => setTimeout(r, 5000));
   const meta = RUNS[id]; let run = null;
-  try { [run] = await api(`check_runs?id=eq.${id}&select=result,summary,error`); } catch(e){}
+  try { [run] = await api(`check_runs?id=eq.${id}&select=result,summary,error,usage`); } catch(e){}
   if ((!run || run.result === "running") && Date.now() - meta.t0 < 6 * 60e3) return pollRun(id);
   delete RUNS[id]; showRuns();
   if (meta.discover && run && run.result !== "error") await whitenLogo(meta.key);
   if (meta.hooks.done && meta.hooks.done(run)) return;
   if (!run || run.result === "running") aiNotice(`${meta.label}: no answer after 6 minutes. Try again in a moment.`);
   else if (run.result === "error") aiNotice(`${meta.label} didn't work: ${run.error || "unknown error"}`);
-  else aiNotice(`${meta.label}: ${run.summary || "done."}`, run.result === "proposal");
+  else aiNotice(`${meta.label}: ${run.summary || "done."} (${usd(runCost(run.usage))})`, run.result === "proposal");
   if (!document.body.classList.contains("drawer-on")) route();
 }
 
@@ -325,11 +337,13 @@ function drawer(title, layout, values = {}, opts = {}){
     drawerResolve = resolve;
     const all = [];
     $("#dr-t").textContent = title;
-    $("#dr-b").innerHTML = layout.map(item => {
+    const one = item => {
       if (item.html) return item.html;
+      if (item.section) return `<section class="fs"><h4><i></i>${esc(item.section)}${item.sub ? ` <small>${esc(item.sub)}</small>` : ""}</h4>${item.items.map(one).join("")}</section>`;
       if (item.row){ item.row.forEach(f => all.push(f)); return `<div class="two">${item.row.map(f => fieldHtml(f, values[f.k])).join("")}</div>`; }
       all.push(item); return fieldHtml(item, values[item.k]);
-    }).join("") + (opts.extra || "");
+    };
+    $("#dr-b").innerHTML = layout.map(one).join("") + (opts.extra || "");
     $("#dr-f").innerHTML = `${opts.onDelete ? `<button class="btn bad" id="dr-del" style="margin-right:auto">${esc(opts.deleteLabel || "Delete")}</button>` : ""}<button class="btn" id="dr-cancel">Cancel</button><button class="btn pri" id="dr-ok">${esc(opts.ok || "Save")}</button>`;
     $("#dr-cancel").onclick = () => closeDrawer(null);
     $("#dr-ok").onclick = () => {
@@ -361,7 +375,7 @@ const venueList = () => `<datalist id="venues-dl">${D.venues.map(v => `<option v
 // ---------- shell + router ----------
 let PENDING = 0, ME = null;
 const NAV = [
-  ["dashboard","Dashboard",I.dash],["championships","Championships",I.champ],["review","Review queue",I.review],["users","Users",I.users],
+  ["dashboard","Dashboard",I.dash],["championships","Championships",I.champ],["review","Review queue",I.review],["users","Users",I.users],["usage","AI usage",I.spark],
   ["grp","Library"],["circuits","Circuits",I.pin],["vehicles","Vehicles",I.car]
 ];
 function shell(){
@@ -382,7 +396,7 @@ async function route(){
     await loadRef();
     if (page === "championships" && a) await championshipPage(decodeURIComponent(a), b);
     else if (page === "review" && a) await review(decodeURIComponent(a));
-    else await ({ dashboard, championships, review, users, circuits, vehicles }[page] || dashboard)();
+    else await ({ dashboard, championships, review, users, circuits, vehicles, usage }[page] || dashboard)();
   } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
 }
 window.addEventListener("hashchange", route);
@@ -469,14 +483,14 @@ async function championshipPage(slug, openId){
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
   const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
   const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
-  const watchChip = w => w === "specific" ? '<span class="chip good">Specific link</span>' : w === "default" ? '<span class="chip">Championship link</span>' : '<span class="chip warn">Missing</span>';
+  const watchChip = (w, e) => w === "specific" ? '<span class="chip good">Set</span>' : e.end_date < TODAY ? '<span class="chip">–</span>' : e.start_date <= new Date(Date.now() + 7*864e5).toISOString().slice(0,10) ? '<span class="chip warn">Missing</span>' : '<span class="chip">Race week</span>';
   const schedChip = e => e.session_count ? `<span class="chip good">${e.session_count} sessions</span>` : (e.end_date < TODAY ? '<span class="chip">–</span>' : '<span class="chip warn">Missing</span>');
   const table = list => `<div class="tbl"><table><tr><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
-      ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
+      ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status, e)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
   $("#main").innerHTML = `<a class="back" href="#/championships">${I.back}All championships</a>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
-      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.watch_url ? `<a href="${esc(s.watch_url)}" target="_blank" rel="noopener">Where to watch ↗</a>` : `<span class="chip warn">No where-to-watch link</span>`}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
+      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
       <button class="btn ai" id="s-ai"${aiBusy(s.id) ? " disabled" : ""} title="Finds the official site, logo, calendar and where to watch">${aiBusy(s.id) ? "Checking…" : "Check calendar with AI"}</button><button class="btn" id="s-edit">Edit championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="e-q" placeholder="Search races, circuits…" aria-label="Search races"></label>
       <span class="grow"></span><button class="btn" id="e-import">Import calendar</button><button class="btn pri" id="e-add">+ Add race</button></div>
@@ -511,19 +525,22 @@ async function editRace(s, e, yr){
   const guessType = l => { l = l.toLowerCase(); return /race|course/.test(l) ? "race" : /quali|hyperpole|pole/.test(l) ? "qualifying" : /practice|fp\d|essais|test/.test(l) ? "practice" : /warm/.test(l) ? "warmup" : "other"; };
   const rowHtml = (x, dlist) => `<div class="srow"><select class="s-day" aria-label="Day">${(dlist.length ? dlist : [x.day || ""]).map(d => `<option value="${d}"${d === x.day ? " selected" : ""}>${d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"}) : "—"}</option>`).join("")}</select><input class="s-time" type="time" value="${esc(x.time || "")}" aria-label="Start time"><input class="s-label lab" value="${esc(x.label || "")}" placeholder="Session name" aria-label="Session name"><select class="s-type" aria-label="Type">${TYPES.map(([v,l]) => `<option value="${v}"${v === (x.type || "practice") ? " selected" : ""}>${l}</option>`).join("")}</select><input class="s-min" type="number" min="1" value="${esc(x.min || 60)}" aria-label="Minutes"><button type="button" class="btn icon sm s-del" aria-label="Remove session">×</button></div>`;
   const sessInit = ss.map(x => ({ day:x.local_start.slice(0,10), time:x.local_start.slice(11,16), label:x.label, type:x.type, min:x.duration_min, cat:x.category }));
-  const extra = `<div style="grid-column:1/-1"><h3 style="margin:8px 0 6px">Sessions <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:500">· local circuit time${venue ? ", " + esc(venue.timezone) : ""}</span></h3>
+  const extra = `<section class="fs"><h4><i></i>Sessions <small>Local circuit time${venue ? " · " + esc(venue.timezone) : ""}</small></h4>
     <div class="sess" id="sess"><div class="srow h"><span>Day</span><span>Time</span><span>Session</span><span>Type</span><span>Min</span><span></span></div></div>
     <div class="bar" style="margin-top:8px"><button type="button" class="btn sm" id="s-add">+ Add session</button><button type="button" class="btn sm" id="s-pastebtn">Paste timetable</button>${e ? `<span class="grow"></span><button type="button" class="btn sm ai" id="s-ai-race"${aiBusy(e.id) ? " disabled" : ""}>${aiBusy(e.id) ? "Checking…" : "Find timetable with AI"}</button>` : ""}</div>
-    <div id="s-paste" hidden><textarea id="s-pastetxt" placeholder="One per line:  Fri 10:10 Free Practice 1 90\nor  2027-06-12 16:00 Race 1440"></textarea><button type="button" class="btn sm" id="s-pasteok" style="margin-top:6px">Add these sessions</button></div></div>`;
+    <div id="s-paste" hidden><textarea id="s-pastetxt" placeholder="One per line:  Fri 10:10 Free Practice 1 90\nor  2027-06-12 16:00 Race 1440"></textarea><button type="button" class="btn sm" id="s-pasteok" style="margin-top:6px">Add these sessions</button></div></section>`;
   const dl = () => days({ s: $("#f_start_date").value, e: $("#f_end_date").value });
   const r = await drawer(e ? e.name : "Add race", [
     { html: venueList() },
-    { k:"name", l:"Race name", req:true, ph:"4 Hours of Barcelona" },
-    { row:[{ k:"round", l:"Round", type:"number" }, { k:"duration_label", l:"Race length", ph:"4h, 24h, 2 × 4h" }] },
-    { row:[{ k:"start_date", l:"First day", type:"date", req:true }, { k:"end_date", l:"Last day", type:"date", req:true }] },
-    { row:[{ k:"venue_name", l:"Circuit", list:"venues-dl", ph:"Start typing…", help:"New circuit? It's added with its time zone automatically." }, { k:"country", l:"Country", ph:"Spain" }] },
-    { k:"watch_url", l:"Where to watch (only if different from the championship)", type:"url" },
-    { k:"note", l:"Note shown on the card", ph:"Official Prologue: 8–9 March" }
+    { section:"Race", items:[
+      { k:"name", l:"Race name", req:true },
+      { row:[{ k:"round", l:"Round", type:"number" }, { k:"duration_label", l:"Race length", help:"For example 4h or 24h" }] } ] },
+    { section:"Dates & circuit", items:[
+      { row:[{ k:"start_date", l:"First day", type:"date", req:true }, { k:"end_date", l:"Last day", type:"date", req:true }] },
+      { row:[{ k:"venue_name", l:"Circuit", list:"venues-dl", help:"New circuit? Added with its time zone automatically." }, { k:"country", l:"Country" }] } ] },
+    { section:"For fans", items:[
+      { k:"watch_url", l:"Where to watch", type:"url", help:"The AI fills this in during race week." },
+      { k:"note", l:"Note on the race card", help:"Optional. For example: Official Prologue 8–9 March" } ] }
   ], e ? { ...e, venue_name: venue?.name || "", country: venue?.country || "" } : { year: yr }, {
     extra, onDelete: !!e, deleteText: "Delete this race and its sessions?", ok: e ? "Save race" : "Add race",
     after(){
@@ -658,7 +675,7 @@ async function uploadMedia(blob, path){
 }
 function logoPicker(current){
   const st = { file:null, blob:null, mode:"white" };
-  const html = `<div><label class="f">Logo</label><div class="drop" id="lg-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="pv" id="lg-pv">${current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"}</div><div style="font-size:14px"><b>Drop a logo here</b><div class="dim">or paste a screenshot (Cmd/Ctrl+V), or <u>choose a file</u></div></div><input type="file" id="lg-file" accept="image/*" hidden></div>
+  const html = `<div><div class="drop" id="lg-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="pv" id="lg-pv">${current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"}</div><div style="font-size:14px"><b>Drop a logo here</b><div class="dim">or paste a screenshot (Cmd/Ctrl+V), or <u>choose a file</u></div></div><input type="file" id="lg-file" accept="image/*" hidden></div>
     <div class="bar" style="margin:8px 0 0"><div class="seg" id="lg-mode"><button type="button" data-m="white" class="on">White</button><button type="button" data-m="original">Original colours</button></div><span class="help" style="margin:0">Background is removed automatically.</span></div></div>`;
   const run = async () => { if (!st.file) return; $("#lg-pv").innerHTML = "<span>Processing…</span>"; try { st.blob = await processLogo(st.file, st.mode); $("#lg-pv").innerHTML = `<img src="${URL.createObjectURL(st.blob)}" alt="">`; } catch(e){ $("#lg-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; } };
   const take = f => { if (f && f.type.startsWith("image/")){ st.file = f; run(); } };
@@ -675,7 +692,7 @@ function logoPicker(current){
 }
 function sportPicker(cur){
   const many = Object.keys(SPORT).length > 8;
-  const html = `<div style="grid-column:1/-1"><label class="f" id="sp-lab">Sport *</label>${many ? `<input class="sp-find" id="sp-find" placeholder="Search sports" aria-label="Search sports">` : ""}
+  const html = `<div style="grid-column:1/-1"><label class="f" id="sp-lab">Choose one *</label>${many ? `<input class="sp-find" id="sp-find" placeholder="Search sports" aria-label="Search sports">` : ""}
     <div class="sp-grid" id="sp-pick" role="radiogroup" aria-labelledby="sp-lab">${Object.entries(SPORT).map(([k, v]) => `<button type="button" class="sp-tile" role="radio" data-sp="${k}" aria-checked="${cur === k}" tabindex="${cur === k || (!cur && k === Object.keys(SPORT)[0]) ? 0 : -1}">${v.i}<span>${v.l}</span></button>`).join("")}</div></div>`;
   const st = { v: cur || "" };
   return { html, st, after(){
@@ -688,9 +705,10 @@ function sportPicker(cur){
 async function addSeries(){
   const sp = sportPicker("");
   const r = await drawer("Add championship", [
-    { k:"name", l:"Full championship name", req:true },
-    { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
-    { html: sp.html }
+    { section:"Championship", sub:"The AI finds the rest", items:[
+      { k:"name", l:"Full championship name", req:true },
+      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
+    { section:"Sport", items:[{ html: sp.html }] }
   ], {}, { ok:"Add and find with AI", after: sp.after });
   if (!r) return;
   if (!sp.st.v){ alert("Choose a sport."); return addSeries(); }
@@ -749,14 +767,15 @@ async function editSeries(s, src){
   const lp = logoPicker(s.logo_url);
   const sp = sportPicker(s.sport || "");
   const r = await drawer(`Edit ${s.short_name || s.name}`, [
-    { html: lp.html },
-    { k:"name", l:"Full championship name", req:true },
-    { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
-    { html: sp.html },
-    { html:`<details style="grid-column:1/-1"><summary class="muted" style="cursor:pointer;font-size:13px;font-weight:600">Agent settings</summary><div style="display:grid;gap:12px;margin-top:12px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the agent reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
+    { section:"Championship", items:[
+      { k:"name", l:"Full championship name", req:true },
+      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
+    { section:"Logo", items:[{ html: lp.html }] },
+    { section:"Sport", items:[{ html: sp.html }] },
+    { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"watch_hint", l:"Usual live-stream page", type:"url", help:"Only a starting point for the AI. Fans see the link set on each race." }, s.watch_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], s, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
     after(){ lp.after(); sp.after(); },
-    collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
+    collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, watch_url: ($("#f_watch_hint")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("series", s.id); location.hash = "#/championships"; route(); }, "Championship deleted");
@@ -811,7 +830,7 @@ function pretty(p){
   if (p.kind === "event_change") return [pl.start_date && `${fmtRange(pl.start_date, pl.end_date || pl.start_date)} ${pl.start_date.slice(0,4)}`, pl.name, pl.duration_label, pl.circuit?.name].filter(Boolean).join("\n");
   return JSON.stringify(pl, null, 2);
 }
-const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}</span></li>`).join("")}</ul>`;
+const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<span class="chip good" style="margin-top:4px">Timetable: ${e.sessions.length} sessions</span>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
 async function current(p){
   if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}  ${s.label}  (${s.duration_min} min)`).join("\n") : "No sessions yet"; }
   if (p.kind === "watch_link"){ if (p.event_id){ const [e] = await api(`events?id=eq.${p.event_id}&select=watch_url`); if (e?.watch_url) return e.watch_url; } return D.series.find(x => x.id === p.series_id)?.watch_url || "No link yet"; }
@@ -830,6 +849,32 @@ async function manualProposal(){
   if (!r) return; let pl; try { pl = JSON.parse(r.payload || "{}"); } catch(e){ return alert("That's not valid JSON."); }
   const e = evs.find(x => x.id === r.event_id);
   guard(async () => { await ins("proposals", { kind:r.kind, event_id:r.event_id, series_id:e.series_id, payload:pl, evidence:{ url:r.url || "" } }); route(); }, "Added to the queue");
+}
+
+// ---------- AI usage: what each check cost ----------
+const runCost = u => !u ? 0 : u.cost_usd != null ? +u.cost_usd : ((u.input || 0) * 2 / 1e6 + (u.output || 0) * 10 / 1e6 + (u.searches || 0) * 0.01);
+const usd = n => "$" + (n < 10 ? n.toFixed(2) : n.toFixed(0));
+async function usage(){
+  const since = new Date(Date.now() - 90 * 864e5).toISOString();
+  const runs = await api(`check_runs?ran_at=gte.${since}&select=id,kind,result,ran_at,finished_at,usage,summary,error,series(short_name,name,slug),events(name)&order=ran_at.desc&limit=500`);
+  const month = new Date().toISOString().slice(0, 7);
+  const mRuns = runs.filter(r => r.ran_at.slice(0, 7) === month);
+  const mCost = mRuns.reduce((a, r) => a + runCost(r.usage), 0);
+  const done = runs.filter(r => r.usage);
+  const avg = done.length ? done.reduce((a, r) => a + runCost(r.usage), 0) / done.length : 0;
+  const KIND = { discover:"Calendar", manual:"Race check", weekly:"Weekly", daily:"Daily", final:"Final", monthly:"Monthly" };
+  const RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","Skipped"] };
+  $("#main").innerHTML = `<div class="ph"><h1>AI usage</h1></div>
+    <div class="kpis">
+      <div class="kpi"><b>${usd(mCost)}</b><span>This month</span></div>
+      <div class="kpi"><b>${mRuns.length}</b><span>Checks this month</span></div>
+      <div class="kpi"><b>${usd(avg)}</b><span>Average per check</span></div>
+      <div class="kpi"><b>${usd(runs.reduce((a, r) => a + runCost(r.usage), 0))}</b><span>Last 90 days</span></div>
+    </div>
+    <p class="muted" style="font-size:13px;margin:6px 0 18px">Estimated from what each check used (reading, writing, web searches). Your exact bill is in the Anthropic Console, under Usage.</p>
+    ${runs.length ? `<div class="tbl"><table><tr><th>When</th><th>Championship</th><th class="hide-m">Check</th><th>Result</th><th class="hide-m">Time</th><th style="text-align:right">Cost</th></tr>
+      ${runs.map(r => { const st = RES[r.result] || ["", r.result]; const secs = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.ran_at)) / 1000) : null; return `<tr title="${esc(r.summary || r.error || "")}"><td class="nowrap muted">${new Date(r.ran_at).toLocaleString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}</td><td><b>${esc(r.series?.short_name || "")}</b>${r.events ? ` <span class="dim">${esc(r.events.name)}</span>` : ""}</td><td class="hide-m">${KIND[r.kind] || r.kind}</td><td class="nowrap"><span class="chip ${st[0]}">${st[1]}</span></td><td class="hide-m muted">${secs != null ? secs + "s" : "–"}</td><td style="text-align:right" class="nowrap">${r.usage ? usd(runCost(r.usage)) : "–"}</td></tr>`; }).join("")}</table></div>`
+    : `<div class="card empty">No AI checks yet.</div>`}`;
 }
 
 // ---------- Users ----------

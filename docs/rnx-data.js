@@ -29,7 +29,7 @@
       const s = en.series; if (!s) continue;
       if (!series.find(x => x.slug === s.slug)) series.push(s);
       logo[s.slug] = s.logo_url || ""; label[s.slug] = s.short_name; official[s.slug] = s.website_url || "";
-      watch[s.slug] = s.watch_url || ""; color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
+      watch[s.slug] = ""; /* one where-to-watch link per race, set in race week */ color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
       team[s.slug] = { num: en.car_number || "", team: en.team || "", mates: en.teammates || [] };
       if (en.vehicles) {
         const v = en.vehicles; carOf[s.slug] = v.id;

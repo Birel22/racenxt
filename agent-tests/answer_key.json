@@ -736,6 +736,47 @@
       },
       "notes": "The broadcasters page is on the official F2 site, under Information.",
       "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
+    },
+    {
+      "id": "logo-f2",
+      "task": "logo",
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "reference": "agent-tests/logos/f2.png",
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match."
+    },
+    {
+      "id": "logo-elms",
+      "task": "logo",
+      "series_id": "74a933b6-fd82-454d-9017-0dea661e6ac2",
+      "reference": "agent-tests/logos/elms.png",
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match."
+    },
+    {
+      "id": "logo-alms",
+      "task": "logo",
+      "series_id": "842f1713-227e-4a08-bf01-c555c65642c3",
+      "reference": "agent-tests/logos/alms.png",
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match."
+    },
+    {
+      "id": "logo-eepc",
+      "task": "logo",
+      "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c",
+      "reference": "agent-tests/logos/eepc.png",
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. Published under Ultimate Cup Series."
+    },
+    {
+      "id": "logo-imsa",
+      "task": "logo",
+      "series": {
+        "name": "IMSA WeatherTech SportsCar Championship",
+        "short_name": "IMSA",
+        "slug": "imsa",
+        "website_url": "https://www.imsa.com/",
+        "sport": "endurance"
+      },
+      "reference": "agent-tests/logos/imsa.png",
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. IMSA is not in the app yet."
     }
   ]
 }

@@ -1271,7 +1271,7 @@ async function usage(){
 }
 
 // ---------- Agent tests: run the agent on known answers and see how it scores ----------
-const TEST_TASK = { calendar:"Calendar", schedule:"Schedule", watch:"Where to watch" };
+const TEST_TASK = { calendar:"Calendar", schedule:"Schedule", watch:"Where to watch", logo:"Logo" };
 let TPOLL = null;
 async function agentFn(body){
   const t = await token();
@@ -1325,7 +1325,8 @@ function testDetail(c, r, hist){
   const secs = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.created_at)) / 1000) : null;
   return `<div style="font-size:13px;line-height:1.5">
     <table style="width:100%;margin:4px 0 10px"><tr><th>Expected</th><th>Agent found</th><th></th></tr>
-    ${rows.map(x => `<tr><td>${esc(x.expect)}</td><td>${esc(x.found)}</td><td class="nowrap">${x.ok ? '<span class="chip good">✓</span>' : `<span class="chip bad">✗ ${esc(x.why || "")}</span>`}</td></tr>`).join("")}</table>
+    ${c.data.task === "logo" ? `<div style="display:flex;gap:10px;align-items:center;margin:6px 0"><span class="muted">Reference</span><img src="https://raw.githubusercontent.com/Birel22/racenxt/main/${esc(c.data.reference)}" alt="" style="max-height:56px;max-width:180px;background:#7f7f7f;padding:4px;border-radius:6px"></div>` : ""}
+    ${rows.map(x => `<tr><td>${esc(x.expect)}</td><td>${c.data.task === "logo" && /^https?:/.test(x.found) ? `<img src="${esc(x.found)}" alt="" style="max-height:40px;max-width:160px;background:#7f7f7f;padding:3px;border-radius:4px;vertical-align:middle"> ` : ""}${esc(x.found)}</td><td class="nowrap">${x.ok ? '<span class="chip good">✓</span>' : `<span class="chip bad">✗ ${esc(x.why || "")}</span>`}</td></tr>`).join("")}</table>
     <div class="muted">${secs != null ? secs + "s · " : ""}${esc((r.usage?.model || "").replace(/claude-/g, "").replace(/-5-5/g, ""))} · ${r.usage?.searches || 0} searches · ${r.usage?.fetches || 0} pages opened</div>
     ${(tr.searches || []).length ? `<details style="margin-top:6px"><summary>Searches</summary>${tr.searches.map(s => `<div>${esc(typeof s === "string" ? s : s.query || JSON.stringify(s))}</div>`).join("")}</details>` : ""}
     ${(tr.opened || []).length ? `<details><summary>Pages opened</summary>${tr.opened.map(u => `<div style="word-break:break-all">${esc(typeof u === "string" ? u : u.url || JSON.stringify(u))}</div>`).join("")}</details>` : ""}

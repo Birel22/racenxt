@@ -596,13 +596,71 @@ function scoreWatch(c: any, out: any) {
   }
   return { score, max, rows };
 }
+// ---------- logo test: the app's logo pipeline (homepage + AI search candidates, then the AI picks), compared with a reference picture ----------
+const RAW = "https://raw.githubusercontent.com/Birel22/racenxt/main/";
+function b64(buf: Uint8Array) { let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(s); }
+// any logo picture -> JPEG on grey (the AI can't read SVG, and white logos vanish on transparency); via a public image proxy
+async function asJpeg(url: string) {
+  try {
+    const r = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=jpg&bg=7f7f7f&w=600&h=600&fit=inside&we`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    return buf.length > 400 && buf.length < 2_500_000 ? b64(buf) : null;
+  } catch (_) { return null; }
+}
+async function vision(model: string, content: any[]) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 300, messages: [{ role: "user", content }] }) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(`AI ${r.status}: ${j?.error?.message || ""}`);
+  const u = newUsage(); u.model = model; u.input = j.usage?.input_tokens || 0; u.output = j.usage?.output_tokens || 0; u.cost_usd = Math.round(priceOf(model, u.input, u.output) * 10000) / 10000;
+  return { out: parseJson((j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("")), usage: u };
+}
+const LOGO_PROMPT = (s: any) => `Championship: ${s.name}${s.short_name && s.short_name !== s.name ? ` (${s.short_name})` : ""}
+Official website: ${s.website_url || "unknown"}
+Task: find this championship's own official logo. Give up to 4 direct, absolute image URLs (SVG or PNG preferred): the logo in the official site's header, its media / press kit, or a Wikimedia Commons file of the official logo (upload.wikimedia.org). Not the organiser's, a sponsor's or an older logo.
+JSON schema: {"logo_urls": [string]}`;
+async function runLogoTest(c: any, series: any) {
+  const usage = newUsage(); const trace: Trace = { searches: [], opened: [] };
+  // 1. candidates: the homepage's HTML (free), then an AI web search
+  const fromHtml = series.website_url ? await logoCandidatesFromHtml(series.website_url) : [];
+  let aiUrls: string[] = [];
+  try { const r = await ask(SYS(), LOGO_PROMPT(series), 4); addUsage(usage, r.usage); addTrace(trace, r.trace); aiUrls = (r.out.logo_urls || []).filter((u: any) => typeof u === "string" && /^https?:/.test(u)); } catch (_) { /* homepage candidates only */ }
+  const svgText = fromHtml.filter(x => x.svg);
+  const hosted = svgText.length ? await storeLogos(`test-${series.slug || "x"}`, svgText, 3) : [];
+  const urls = [...new Set([...fromHtml.filter(x => x.url).map(x => x.url!), ...hosted, ...aiUrls.filter(u => !/wiki/.test(u)), ...aiUrls.filter(u => /wiki/.test(u))])];
+  const cands: { url: string; data: string }[] = [];
+  for (const url of urls) { if (cands.length >= 8) break; const data = await asJpeg(url); if (data) cands.push({ url, data }); }
+  if (!cands.length) return { score: 0, max: 1, rows: [{ expect: "the official logo", found: "no logo picture found", ok: false, why: "missed" }], usage, trace: { ...trace, candidates: urls } };
+  // 2. the AI picks the championship's logo, as in the app (same instructions as logo-detect)
+  const content: any[] = [];
+  cands.forEach((x, i) => { content.push({ type: "text", text: `Image ${i + 1}:` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
+  content.push({ type: "text", text: `These images were found for the motorsport championship "${series.name}"${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}. They are shown on a grey background.
+Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one.
+Answer with JSON only: {"index": <image number, or 0 if none of them is the championship's logo>}` });
+  const p = await vision(FAST, content); addUsage(usage, p.usage);
+  const picked = Math.round(Number(p.out.index)) - 1;
+  // 3. judge against the reference picture (the stronger model, so the score is reliable)
+  const ref = await fetch(RAW + c.reference + "?t=" + Date.now());
+  if (!ref.ok) throw new Error("reference picture not reachable");
+  const refData = b64(new Uint8Array(await ref.arrayBuffer()));
+  const jc: any[] = [{ type: "text", text: "Reference logo:" }, { type: "image", source: { type: "base64", media_type: "image/png", data: refData } }];
+  cands.forEach((x, i) => { jc.push({ type: "text", text: `Candidate ${i + 1}:` }); jc.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
+  jc.push({ type: "text", text: `Which candidates show the SAME logo as the reference? Same design and same wording counts even if colours, background, size or a little cropping differ. A different logo, an older version, only the symbol without the name, or a picture where the logo is a small part of a photo or banner does not count.
+Answer with JSON only: {"matches": [candidate numbers]}` });
+  const jd = await vision(STRONG, jc); addUsage(usage, jd.usage);
+  const matches: number[] = (jd.out.matches || []).map((n: any) => Math.round(Number(n)) - 1).filter((n: number) => n >= 0 && n < cands.length);
+  const ok = picked >= 0 && matches.includes(picked);
+  const rows = [{ expect: "the official logo (reference picture)", found: picked >= 0 ? `picked #${picked + 1}: ${cands[picked].url}` : "picked none", ok, why: ok ? "" : matches.length ? `the right logo was found (#${matches.map(m => m + 1).join(", #")}) but not picked` : "the right logo was never found" },
+    ...cands.map((x, i) => ({ expect: `candidate #${i + 1}`, found: x.url, ok: matches.includes(i), why: matches.includes(i) ? "" : "not this logo" }))];
+  return { score: ok ? 1 : 0, max: 1, rows, usage, trace: { ...trace, candidates: urls } };
+}
 async function runTest(caseId: string, runId: string) {
   const [row] = await db(`agent_test_cases?id=eq.${encodeURIComponent(caseId)}&select=data`);
   if (!row) throw new Error("unknown case");
   const c = row.data;
-  const [series] = await db(`series?id=eq.${c.series_id}&select=*`);
+  const [series] = c.series_id ? await db(`series?id=eq.${c.series_id}&select=*`) : [c.series];
   if (!series) throw new Error("championship not found");
-  const [src] = await db(`series_sources?series_id=eq.${series.id}&select=*`);
+  const [src] = series.id ? await db(`series_sources?series_id=eq.${series.id}&select=*`) : [null];
   let res: any, usage: any, trace: any;
   if (c.task === "calendar") {
     const r = await computeCalendar(series, src); usage = r.usage; trace = { ...r.trace, answer: r.out };
@@ -615,6 +673,9 @@ async function runTest(caseId: string, runId: string) {
   } else if (c.task === "watch") {
     const r = await ask(SYS(), linksPrompt(series), 5); usage = r.usage; trace = { ...r.trace, answer: r.out };
     res = scoreWatch(c, r.out);
+  } else if (c.task === "logo") {
+    const r = await runLogoTest(c, series); usage = r.usage; trace = r.trace;
+    res = r;
   } else throw new Error("unknown task");
   await patch("agent_test_runs", `id=eq.${runId}`, { status: "done", score: Math.round(res.score * 100) / 100, max: res.max, details: { rows: res.rows }, usage, trace, finished_at: new Date().toISOString() });
 }

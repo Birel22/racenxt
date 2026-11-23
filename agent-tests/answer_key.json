@@ -1,0 +1,53 @@
+{
+  "_about": "Answer key for the agents: correct answers checked by hand on the official sources. Each case says what the agent must find (or that nothing exists yet).",
+  "cases": [
+    {
+      "id": "eepc-2026-calendar",
+      "series": "European Endurance Prototype Cup",
+      "parent": "Ultimate Cup Series (ultimatecupseries.eu)",
+      "task": "calendar", "year": 2026,
+      "source": "https://ultimatecupseries.eu/calendrier",
+      "expect": [
+        { "round": 1, "circuit": "Circuit Paul Ricard (Le Castellet)", "start": "2026-04-24", "end": "2026-04-26" },
+        { "round": 2, "circuit": "Magny-Cours", "start": "2026-05-29", "end": "2026-05-31" },
+        { "round": 3, "circuit": "Mugello", "start": "2026-07-10", "end": "2026-07-12" },
+        { "round": 4, "circuit": "Spa-Francorchamps", "start": "2026-09-18", "end": "2026-09-20" },
+        { "round": 5, "circuit": "Navarra", "start": "2026-10-15", "end": "2026-10-18" },
+        { "round": 6, "circuit": "Portimão", "start": "2026-11-27", "end": "2026-11-29" }
+      ],
+      "notes": "The site is the Ultimate Cup Series, which runs several championships; EEPC is one of them."
+    },
+    {
+      "id": "eepc-2027-calendar",
+      "series": "European Endurance Prototype Cup",
+      "parent": "Ultimate Cup Series",
+      "task": "calendar", "year": 2027,
+      "source": "https://ultimatecupseries.eu/lultimate-cup-european-series-devoile-son-calendrier-2027",
+      "expect": [
+        { "round": 1, "circuit": "Circuit Paul Ricard", "start": "2027-03-05", "end": "2027-03-07" },
+        { "round": 2, "circuit": "Misano", "start": "2027-04-16", "end": "2027-04-18" },
+        { "round": 3, "circuit": "Portimão", "start": "2027-05-14", "end": "2027-05-16" },
+        { "round": 4, "circuit": "Mugello", "start": "2027-07-09", "end": "2027-07-11" },
+        { "round": 5, "circuit": "Magny-Cours", "start": "2027-09-24", "end": "2027-09-26" },
+        { "round": 6, "circuit": "Circuit Paul Ricard", "start": null, "end": null, "tbc": "November 2027, date TBC" }
+      ],
+      "not_races": ["Test days 10-11 Feb 2027 at Paul Ricard"],
+      "notes": "Published as the Ultimate Cup Series calendar (all championships), not under the EEPC name. Missed by the agent before. Round 6 has no date yet: must not invent one."
+    },
+    {
+      "id": "eepc-2026-portimao-schedule",
+      "series": "European Endurance Prototype Cup",
+      "task": "schedule", "event": "Portimão 2026 (R6)",
+      "source": "https://ultimatecupseries.eu/wp-content/uploads/2026/10/Timetable-UCS-R6-Portimao-V8.pdf",
+      "timezone": "local track time (official PDF, no zone written)",
+      "expect": "TO FILL: EEPC sessions with day + start/end (from Louis)",
+      "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images."
+    },
+    {
+      "id": "eepc-stream",
+      "series": "European Endurance Prototype Cup",
+      "task": "watch",
+      "expect": { "stream_url": "https://www.youtube.com/@ultimatecuptv/streams" }
+    }
+  ]
+}

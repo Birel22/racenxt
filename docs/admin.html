@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-120205"></script>
+<script src="config.js?v=20261123-121408"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -57,6 +57,8 @@
   .sp-tile[aria-checked="true"]{border-color:var(--acc);color:var(--text);background:rgba(255,90,31,.08)}
   .sp-tile[aria-checked="true"]::after{content:"✓";position:absolute;top:6px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;line-height:18px;text-align:center}
   .sp-find{margin-bottom:8px}
+  .tz-note{font-size:13px;color:var(--dim);margin:0 0 8px}
+  .tz-note b{color:var(--text);font-weight:600}
   .rc-wl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;font-size:14px}
   .rc-wl .muted{font-size:12px;letter-spacing:.08em;text-transform:uppercase}
   .pre-l{background:#17181d;border:1px solid var(--line2);border-radius:8px;padding:10px 12px;font-size:14px;word-break:break-all}
@@ -1020,7 +1022,7 @@ async function editSeries(s, src){
 async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
   if (only?.logo_url?.includes("-agent-") && await finalizeLogo(only.id)) only = D.series.find(x => x.slug === slug);
-  const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date),check_runs(kind,ran_at)&order=created_at`);
+  const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
   const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Race broadcast page", new_season:"New season", series_links:"Where to watch (championship)" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
@@ -1043,7 +1045,7 @@ async function review(slug){
       ${p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
-        : `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
+        : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
       <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject</button><button class="btn" data-act="edit">Edit</button><button class="btn good" data-act="approve">Approve</button></div></div>`).join("")
     : `<div class="card empty">Nothing to review. Agents' findings will appear here for approval.</div>`);
   grouped.forEach((g, gi) => {
@@ -1067,6 +1069,13 @@ async function review(slug){
 }
 const endOf = (start, min) => { const d = new Date(String(start).replace(" ", "T").slice(0,16) + ":00Z"); d.setUTCMinutes(d.getUTCMinutes() + (+min || 60)); return d.toISOString().slice(11,16); };
 const linkHtml = u => /^https?:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>` : esc(u || "");
+// "Local circuit time · Lusail (Asia/Qatar, UTC+3)": every time in the admin is circuit local time
+function tzLine(tz, date){
+  if (!tz) return "Times in local circuit time (the circuit's time zone isn't set)";
+  let off = "";
+  try { off = new Intl.DateTimeFormat("en-GB", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date((date || TODAY) + "T12:00:00Z")).find(x => x.type === "timeZoneName")?.value.replace("GMT", "UTC") || ""; } catch(e){}
+  return `All times in <b>local circuit time</b> · ${esc(tz)}${off ? ` (${esc(off === "UTC" ? "UTC+0" : off)})` : ""}`;
+}
 const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","All broadcasters"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
 function pretty(p){
   const pl = p.payload || {};

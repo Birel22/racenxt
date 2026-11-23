@@ -261,7 +261,7 @@ const SKIPPED = "Official pages unchanged since the last check: AI not needed.";
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
 - Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
-- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". If the page doesn't say, write "unknown". Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
+- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". IMPORTANT: when a page has a switch such as "My time / Track time" or "Your time / Local time", you are reading the default view, which shows the reader's time; as a program your time zone is UTC, so write "UTC". If the page doesn't say, write "unknown". Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
 - A timetable is only published when the page shows real times. If it shows "TBC", "TBA" or "TBD", it is NOT published, even if the page's hidden data contains times (those are placeholders).
 - For each session give the start and, when the timetable shows it, the end time (local_end). Use the session names as the official timetable writes them.
 - For support series (e.g. F2, F3, Porsche Supercup, F1 Academy), the main event's official timetable (e.g. formula1.com, which lists every series in local time) is an official source too.
@@ -431,7 +431,14 @@ JSON schema:
   const conv = !!ctz && zone !== ctz;
   const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : String(out.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(out.source_url || "") ? " (the page didn't say which time zone: check the times)" : "";
   if (isTbc(out.excerpt)) out.timetable_found = false;
-  const sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
+  let sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
+  let zoneFix = "";
+  // safety net: zone not stated, but read as UTC the times match what we already have -> the page was showing UTC
+  if (!conv && ctz && ctz !== "UTC" && String(out.times_zone || "").toLowerCase() === "unknown" && current.length) {
+    const asUtc = cleanSessions(toCircuitTime(out.sessions, "UTC", ctz), ev.start_date, ev.end_date);
+    const starts = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
+    if (starts(asUtc) === starts(current)) { sessions = asUtc; zoneFix = ` (times were shown in UTC: converted to local ${ctz})`; }
+  }
   if (out.timetable_found && sessions.length) {
     // only real changes count: start times and lengths, not how the sessions are named
     // (an estimated length never replaces a known one)
@@ -440,7 +447,7 @@ JSON schema:
     const curLens = JSON.stringify(current.map((s: any) => s.duration_min));
     const changedLens = current.length === sessions.length && JSON.parse(lens(sessions)).some((d: any, i: number) => d !== null && d !== JSON.parse(curLens)[i]);
     if (key(sessions) !== key(current) || changedLens) {
-      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + zoneNote } });
+      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) } });
       props.push(`timetable (${sessions.length} sessions)`);
     }
   }

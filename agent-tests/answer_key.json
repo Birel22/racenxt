@@ -652,7 +652,7 @@
       "task": "watch",
       "expect": {
         "broadcasters_url": "https://www.fiaformula2.com/en/information/where-to-watch-us-f2.5KKoOKrH2MbJlUgtRMYDQy",
-        "stream_url": "TO CONFIRM (official stream, likely F1 TV)"
+        "stream_url": "F1 TV (https://f1tv.formula1.com)"
       },
       "notes": "The broadcasters page is on the official F2 site, under Information."
     }

@@ -637,8 +637,45 @@
       "task": "calendar",
       "year": 2027,
       "source": "https://www.acisport.it/it/CIK/notizie/2026/128670/le-date-e-i-circuiti-del-campionato-italiano-aci-karting-2027-e-gare-titolate-aci/mixed",
-      "expect": "TO CONFIRM with Louis. Currently in the app (found by the agent): La Conca 16-18 Apr, Triscina 21-23 May, Viterbo 18-20 Jun, Cremona 16-18 Jul, Franciacorta 17-19 Sep 2027.",
-      "notes": "The page also lists other ACI titled races that are not championship rounds. The site refused our page reader: the agent needs another way in (search result, cached copy, or a screenshot)."
+      "expect": [
+        {
+          "round": 1,
+          "circuit": "La Conca",
+          "start": "2027-04-16",
+          "end": "2027-04-18"
+        },
+        {
+          "round": 2,
+          "circuit": "Triscina",
+          "start": "2027-05-21",
+          "end": "2027-05-23"
+        },
+        {
+          "round": 3,
+          "circuit": "Viterbo",
+          "start": "2027-06-18",
+          "end": "2027-06-20"
+        },
+        {
+          "round": 4,
+          "circuit": "Cremona",
+          "start": "2027-07-16",
+          "end": "2027-07-18"
+        },
+        {
+          "round": 5,
+          "circuit": "Franciacorta",
+          "start": "2027-09-17",
+          "end": "2027-09-19"
+        }
+      ],
+      "notes": "The same page lists ACI 'titled' single-round events: not rounds of this championship.",
+      "verified": "confirmed by Louis (Nov 2026)",
+      "not_races": [
+        "Coppa dei Campioni ACI Sport (9-10 Oct 2027)",
+        "Campionato Italiano KZN & Trofeo Nazionale MINI Gr.3 (5-7 Nov 2027, Lonato)",
+        "Campionato Italiano Legend 100/125 (dates TBA)"
+      ]
     },
     {
       "id": "aci-karting-stream",

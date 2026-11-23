@@ -1104,7 +1104,7 @@
         <button role="menuitem" data-a="copy">${LINK}Copy page link</button>
         <hr>${others.length ? `<div class="rx-menu-l">Your other pages</div>${others.map(x => `<button role="menuitem" data-slug="${esc(x.profiles.slug)}" data-id="${x.profiles.id}">${USER}${esc(x.profiles.display_name)}</button>`).join("")}` : ""}
         <button role="menuitem" data-a="new">${PLUS}Create another page</button>
-        <hr><button role="menuitem" data-a="pw">${KEY}Password</button>
+        <hr><button role="menuitem" data-a="pw">${KEY}Security</button>
         <button role="menuitem" data-a="out" class="rx-out">${OUT}Log out</button>`;
       document.body.appendChild(m); $("#rx-me").setAttribute("aria-expanded", "true");
       m.querySelector("button")?.focus();
@@ -1117,7 +1117,7 @@
         if (a === "preview") preview(true);
         if (a === "copy") { try { await navigator.clipboard.writeText(url); busy(true); busy(false, "Link copied"); } catch (er) { prompt("Your page link:", url); } }
         if (a === "new") location.href = (window.RNX_BASE || "/") + "app.html?new=1";
-        if (a === "pw") { if (!window.rnxSetPassword) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = (window.RNX_BASE || "/") + "rnx-auth.js"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); const done = await window.rnxSetPassword({ token: await token(), first: false }); if (done) { busy(true); busy(false, "Password saved"); } }
+        if (a === "pw") { if (!window.rnxSetPassword) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = (window.RNX_BASE || "/") + "rnx-auth.js"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); window.rnxSecurity({ getToken: token, onSession: s2 => S.set(s2), email: ME.email }); }
         if (a === "out") { S.set(null); localStorage.removeItem("rnx_profile"); location.reload(); }
       };
       setTimeout(() => document.addEventListener("click", function off(e3) { if (!m.contains(e3.target)) { closeMenu(); document.removeEventListener("click", off); } }), 0);

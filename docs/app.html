@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-212817"></script>
-<script src="rnx-social.js?v=20261123-212817"></script>
-<script src="rnx-auth.js?v=20261123-212817"></script>
-<script src="rnx-ui.js?v=20261123-212817"></script>
+<script src="config.js?v=20261123-214128"></script>
+<script src="rnx-social.js?v=20261123-214128"></script>
+<script src="rnx-auth.js?v=20261123-214128"></script>
+<script src="rnx-ui.js?v=20261123-214128"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -284,10 +284,11 @@ function openMenu(e){
   e.stopPropagation();
   if ($(".menu")){ $(".menu").remove(); return; }
   const m = document.createElement("div"); m.className = "menu"; m.setAttribute("role", "menu");
-  m.innerHTML = `${ST.members.map(x => `<button role="menuitem" data-p="${x.profiles.id}" class="${x.profiles.id === ST.profile?.id ? "on" : ""}">${esc(x.profiles.display_name)}<small class="muted">${x.role === "editor" ? "· editor" : ""}</small></button>`).join("")}<hr><button role="menuitem" id="m-new">+ Create another page</button><button role="menuitem" id="m-out">Sign out</button><div class="muted" style="font-size:12px;padding:6px 12px">${esc(ST.me.email)}</div>`;
+  m.innerHTML = `${ST.members.map(x => `<button role="menuitem" data-p="${x.profiles.id}" class="${x.profiles.id === ST.profile?.id ? "on" : ""}">${esc(x.profiles.display_name)}<small class="muted">${x.role === "editor" ? "· editor" : ""}</small></button>`).join("")}<hr><button role="menuitem" id="m-new">+ Create another page</button><button role="menuitem" id="m-sec">Security</button><button role="menuitem" id="m-out">Sign out</button><div class="muted" style="font-size:12px;padding:6px 12px">${esc(ST.me.email)}</div>`;
   document.body.appendChild(m);
   m.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { localStorage.setItem(CUR, b.dataset.p); m.remove(); boot(); });
   $("#m-new").onclick = () => { m.remove(); onboarding(true); };
+  $("#m-sec").onclick = () => { m.remove(); rnxSecurity({ getToken: token, onSession: s2 => S.set(s2), email: ST.me?.email }); };
   $("#m-out").onclick = () => { S.set(null); localStorage.removeItem(CUR); location.reload(); };
   setTimeout(() => document.addEventListener("click", function off(ev){ if (!m.contains(ev.target)){ m.remove(); document.removeEventListener("click", off); } }), 0);
 }

@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-121408"></script>
+<script src="config.js?v=20261123-124642"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -57,6 +57,19 @@
   .sp-tile[aria-checked="true"]{border-color:var(--acc);color:var(--text);background:rgba(255,90,31,.08)}
   .sp-tile[aria-checked="true"]::after{content:"✓";position:absolute;top:6px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;line-height:18px;text-align:center}
   .sp-find{margin-bottom:8px}
+  .ag-sec{margin-bottom:18px}
+  .ag-sec textarea{width:100%}
+  .ag-list{display:grid;gap:6px}
+  .ag-ch,.ag-p{border:1px solid var(--line2);border-radius:10px;background:#1b1c21;padding:0 12px}
+  .ag-ch[open],.ag-p[open]{padding-bottom:12px}
+  .ag-ch summary,.ag-p summary{display:flex;align-items:center;gap:10px;min-height:46px;cursor:pointer;list-style:none;flex-wrap:wrap;padding:6px 0}
+  .ag-ch summary::-webkit-details-marker,.ag-p summary::-webkit-details-marker{display:none}
+  .ag-ch summary img{height:18px;max-width:60px;object-fit:contain}
+  .ag-ch summary .muted,.ag-p summary .muted{font-size:13px}
+  .ag-p summary b{min-width:220px}
+  .ag-p + .ag-p{margin-top:6px}
+  .ag-p pre,.ag-ans{white-space:pre-wrap;word-break:break-word;background:#141519;border:1px solid var(--line2);border-radius:8px;padding:12px;font-size:12.5px;line-height:1.5;max-height:420px;overflow:auto;margin:4px 0 0}
+  .ag-ul{margin:0;padding-left:18px;font-size:14px;line-height:1.6;word-break:break-all}
   .tz-note{font-size:13px;color:var(--dim);margin:0 0 8px}
   .tz-note b{color:var(--text);font-weight:600}
   .rc-wl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline;font-size:14px}
@@ -254,6 +267,7 @@ const I = {
   pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
   car:'<svg viewBox="-0.6 0.1 23.4 6.6" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" style="width:22px"><path stroke-width="0.9" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><circle stroke-width="0.9" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.9" cx="18.45" cy="5.15" r="1.4"/></svg>',
   menu:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  bot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4.5M9.5 4.5h5"/><circle cx="9" cy="13.5" r="1.2"/><circle cx="15" cy="13.5" r="1.2"/><path d="M2 12.5v3M22 12.5v3"/></svg>',
   spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>',
   back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
   chev:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
@@ -433,7 +447,7 @@ const venueList = () => `<datalist id="venues-dl">${D.venues.map(v => `<option v
 // ---------- shell + router ----------
 let PENDING = 0, ME = null;
 const NAV = [
-  ["dashboard","Dashboard",I.dash],["championships","Championships",I.champ],["review","Review queue",I.review],["users","Users",I.users],["usage","AI usage",I.spark],
+  ["dashboard","Dashboard",I.dash],["championships","Championships",I.champ],["review","Review queue",I.review],["agent","Agent",I.bot],["users","Users",I.users],["usage","AI usage",I.spark],
   ["grp","Library"],["circuits","Circuits",I.pin],["vehicles","Vehicles",I.car]
 ];
 function shell(){
@@ -454,7 +468,7 @@ async function route(){
     await loadRef();
     if (page === "championships" && a) await championshipPage(decodeURIComponent(a), b);
     else if (page === "review" && a) await review(decodeURIComponent(a));
-    else await ({ dashboard, championships, review, users, circuits, vehicles, usage }[page] || dashboard)();
+    else await ({ dashboard, championships, review, users, circuits, vehicles, usage, agent: agentPage }[page] || dashboard)();
   } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
 }
 window.addEventListener("hashchange", route);
@@ -1122,6 +1136,66 @@ function logoCard(s){
     await upd("series", s.id, { logo_url: url }); await loadRef();
     const n = D.series.find(x => x.id === s.id); LOGO_OK.add(s.id); logoCard(n);
   }, "Logo saved");
+}
+
+// ---------- Agent: what it's told, your rules, and what it did on each run ----------
+const RUN_KIND = { discover:"Calendar (setup)", manual:"Check by hand", initial:"Race · first check", icon:"Icon drawing", weekly:"Race week", daily:"Race week", final:"Final check", monthly:"Calendar · monthly" };
+const RUN_RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","Pages unchanged · free"] };
+async function agentPage(){
+  const t = await token();
+  const [prompts, [g], srcs, runs] = await Promise.all([
+    fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify({ action:"prompts" }) }).then(r => r.json()).catch(() => ({})),
+    api("app_settings?key=eq.agent_guidance&select=value"),
+    api("series_sources?select=series_id,agent_instructions"),
+    api("check_runs?select=id,kind,result,ran_at,finished_at,usage,summary,error,trace,series(short_name,name),events(name)&order=ran_at.desc&limit=40")
+  ]);
+  const instr = Object.fromEntries(srcs.map(x => [x.series_id, x.agent_instructions || ""]));
+  const guidance = g?.value?.text || "";
+  $("#main").innerHTML = `<div class="ph"><h1>Agent</h1><a class="btn" href="#/usage">AI usage &amp; costs</a></div>
+    <p class="dim" style="max-width:760px;margin:-6px 0 18px;font-size:15px;line-height:1.55">The agent reads official websites and documents, then files what it finds in the Review queue. Nothing reaches fans until you approve it. Steer it with your rules below: they're added to every task and take priority.</p>
+
+    <section class="fs ag-sec"><h4><i></i>Your rules for every championship <small>Plain English. Added to every task, before anything else.</small></h4>
+      <textarea id="ag-g" rows="6" placeholder="">${esc(guidance)}</textarea>
+      <div class="help">For example: “For F2 and F3, use the timetable on formula1.com.” or “Don't include test or paid practice sessions.”</div>
+      <div class="bar" style="margin:10px 0 0;justify-content:flex-end"><button class="btn pri" id="ag-gsave">Save rules</button></div></section>
+
+    <section class="fs ag-sec"><h4><i></i>Rules for one championship <small>Your reasons when you reject a proposal are added here automatically.</small></h4>
+      <div class="ag-list">${D.series.map(s => `<details class="ag-ch" data-s="${s.id}"><summary>${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : ""}<b>${esc(s.short_name || s.name)}</b><span class="muted">${instr[s.id] ? `${instr[s.id].split("\n").filter(Boolean).length} rule${instr[s.id].split("\n").filter(Boolean).length > 1 ? "s" : ""}` : "No rules yet"}</span></summary>
+        <textarea rows="4" aria-label="Rules for ${esc(s.short_name || s.name)}">${esc(instr[s.id] || "")}</textarea>
+        <div class="bar" style="margin:8px 0 0;justify-content:flex-end"><button class="btn sm pri" data-save="${s.id}">Save</button></div></details>`).join("")}</div></section>
+
+    <section class="fs ag-sec"><h4><i></i>What the agent is told <small>The exact instructions, with example values in &lt;brackets&gt;.</small></h4>
+      ${prompts.rules ? `<details class="ag-p"><summary><b>General rules</b><span class="muted">Apply to every task</span></summary><pre>${esc(prompts.rules)}</pre></details>
+      ${(prompts.tasks || []).map(x => `<details class="ag-p"><summary><b>${esc(x.title)}</b><span class="muted">${esc(x.when)}</span></summary><pre>${esc(x.text)}</pre></details>`).join("")}`
+      : `<div class="dim">Couldn't load the instructions${prompts.error ? `: ${esc(prompts.error)}` : ""}.</div>`}
+    </section>
+
+    <section class="fs ag-sec"><h4><i></i>Recent runs <small>Click one to see what it searched, which pages it opened and what it answered.</small></h4>
+      ${runs.length ? `<div class="tbl"><table><tr><th>When</th><th>What</th><th class="hide-m">Check</th><th>Result</th><th style="text-align:right">Cost</th></tr>
+        ${runs.map(r => { const st = RUN_RES[r.result] || ["", r.result]; return `<tr class="click" data-run="${r.id}"><td class="nowrap muted">${new Date(r.ran_at).toLocaleString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}</td><td><b>${esc(r.series?.short_name || "")}</b> ${esc(r.events?.name || "")}</td><td class="hide-m dim">${esc(RUN_KIND[r.kind] || r.kind)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td style="text-align:right" class="muted">${r.usage ? usd(runCost(r.usage)) : "–"}</td></tr>`; }).join("")}</table></div>`
+      : `<div class="card empty">No runs yet.</div>`}
+    </section>`;
+  $("#ag-gsave").onclick = () => guard(async () => {
+    await api("app_settings", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key:"agent_guidance", value:{ text: $("#ag-g").value.trim() }, updated_at: new Date().toISOString() }) });
+  }, "Rules saved: the agent uses them from its next run");
+  $$("[data-save]").forEach(b => b.onclick = () => { const sid = b.dataset.save, v = b.closest("details").querySelector("textarea").value.trim(); guard(async () => {
+    await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id:sid, agent_instructions:v }) });
+    const n = v.split("\n").filter(Boolean).length; b.closest("details").querySelector("summary .muted").textContent = n ? `${n} rule${n > 1 ? "s" : ""}` : "No rules yet";
+  }, "Saved"); });
+  $$("[data-run]").forEach(tr => tr.onclick = () => runDetail(runs.find(r => r.id === tr.dataset.run)));
+}
+function runDetail(r){
+  const st = RUN_RES[r.result] || ["", r.result], tr = r.trace || null, u = r.usage || {};
+  const secs = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.ran_at)) / 1000) : null;
+  const html = `<section class="fs"><h4><i></i>Summary</h4>
+      <div class="bar" style="margin:0 0 8px;gap:8px"><span class="chip ${st[0]}">${esc(st[1])}</span><span class="muted">${esc(RUN_KIND[r.kind] || r.kind)} · ${new Date(r.ran_at).toLocaleString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}${secs != null ? ` · ${secs} s` : ""}</span></div>
+      ${r.summary ? `<div style="font-size:15px">${esc(r.summary)}</div>` : ""}${r.error ? `<div style="font-size:14px;margin-top:6px;color:#f87171">${esc(r.error)}</div>` : ""}
+      ${r.usage ? `<div class="muted" style="font-size:13px;margin-top:8px">${usd(runCost(u))} · ${esc(u.model || "")} · ${u.searches || 0} web search${u.searches === 1 ? "" : "es"} · ${u.fetches || 0} page${u.fetches === 1 ? "" : "s"} opened</div>` : ""}</section>
+    ${tr ? `<section class="fs"><h4><i></i>Searched for</h4>${tr.searches?.length ? `<ul class="ag-ul">${tr.searches.map(q => `<li>“${esc(q)}”</li>`).join("")}</ul>` : `<div class="dim" style="font-size:14px">No web searches.</div>`}</section>
+    <section class="fs"><h4><i></i>Pages opened</h4>${tr.opened?.length ? `<ul class="ag-ul">${tr.opened.map(x => `<li>${linkHtml(x)}</li>`).join("")}</ul>` : `<div class="dim" style="font-size:14px">No pages opened.</div>`}</section>
+    <section class="fs"><h4><i></i>What it answered</h4><pre class="ag-ans">${esc(JSON.stringify(tr.answer ?? null, null, 2))}</pre></section>`
+    : `<section class="fs"><div class="dim" style="font-size:14px">${r.result === "skipped_unchanged" ? "The official pages hadn't changed since the last check, so the AI wasn't asked (free)." : "Searches, pages and answers are recorded for runs from today on."}</div></section>`}`;
+  drawer(`${r.series?.short_name || ""} ${r.events?.name || ""}`.trim() || "Run", [{ html }], {}, { view:true });
 }
 
 // ---------- AI usage: what each check cost ----------

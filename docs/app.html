@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
 <script src="config.js"></script>
 <script src="rnx-social.js"></script>
+<script src="rnx-ui.js"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -285,11 +286,11 @@ function login(msg){
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 // ---------- sign-up: 3 short steps, so the page is mostly complete from the start ----------
 const SOCIALS = [
-  { k:"instagram", l:"Instagram", base:"https://instagram.com/" },
-  { k:"x", l:"X (Twitter)", base:"https://x.com/" },
-  { k:"tiktok", l:"TikTok", base:"https://tiktok.com/@" },
-  { k:"youtube", l:"YouTube", base:"https://youtube.com/@" },
-  { k:"facebook", l:"Facebook", base:"https://facebook.com/" }
+  { k:"instagram", l:"Instagram", base:"https://instagram.com/", help:"Your username, without the @" },
+  { k:"x", l:"X (Twitter)", base:"https://x.com/", help:"Your username, without the @" },
+  { k:"tiktok", l:"TikTok", base:"https://tiktok.com/@", help:"Your username, without the @" },
+  { k:"youtube", l:"YouTube", base:"https://youtube.com/@", help:"Your channel name (the @name) or the channel link" },
+  { k:"facebook", l:"Facebook", base:"https://facebook.com/", help:"The link to your page or profile: copy it from Facebook (facebook.com/…)" }
 ];
 const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
 const handleOf = (k, url) => { if (!url) return ""; const s = SOCIALS.find(x => x.k === k); return s && url.startsWith(s.base) ? url.slice(s.base.length) : url; };
@@ -300,9 +301,10 @@ async function heroPhoto(file){
   cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
   return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
 }
-const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", socials:{}, website:"", email:"", picked:new Set() };
+const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, socials:{}, website:"", email:"", picked:new Set() };
+let FRAMER = null;
 async function onboarding(another){
-  if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", socials:{}, website:"", email:"", picked:new Set() });
+  if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, socials:{}, website:"", email:"", picked:new Set() });
   if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url&order=name"); } catch(e){}
   OB.another = another;
   obStep();
@@ -313,11 +315,11 @@ function obStep(){
     <div><h1 class="ob-h">${titles[n-1]}</h1><div class="dim" style="margin-top:6px">${subs[n-1]}</div></div>`;
   let body = "";
   if (n === 1) body = `
-    <button type="button" class="ob-photo" id="ob-photo" style="${OB.photoUrl ? `background-image:url('${esc(OB.photoUrl)}')` : ""}">${OB.photoUrl ? `<span class="ob-change">${CAM} Change photo</span>` : `<span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span>`}</button>
+    ${OB.photoUrl ? `<div><div id="ob-frame"></div><div style="text-align:center;margin-top:10px"><button type="button" class="btn sm" id="ob-photo">${CAM.replace("<svg", '<svg width="16" height="16"')} Choose another photo</button></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
     <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
     <div class="field"><label class="f" for="o-slug">Your page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" value="${esc(OB.slug)}" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false"></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>`;
   if (n === 2) body = `
-    <div class="ob-list">${SOCIALS.map(s => `<div class="field"><label class="f" for="o-${s.k}">${s.l}</label><input id="o-${s.k}" value="${esc(handleOf(s.k, OB.socials[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="help">Your username or the full link.</div></div>`).join("")}
+    <div class="ob-list">${SOCIALS.map(s => `<div class="field"><label class="f" for="o-${s.k}">${s.l}</label><input id="o-${s.k}" value="${esc(handleOf(s.k, OB.socials[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="help">${s.help}</div></div>`).join("")}
     <div class="field"><label class="f" for="o-web">Website</label><input id="o-web" value="${esc(OB.website)}" inputmode="url" autocomplete="url" autocapitalize="off"></div>
     <div class="field"><label class="f" for="o-mail">Contact email</label><input id="o-mail" value="${esc(OB.email)}" type="email" inputmode="email" autocomplete="email"><div class="help">Shown on your page so teams, media and partners can reach you.</div></div></div>`;
   if (n === 3){
@@ -339,7 +341,8 @@ function obStep(){
     $("#o-first").oninput = auto; $("#o-last").oninput = auto;
     $("#o-slug").oninput = () => { OB.touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
     if (OB.slug) check();
-    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files[0]; if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); obSave(); obStep(); }; i.click(); };
+    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files[0]; if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = null; obSave(); obStep(); }; i.click(); };
+    FRAMER = OB.photoUrl && window.rnxPhotoFramer ? rnxPhotoFramer($("#ob-frame"), OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`) : null;
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
   if (n === 3){
@@ -359,7 +362,7 @@ function obStep(){
     try {
       const id = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" });
       const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
-      if (OB.photo) row.photo_url = await upload(await heroPhoto(OB.photo), `profiles/${id}-${Date.now()}.jpg`);
+      if (OB.photo){ row.photo_url = await upload(await heroPhoto(OB.photo), `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
       await upd("profiles", id, row);
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){
@@ -372,6 +375,7 @@ function obStep(){
   };
 }
 function obSave(){
+  if (FRAMER && $("#ob-frame")) OB.pos = FRAMER.get();
   if ($("#o-first")){ OB.first = $("#o-first").value.trim(); OB.last = $("#o-last").value.trim(); OB.slug = $("#o-slug").value.trim().toLowerCase(); }
   if ($("#o-web")){ SOCIALS.forEach(s => { const v = toUrl(s.k, $("#o-" + s.k).value); if (v) OB.socials[s.k] = v; else delete OB.socials[s.k]; }); OB.website = toUrl("website", $("#o-web").value); OB.email = $("#o-mail").value.trim(); }
 }

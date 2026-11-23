@@ -143,12 +143,29 @@
   .rx-drop-pv{width:120px;height:64px;flex:none;border-radius:10px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px}
   .rx-drop-pv img{max-width:100%;max-height:52px;object-fit:contain}
   .rx-drop-pv span{font-size:12px;color:#7d808a;text-align:center}
-  .rx-drop + .rx-seg{margin-top:10px}
+  .rx-lres-pv{height:84px;border-radius:12px;background:#000;border:1px solid #2a2c33;display:flex;align-items:center;justify-content:center;padding:12px}
+  .rx-lres-pv img{max-width:80%;max-height:60px;object-fit:contain}
+  .rx-lres-pv span{font-size:13px;color:#7d808a}
+  #rx-lmode{margin-top:10px}
   .rx-seg.rx-seg-wrap{flex-wrap:wrap} .rx-seg.rx-seg-wrap button{flex:1 1 30%}
   .rx-srow{display:grid;grid-template-columns:118px 104px 1fr 40px;gap:8px;align-items:center}
   .rx-srow select{min-height:48px;padding:0 10px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:15px Barlow,system-ui,sans-serif}
   .rx-srow .rx-sx{height:44px;width:40px;padding:0;justify-content:center;border-radius:10px}
   @media (max-width:420px){.rx-srow{grid-template-columns:1fr 1fr 40px}.rx-srow .rx-sl{grid-column:1/3;grid-row:2}}
+  .rx-full{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;border:1px solid #3b3e47;background:#15161b;color:#f4f4f2;cursor:pointer;text-align:left;font:inherit}
+  .rx-full span{flex:1;display:grid} .rx-full b{font-size:16px} .rx-full small{color:#8e919b;font-size:13.5px}
+  .rx-tog{width:46px;height:28px;border-radius:999px;background:#3b3e47;position:relative;flex:none;transition:background .15s}
+  .rx-tog::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+  .rx-full[aria-checked="true"] .rx-tog{background:#FF5A1F} .rx-full[aria-checked="true"] .rx-tog::after{transform:translateX(18px)}
+  .rx-rds{display:grid;border:1px solid #2a2c33;border-radius:14px;overflow:hidden}
+  .rx-rd{display:grid;grid-template-columns:24px 92px 1fr;gap:12px;align-items:center;padding:12px 14px;border:0;border-bottom:1px solid #23252b;background:#14151a;color:#f4f4f2;cursor:pointer;text-align:left;font:inherit}
+  .rx-rd:last-child{border-bottom:0}
+  .rx-rd i{width:22px;height:22px;border-radius:6px;border:2px solid #50545e;display:flex;align-items:center;justify-content:center}
+  .rx-rd[aria-checked="true"] i{background:#FF5A1F;border-color:#FF5A1F}
+  .rx-rd[aria-checked="true"] i::after{content:"✓";color:#fff;font-size:13px;font-weight:700;font-style:normal}
+  .rx-rd[aria-checked="false"] .rx-rd-t,.rx-rd[aria-checked="false"] .rx-rd-d{opacity:.45}
+  .rx-rd-d{font:700 15px 'Barlow Condensed'}
+  .rx-rd-t{display:grid;min-width:0} .rx-rd-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rx-rd-t small{color:#8e919b;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rx-grp2{font:700 12px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:-6px}
   .rx-ph{width:100%;aspect-ratio:16/10;border-radius:16px;border:1.5px dashed #3b3e47;background:#15161b center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0;color:#f4f4f2}
   .rx-ph[style*="background-image"]{border-style:solid}
@@ -240,11 +257,11 @@
   const entryOf = slug => R.entries.find(e => e.series?.slug === slug);
 
   const SOCIALS = [
-    { k: "instagram", l: "Instagram", base: "https://instagram.com/" },
-    { k: "x", l: "X (Twitter)", base: "https://x.com/" },
-    { k: "tiktok", l: "TikTok", base: "https://tiktok.com/@" },
-    { k: "youtube", l: "YouTube", base: "https://youtube.com/@" },
-    { k: "facebook", l: "Facebook", base: "https://facebook.com/" }
+    { k: "instagram", l: "Instagram", base: "https://instagram.com/", help: "Your username, without the @" },
+    { k: "x", l: "X (Twitter)", base: "https://x.com/", help: "Your username, without the @" },
+    { k: "tiktok", l: "TikTok", base: "https://tiktok.com/@", help: "Your username, without the @" },
+    { k: "youtube", l: "YouTube", base: "https://youtube.com/@", help: "Your channel name (the @name) or the channel link" },
+    { k: "facebook", l: "Facebook", base: "https://facebook.com/", help: "The link to your page or profile: copy it from Facebook (facebook.com/…)" }
   ];
   const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
   const handleOf = (k, url) => { if (!url) return ""; const s = SOCIALS.find(x => x.k === k); return s && url.startsWith(s.base) ? url.slice(s.base.length) : url; };
@@ -252,25 +269,28 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "";
-    const phHtml = () => `<button type="button" class="rx-ph" id="rx-ph" style="${prev ? `background-image:url('${esc(prev)}')` : ""}">${prev ? `<span class="rx-ph-chg">${CAM} Change photo</span>` : `<span class="rx-ph-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span>`}</button>`;
+    let file = null, prev = p.hero_url || p.photo_url || "", framer = null;
+    const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
+    const phHtml = () => prev ? `<div id="rx-frame"></div><div style="text-align:center;margin-top:10px"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} Choose another photo</button></div>`
+      : `<button type="button" class="rx-ph" id="rx-ph"><span class="rx-ph-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`;
+    const mountFrame = () => { framer = prev && window.rnxPhotoFramer ? rnxPhotoFramer($("#rx-frame"), prev, file ? null : p.photo_pos, title) : null; };
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
       <div class="rx-grp2">Name</div>
       <div class="rx-two"><div><label class="rx-f" for="rx-first">First name</label><input id="rx-first" value="${esc(p.first_name || "")}" autocomplete="given-name"></div>
       <div><label class="rx-f" for="rx-last">Last name</label><input id="rx-last" value="${esc(last)}" autocomplete="family-name"></div></div>
       <div class="rx-grp2">Links</div>
-      ${SOCIALS.map(s => `<div><label class="rx-f" for="rx-s-${s.k}">${s.l}</label><input id="rx-s-${s.k}" value="${esc(handleOf(s.k, so[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>`).join("")}
+      ${SOCIALS.map(s => `<div><label class="rx-f" for="rx-s-${s.k}">${s.l}</label><input id="rx-s-${s.k}" value="${esc(handleOf(s.k, so[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="rx-help">${s.help}</div></div>`).join("")}
       <div><label class="rx-f" for="rx-web">Website</label><input id="rx-web" value="${esc(so.website || "")}" inputmode="url" autocapitalize="off"></div>
       <div><label class="rx-f" for="rx-mail">Contact email</label><input id="rx-mail" type="email" value="${esc(p.contact_email || "")}" inputmode="email"><div class="rx-help">Shown on your page for teams, media and partners.</div></div>`,
-      { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); $("#rx-phw").innerHTML = phHtml(); bind(); }; bind(); },
+      { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); $("#rx-phw").innerHTML = phHtml(); bind(); mountFrame(); }; bind(); mountFrame(); },
         collect() {
           if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
           const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
           const socials = {}; SOCIALS.forEach(s => { const v = toUrl(s.k, $("#rx-s-" + s.k).value); if (v) socials[s.k] = v; });
           const web = toUrl("website", $("#rx-web").value); if (web) socials.website = web;
           const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
-          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null };
+          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(framer ? { photo_pos: framer.get() } : {}) };
         } });
     if (!r) return;
     save(async () => {
@@ -293,23 +313,59 @@
         $$("#rx-list .rx-pick").forEach(b => b.onclick = () => closeSheet(SERIES.find(x => x.id === b.dataset.s)));
       } });
     if (!r) return;
-    let yr = YEAR;
-    try { const up = await api(`events?series_id=eq.${r.id}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch (e) {}
-    if (R.entries.some(e => e.series_id === r.id && e.year === yr)) yr++;
-    editEntry({ series_id: r.id, series: r, year: yr, color: COLORS.find(c => !R.entries.some(e => (e.color || "").toUpperCase() === c)) || COLORS[0] });
+    const pick = await pickRounds(r, null);
+    if (!pick) return;
+    editEntry({ series_id: r.id, series: r, year: pick.year, hide: pick.hide, color: COLORS.find(c => !R.entries.some(e => (e.color || "").toUpperCase() === c)) || COLORS[0] });
+  }
+  // which races you do: the whole season is ticked, untick the ones you skip. The season is asked only when two are published.
+  async function pickRounds(s, en) {
+    const evs = await api(`events?series_id=eq.${s.id}&${en ? `year=eq.${en.year}` : `end_date=gte.${TODAY}`}&select=id,year,round,name,start_date,end_date,venues(name,country)&order=start_date`);
+    const taken = new Set(R.entries.filter(e => e.series_id === s.id && e.id !== en?.id).map(e => e.year));
+    const years = [...new Set(evs.map(e => e.year))].filter(y => !taken.has(y));
+    let year = en ? en.year : years[0];
+    let hidden = new Set();
+    if (en) { const ov = await api(`event_overrides?profile_id=eq.${R.profile.id}&hidden=eq.true&select=event_id`); hidden = new Set(ov.map(o => o.event_id)); }
+    if (!evs.length || year == null) {
+      if (en) return { year: en.year, hide: [] };
+      let y = YEAR; while (taken.has(y)) y++;
+      const ok = await sheet(`${s.short_name} ${y}`, `<div class="rx-help" style="font-size:15px;color:#d5d6d9">The ${esc(s.name)} calendar isn't published yet. Your races will appear on your page as soon as it is.</div>`, { ok: "Continue" });
+      return ok ? { year: y, hide: [] } : null;
+    }
+    const fmt = (a, b) => { const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), m = x => x.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }); return A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
+    const list = () => evs.filter(e => e.year === year);
+    const rows = () => list().map(e => `<button type="button" class="rx-rd" role="checkbox" data-ev="${e.id}" aria-checked="${!hidden.has(e.id)}"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", "))}</small></span></button>`).join("");
+    const count = () => { const l = list(); return l.filter(e => !hidden.has(e.id)).length + " of " + l.length; };
+    const r = await sheet(`Your ${s.short_name} season`, `
+      ${!en && years.length > 1 ? `<div><label class="rx-f" id="rx-yl">Which season?</label><div class="rx-seg" role="radiogroup" aria-labelledby="rx-yl" id="rx-ys">${years.map(y => `<button type="button" role="radio" data-y="${y}" aria-checked="${y === year}">${y}</button>`).join("")}</div></div>` : ""}
+      <button type="button" class="rx-full" id="rx-full" role="switch"><span><b>Full season</b><small id="rx-cnt">${count()} races</small></span><i class="rx-tog"></i></button>
+      <div class="rx-help" style="margin-top:-6px">Not doing every round? Untick the races you skip.</div>
+      <div class="rx-rds" id="rx-rds">${rows()}</div>`,
+      { ok: en ? "Save" : "Continue", after() {
+        const sync = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); $("#rx-full").setAttribute("aria-checked", all); $("#rx-cnt").textContent = count() + " races"; };
+        const bind = () => $$("#rx-rds .rx-rd").forEach(b => b.onclick = () => { const id = b.dataset.ev; hidden.has(id) ? hidden.delete(id) : hidden.add(id); b.setAttribute("aria-checked", !hidden.has(id)); sync(); });
+        $("#rx-full").onclick = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); l.forEach(e => all ? hidden.add(e.id) : hidden.delete(e.id)); $("#rx-rds").innerHTML = rows(); bind(); sync(); };
+        $$("#rx-ys button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#rx-ys button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
+        bind(); sync();
+      }, collect() { if (!list().some(e => !hidden.has(e.id))) { alert("Keep at least one race."); return null; } return true; } });
+    if (!r) return null;
+    const ids = list().map(e => e.id);
+    return { year, hide: ids.filter(id => hidden.has(id)), show: ids.filter(id => !hidden.has(id)) };
+  }
+  async function saveRounds(sel) {
+    const rows = [...sel.hide.map(id => ({ profile_id: R.profile.id, event_id: id, hidden: true })), ...(sel.show || []).map(id => ({ profile_id: R.profile.id, event_id: id, hidden: false }))];
+    if (rows.length) await api("event_overrides", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(rows) });
   }
   async function editEntry(en) {
     await loadLists();
     const isNew = !en.id, s = en.series || SERIES.find(x => x.id === en.series_id);
     let year = en.year, color = (en.color || COLORS[0]).toUpperCase(), vehicle = en.vehicles || VEH.find(v => v.id === en.vehicle_id) || null;
-    let photoFile = null, photoUrl = en.car_photo_url || "";
-    const years = [...new Set([YEAR, YEAR + 1, year])].sort();
+    let photoFile = null, photoUrl = en.car_photo_url || "", rounds = en.hide ? { year, hide: en.hide, show: [] } : null;
     const vbox = () => vehicle ? `<div class="rx-vchip"><b>${esc(vehicle.name)}</b><button type="button" class="rx-b" id="rx-vchg">Change</button></div>`
       : `<div class="rx-vp"><input id="rx-vq" autocomplete="off" aria-label="Search the car catalogue"><div class="rx-vl" id="rx-vl" hidden></div></div><div class="rx-help">Type to search the catalogue.</div>`;
     const phbox = () => `<div class="rx-carph">${photoUrl ? `<img src="${esc(photoUrl)}" alt="">` : `<div class="rx-none">No photo</div>`}<button type="button" class="rx-b" id="rx-ph">${photoUrl ? "Change photo" : "Add photo"}</button></div><div class="rx-help">A photo of your car, with your livery. Shown when fans tap the car.</div>`;
     const html = `
-      <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><b style="font-size:17px">${esc(s?.name || "")}</b></div>
-      <div><label class="rx-f" id="rx-yl">Season</label><div class="rx-seg" role="radiogroup" aria-labelledby="rx-yl" id="rx-ys">${years.map(y => `<button type="button" role="radio" data-y="${y}" aria-checked="${y === year}">${y}</button>`).join("")}</div></div>
+      <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><div style="display:grid"><b style="font-size:17px">${esc(s?.name || "")}</b><small style="color:#8e919b">${year} season</small></div></div>
+      ${isNew ? "" : `<button type="button" class="rx-full" id="rx-rounds"><span><b>Races</b><small>Choose the rounds you do</small></span>${CHEV}</button>`}
       <div class="rx-two" style="grid-template-columns:120px 1fr"><div><label class="rx-f" for="rx-num">Car number</label><input id="rx-num" value="${esc(en.car_number || "")}" inputmode="numeric" autocomplete="off"></div><div><label class="rx-f" for="rx-team">Team</label><input id="rx-team" value="${esc(en.team || "")}" autocomplete="off"></div></div>
       <div><label class="rx-f" for="rx-mates">Teammates</label><input id="rx-mates" value="${esc((en.teammates || []).join(", "))}" autocomplete="off"><div class="rx-help">Separate names with commas.</div></div>
       <div><label class="rx-f">Car</label><div id="rx-vbox">${vbox()}</div><div class="rx-help">Not in the catalogue? <button type="button" class="rx-link" id="rx-vnew">Add your car</button></div></div>
@@ -326,19 +382,19 @@
     const bindPh = () => { $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; photoFile = f; photoUrl = URL.createObjectURL(f); $("#rx-phbox").innerHTML = phbox(); bindPh(); }; };
     const r = await sheet(isNew ? "Your entry" : "Edit entry", html, { ok: isNew ? "Add to my season" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${s?.name} ${year} from your page?`,
       after() {
-        $$("#rx-ys button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#rx-ys button").forEach(x => x.setAttribute("aria-checked", x === b)); });
+        if ($("#rx-rounds")) $("#rx-rounds").onclick = async () => { sheetResolve = null; const sel = await pickRounds(s, en); if (sel) save(() => saveRounds(sel), "Races saved"); else editEntry(en); };
         $$("#rx-cs button").forEach(b => b.onclick = () => { color = b.dataset.c; $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", x === b)); });
         $("#rx-cc").oninput = e => { color = e.target.value.toUpperCase(); $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", "false")); };
         bindV(); bindPh();
         $("#rx-vnew").onclick = async () => { const draft = { car_number: $("#rx-num").value, team: $("#rx-team").value, teammates: $("#rx-mates").value.split(",").map(x => x.trim()).filter(Boolean) };
-          sheetResolve = null; const v = await newVehicle(); editEntry({ ...en, ...draft, year, color, vehicles: v || vehicle, vehicle_id: (v || vehicle)?.id || null }); };
+          sheetResolve = null; const v = await newVehicle(); editEntry({ ...en, ...draft, year, color, hide: rounds?.hide, vehicles: v || vehicle, vehicle_id: (v || vehicle)?.id || null }); };
       },
       collect() { return { year, color: /^#[0-9A-F]{6}$/i.test(color) ? color : COLORS[0], car_number: $("#rx-num").value.trim() || null, team: $("#rx-team").value.trim() || null, teammates: $("#rx-mates").value.split(",").map(x => x.trim()).filter(Boolean), vehicle_id: vehicle?.id || null }; } });
     if (!r) return;
     if (r.__delete) return save(() => api(`entries?id=eq.${en.id}`, { method: "DELETE" }), "Removed");
     save(async () => {
       if (photoFile) r.car_photo_url = await upload(await picture(photoFile, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`);
-      if (isNew) await ins("entries", { profile_id: R.profile.id, series_id: en.series_id, ...r });
+      if (isNew) { await ins("entries", { profile_id: R.profile.id, series_id: en.series_id, ...r }); if (rounds) await saveRounds(rounds); }
       else await upd("entries", en.id, r);
     }, isNew ? "Added to your season" : "Saved");
   }
@@ -393,17 +449,28 @@
   
   // logo picker: tap to choose, drop a file, or paste a screenshot
   function logoDrop(current, mode) {
-    const st = { file: null, mode: mode || "white", preview: current || "" };
-    const html = `<div class="rx-drop" id="rx-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="rx-drop-pv" id="rx-drop-pv">${st.preview ? `<img src="${esc(st.preview)}" alt="">` : `<span>No logo yet</span>`}</div><div><b>Tap to add the logo</b><small>Or drop a file, or paste a screenshot. The background is removed.</small></div></div>
+    const st = { file: null, mode: mode || "white", preview: current || "", cropper: null, blob: null };
+    const html = `<div id="rx-lwrap"><div class="rx-drop" id="rx-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="rx-drop-pv" id="rx-drop-pv">${st.preview ? `<img src="${esc(st.preview)}" alt="">` : `<span>No logo yet</span>`}</div><div><b>${st.preview ? "Change the logo" : "Add the logo"}</b><small>A file, a photo or a screenshot. We find the logo, cut it out and clean it up.</small></div></div></div>
+      <div id="rx-lres" hidden><div class="rx-f" style="margin-top:4px">Result</div><div class="rx-lres-pv" id="rx-lres-pv"></div></div>
       <div class="rx-seg" role="radiogroup" aria-label="Logo colours" id="rx-lmode"><button type="button" role="radio" data-m="white" aria-checked="${st.mode === "white"}">White</button><button type="button" role="radio" data-m="original" aria-checked="${st.mode === "original"}">Original colours</button></div>`;
-    const show = async () => {
-      const pv = $("#rx-drop-pv"); if (!pv) return;
-      if (!st.file) { pv.innerHTML = st.preview ? `<img src="${esc(st.preview)}" alt="" style="${st.mode === "white" ? "filter:brightness(0) invert(1)" : ""}">` : `<span>No logo yet</span>`; return; }
-      pv.innerHTML = "<span>Processing…</span>";
-      try { const b = await processLogo(st.file, st.mode); pv.innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; } catch (e) { pv.innerHTML = "<span>Couldn't read this image</span>"; st.file = null; }
+    let seq = 0;
+    const render = async () => {
+      const my = ++seq;
+      if (!st.cropper) { const pv = $("#rx-drop-pv"); if (pv && st.preview) pv.innerHTML = `<img src="${esc(st.preview)}" alt="" style="${st.mode === "white" ? "filter:brightness(0) invert(1)" : ""}">`; return; }
+      $("#rx-lres").hidden = false; $("#rx-lres-pv").innerHTML = "<span>Cleaning up…</span>";
+      try { const cut = await st.cropper.crop(); const b = await processLogo(cut, st.mode); if (my !== seq) return; st.blob = b; $("#rx-lres-pv").innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; }
+      catch (e) { $("#rx-lres-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; }
     };
-    const take = f => { if (f && f.type.startsWith("image/")) { st.file = f; show(); } };
-    const onPaste = e => { if (!$("#rx-drop")) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
+    const take = async f => {
+      if (!f || !f.type.startsWith("image/")) return;
+      st.file = f; st.blob = null;
+      $("#rx-lwrap").innerHTML = `<div id="rx-crop"></div><div style="text-align:right;margin-top:6px"><button type="button" class="rx-link" id="rx-lother">Choose another picture</button></div>`;
+      $("#rx-lother").onclick = async () => take(await pickFile());
+      st.cropper = window.rnxLogoCropper ? await rnxLogoCropper($("#rx-crop"), f, token) : null;
+      if (st.cropper) st.cropper.onChange(render);
+      render();
+    };
+    const onPaste = e => { if (!$("#rx-lmode")) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
     return { html, st, after() {
       const dz = $("#rx-drop");
       dz.onclick = async () => take(await pickFile());
@@ -411,8 +478,8 @@
       dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
       dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
       document.addEventListener("paste", onPaste);
-      $$("#rx-lmode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#rx-lmode button").forEach(x => x.setAttribute("aria-checked", x === b)); show(); });
-      show();
+      $$("#rx-lmode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#rx-lmode button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
+      render();
     } };
   }
   async function editPartner(sp) {
@@ -423,14 +490,14 @@
       <div><label class="rx-f" for="rx-pn">Partner name</label><input id="rx-pn" value="${esc(sp?.name || "")}" autocomplete="off"></div>
       <div><label class="rx-f" for="rx-pl">Link</label><input id="rx-pl" value="${esc(sp?.link_url || "")}" inputmode="url" autocapitalize="off" autocomplete="off"><div class="rx-help">Optional. Where fans go when they tap the logo.</div></div>`,
       { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`, after: ld.after,
-        collect() { if (isNew && !ld.st.file) { alert("Add the partner's logo."); return null; } if (!need("#rx-pn", "Add the partner's name.")) return null; return { name: $("#rx-pn").value.trim(), link_url: toUrl("website", $("#rx-pl").value) || null, display: ld.st.mode }; } });
+        collect() { if (isNew && !ld.st.file) { alert("Add the partner's logo."); return null; } if (ld.st.file && !ld.st.blob) { alert("One moment: the logo is still being cleaned up."); return null; } if (!need("#rx-pn", "Add the partner's name.")) return null; return { name: $("#rx-pn").value.trim(), link_url: toUrl("website", $("#rx-pl").value) || null, display: ld.st.mode }; } });
     if (!r) return;
     if (r.__delete) return save(() => api(`sponsors?id=eq.${sp.id}`, { method: "DELETE" }), "Partner removed");
     save(async () => {
       if (ld.st.file) {
-        const stamp = Date.now();
-        r.logo_white_url = await upload(await processLogo(ld.st.file, "white"), `sponsors/${R.profile.id}-${stamp}-w.png`);
-        r.logo_original_url = await upload(await processLogo(ld.st.file, "original"), `sponsors/${R.profile.id}-${stamp}-o.png`);
+        const stamp = Date.now(), cut = ld.st.cropper ? await ld.st.cropper.crop() : ld.st.file;
+        r.logo_white_url = await upload(await processLogo(cut, "white"), `sponsors/${R.profile.id}-${stamp}-w.png`);
+        r.logo_original_url = await upload(await processLogo(cut, "original"), `sponsors/${R.profile.id}-${stamp}-o.png`);
       }
       if (isNew) await ins("sponsors", { ...r, profile_id: R.profile.id, sort: (R.sponsors.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1) });
       else await upd("sponsors", sp.id, r);
@@ -540,7 +607,7 @@
     const strip = document.createElement("section"); strip.className = "rx-season rx-only"; strip.id = "rx-season";
     strip.innerHTML = `<div class="rx-season-h"><div><b>Your season</b><span>${R.entries.length ? `${R.entries.length} championship${R.entries.length > 1 ? "s" : ""}` : "Add the championships you race in"}</span></div><button class="rx-b pri" id="rx-add">${PLUS} Add</button></div>
       ${R.entries.length ? `<div class="rx-rows">${R.entries.map(e => { const d = [e.car_number ? "#" + esc(e.car_number) : "", esc(e.team || ""), esc(e.vehicles?.name || "")].filter(Boolean); return `<button class="rx-row" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><span class="rx-row-lg">${lg(e.series)}</span><span class="rx-row-t"><b>${esc(e.series?.name || "")}</b><small class="${d.length ? "" : "warn"}">${d.length ? d.join(" · ") : "Add your number, team and car"}</small></span><span class="rx-row-y">${e.year}</span>${CHEV}</button>`; }).join("")}</div>` : ""}`;
-    const anchor = $("#ffdd") || $("#list");
+    const anchor = $("#cd") || $("#ffdd") || $("#list");
     anchor.parentNode.insertBefore(strip, anchor);
     $("#rx-add").onclick = addChampionship;
 

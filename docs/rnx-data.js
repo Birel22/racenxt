@@ -144,7 +144,14 @@
   window.rnxDecorate = function (R) {
     const p = R.profile;
     const photo = document.getElementById("rnx-photo");
-    if (photo) { if (p.hero_url || p.photo_url) photo.src = p.hero_url || p.photo_url; else photo.style.display = "none"; }
+    if (photo) {
+      if (p.hero_url || p.photo_url) {
+        photo.src = p.hero_url || p.photo_url;
+        // framing chosen by the athlete (focal point + zoom)
+        const fp = p.photo_pos;
+        if (fp && isFinite(fp.x) && isFinite(fp.y)) { photo.style.objectPosition = `${fp.x}% ${fp.y}%`; if (fp.z > 1) { photo.style.transform = `scale(${fp.z})`; photo.style.transformOrigin = `${fp.x}% ${fp.y}%`; } }
+      } else photo.style.display = "none";
+    }
     const lg = document.getElementById("rnx-logo");
     if (lg && p.logo_url) { lg.src = p.logo_url; lg.alt = p.display_name; lg.hidden = false; }
     const href = k => k === "email" ? (p.contact_email ? "mailto:" + p.contact_email : "") : (p.socials && p.socials[k]) || "";

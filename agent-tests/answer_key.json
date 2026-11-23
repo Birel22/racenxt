@@ -105,9 +105,65 @@
       "task": "schedule",
       "event": "Portimão 2026 (R6)",
       "source": "https://ultimatecupseries.eu/wp-content/uploads/2026/10/Timetable-UCS-R6-Portimao-V8.pdf",
-      "timezone": "local track time (official PDF, no zone written)",
-      "expect": "TO FILL: EEPC sessions with day + start/end (from Louis)",
-      "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images."
+      "timezone": "local track time (Portugal, WET = UTC+0 in November)",
+      "expect": [
+        {
+          "day": "2026-11-26",
+          "label": "Private Test 1",
+          "start": "09:25",
+          "end": "10:55"
+        },
+        {
+          "day": "2026-11-26",
+          "label": "Private Test 2",
+          "start": "13:35",
+          "end": "15:05"
+        },
+        {
+          "day": "2026-11-26",
+          "label": "Free Practice 1",
+          "start": "16:25",
+          "end": "17:55"
+        },
+        {
+          "day": "2026-11-27",
+          "label": "Free Practice 2",
+          "start": "11:55",
+          "end": "13:25"
+        },
+        {
+          "day": "2026-11-27",
+          "label": "Qualifying 1",
+          "start": "17:10",
+          "end": "17:25"
+        },
+        {
+          "day": "2026-11-27",
+          "label": "Qualifying 2",
+          "start": "17:35",
+          "end": "17:50"
+        },
+        {
+          "day": "2026-11-27",
+          "label": "Qualifying 3",
+          "start": "18:00",
+          "end": "18:15"
+        },
+        {
+          "day": "2026-11-28",
+          "label": "Starting grid",
+          "start": "14:35",
+          "end": "14:55",
+          "optional": true
+        },
+        {
+          "day": "2026-11-28",
+          "label": "Race - 6H Portimão",
+          "start": "14:55",
+          "end": "20:55"
+        }
+      ],
+      "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images. The EEPC sessions are the orange lines in section '2. Timing / Team' (screenshot: eepc-portimao-2026-timing.jpg). Briefings, lunch, scrutineering etc. are not sessions. The race is 6 hours (14:55-20:55): a text-only reading wrongly guessed a 4-hour race."
     },
     {
       "id": "eepc-stream",

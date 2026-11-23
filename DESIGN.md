@@ -41,3 +41,10 @@ Reference component: the **Where to watch** sheet (`tools/fan_watch.css`). Build
 ## Words
 - Plain, short, verb first ("Add your logo", "Save"). No jargon.
 - Same names everywhere: **Official stream**, **TV broadcast** (fans) / **TV broadcasters** + **Event broadcast** (admin).
+
+## Keyboard up (phones)
+- Sheets sit just above the keyboard (`--kb`, `--vvh` from visualViewport, set by rnx-ui.js; `html.kb-open` while it's up).
+- While typing, the sheet gives its room to the content: compact header, no footer (Save/Cancel come back when the keyboard closes).
+- Small forms (box + their own buttons) use `.rx-comp` or `data-reveal`: focusing a box shows the whole form, buttons included.
+- Text boxes that aren't about the person get `autocomplete="off" data-form-type="other"` and no "name/address" wording in id or label, so iPhone doesn't offer contact autofill.
+- Enter moves to the next box (`enterkeyhint="next"`) or does the form's action (`enterkeyhint="done"`).

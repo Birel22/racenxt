@@ -203,7 +203,14 @@
   .rx-photo-ph svg{width:26px;height:26px}
   /* sheets: the house style (see DESIGN.md) */
   .rx-scrim{position:fixed;inset:0;background:rgba(5,6,8,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:950;opacity:0;pointer-events:none;transition:opacity .28s ease}
-  html.kb-open .rx-sheet{bottom:var(--kb,0px);max-height:calc(var(--vvh,100dvh) - 8px)}
+  html.kb-open .rx-sheet{bottom:var(--kb,0px);max-height:calc(var(--vvh,100dvh) - 8px);border-radius:16px 16px 0 0}
+  /* keyboard up: the sheet gives all its room to what you're typing */
+  html.kb-open .rx-grab,html.kb-open .rx-sh-h small{display:none}
+  html.kb-open .rx-sh-h{padding:10px 16px;align-items:center}
+  html.kb-open .rx-sh-h b{margin:0;font-size:17px}
+  html.kb-open .rx-sh-h .rx-x{width:32px;height:32px}
+  html.kb-open .rx-sh-f{display:none}
+  html.kb-open .rx-sh-b{padding:12px 16px 16px;gap:12px}
   .rx-sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;max-height:92vh;max-height:92dvh;z-index:951;background:#16181d;color:#f2f2ef;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.85,.25,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);visibility:hidden}
   body.rx-on .rx-scrim{opacity:1;pointer-events:auto}
   body.rx-on .rx-sheet{transform:none;visibility:visible}
@@ -762,7 +769,7 @@
     let S = ses.map(x => ({ day: x.local_start.slice(0, 10), start: x.local_start.slice(11, 16), end: x.duration_min && x.duration_min !== 60 ? hm(x.local_start.slice(11, 16), x.duration_min) : "", label: x.label }));
     const X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     const r = await sheet(isNew ? "Add a custom event" : "Edit custom event", `
-      <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off" maxlength="80" placeholder="e.g. Autograph session"><div class="rx-help">As fans will see it: a test, a media day, an autograph session…</div></div>
+      <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off" autocorrect="off" data-form-type="other" data-1p-ignore enterkeyhint="done" maxlength="80" placeholder="e.g. Autograph session"><div class="rx-help">As fans will see it: a test, a media day, an autograph session…</div></div>
       <div><label class="rx-f" id="rx-dl">Dates</label><input type="hidden" id="rx-es" value="${esc(D.start)}"><input type="hidden" id="rx-ee" value="${esc(D.end)}">
         <button type="button" class="rx-field" id="rx-dbtn" aria-labelledby="rx-dl rx-dtx" aria-expanded="false">${CALI}<span id="rx-dtx"></span><em id="rx-dn"></em></button>
         <div class="rx-cal" id="rx-cal" hidden></div></div>
@@ -815,8 +822,8 @@
             if (lcomp !== null) {
               const l = lcomp >= 0 ? LK[lcomp] : { label: "", url: "" };
               h += `<div class="rx-comp" id="rx-lcomp"><b class="rx-comp-t">${lcomp >= 0 ? "Change link" : "New link"}</b>
-                <label class="rx-cl">Name on the button<input id="rx-lname" value="${esc(l.label)}" maxlength="30" placeholder="e.g. Watch live, Live timing, Tickets" autocomplete="off"></label>
-                <label class="rx-cl">Link<input id="rx-lurl" value="${esc(l.url)}" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+                <label class="rx-cl">Button text<input id="rx-lname" value="${esc(l.label)}" maxlength="30" placeholder="e.g. Watch live, Live timing, Tickets" autocomplete="off" autocorrect="off" enterkeyhint="next" data-form-type="other" data-1p-ignore></label>
+                <label class="rx-cl">Link<input id="rx-lurl" type="url" value="${esc(l.url)}" inputmode="url" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="https://" enterkeyhint="done" data-form-type="other" data-1p-ignore></label>
                 <div class="rx-comp-f">${lcomp >= 0 ? `<button type="button" class="rx-link bad" id="rx-lrm">Remove</button>` : ""}<span style="flex:1"></span><button type="button" class="rx-b" id="rx-lcx">Cancel</button><button type="button" class="rx-b pri" id="rx-lok">${lcomp >= 0 ? "Save link" : "Add link"}</button></div></div>`;
             } else if (LK.length < 8) h += `<button type="button" class="rx-b rx-add-s" id="rx-lon">${PLUS.replace("<svg", '<svg width="16" height="16"')} ${LK.length ? "Add another link" : "Add a link"}</button>`;
             h += `<div class="rx-help">${LK.length ? "Shown as buttons on the event card. Tap one to change it." : "Optional. Any link you want, shown as a button on the event card."}</div>`;
@@ -824,6 +831,8 @@
             if ($("#rx-lon")) $("#rx-lon").onclick = () => { lcomp = -1; drawLinks(); $("#rx-lname").focus(); window.rnxReveal?.($("#rx-lcomp")); };
             $$("#rx-lkw [data-l]").forEach(b => b.onclick = () => { lcomp = +b.dataset.l; drawLinks(); window.rnxReveal?.($("#rx-lcomp")); });
             if (lcomp === null) return;
+            $("#rx-lname").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#rx-lurl").focus(); } };
+            $("#rx-lurl").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#rx-lok").click(); } };
             $("#rx-lcx").onclick = () => { lcomp = null; drawLinks(); };
             if ($("#rx-lrm")) $("#rx-lrm").onclick = () => { LK.splice(lcomp, 1); lcomp = null; drawLinks(); };
             $("#rx-lok").onclick = () => {
@@ -853,7 +862,7 @@
               const x = comp >= 0 ? S[comp] : { day: (S.length && days.includes(S[S.length - 1].day) ? S[S.length - 1].day : days[0]), start: S.length ? S[S.length - 1].end || hm(S[S.length - 1].start, 60) : "09:00", end: "", label: "" };
               html += `<div class="rx-comp" id="rx-comp"><b class="rx-comp-t">${comp >= 0 ? "Change time" : "New time"}</b>
                 ${days.length > 1 ? `<div class="rx-chips" role="radiogroup" aria-label="Day">${days.map(d => `<button type="button" role="radio" data-day="${d}" aria-checked="${d === x.day}">${dayLbl(d).replace(/ \w+$/, "")}<small>${MONTHS[+d.slice(5, 7) - 1]}</small></button>`).join("")}</div>` : ""}
-                <label class="rx-cl">What<input id="rx-cw" value="${esc(x.label)}" placeholder="e.g. Autograph session" maxlength="60" autocomplete="off"></label>
+                <label class="rx-cl">What<input id="rx-cw" value="${esc(x.label)}" placeholder="e.g. Autograph session" maxlength="60" autocomplete="off" enterkeyhint="done" data-form-type="other" data-1p-ignore></label>
                 <div class="rx-c2"><label class="rx-cl">Starts<select id="rx-cs">${opts(x.start, "Choose")}</select></label><label class="rx-cl">Ends<select id="rx-ce">${opts(x.end, "No end time")}</select></label></div>
                 <div class="rx-comp-f">${comp >= 0 ? `<button type="button" class="rx-link bad" id="rx-crm">Remove</button>` : ""}<span style="flex:1"></span><button type="button" class="rx-b" id="rx-ccx">Cancel</button><button type="button" class="rx-b pri" id="rx-cok">${comp >= 0 ? "Save time" : "Add time"}</button></div></div>`;
             } else if (days.length) {
@@ -867,6 +876,7 @@
             let day = comp >= 0 ? S[comp].day : $('#rx-comp [aria-checked="true"]')?.dataset.day || days[0];
             $$("#rx-comp [data-day]").forEach(b => b.onclick = () => { day = b.dataset.day; $$("#rx-comp [data-day]").forEach(o => o.setAttribute("aria-checked", o === b)); });
             $("#rx-cs").onchange = () => { const s = $("#rx-cs").value, e = $("#rx-ce").value; if (e && s && e <= s) $("#rx-ce").value = ""; };
+            $("#rx-cw").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#rx-cw").blur(); } };
             $("#rx-ccx").onclick = () => { comp = null; drawSched(); };
             if ($("#rx-crm")) $("#rx-crm").onclick = () => { S.splice(comp, 1); comp = null; drawSched(); };
             $("#rx-cok").onclick = () => {

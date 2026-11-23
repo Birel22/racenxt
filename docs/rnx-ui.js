@@ -289,7 +289,19 @@
     if (vv) { vv.addEventListener("resize", upd); vv.addEventListener("scroll", upd); }
     upd();
     const typing = el => el && el.matches && el.matches('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),textarea,select,[contenteditable="true"]');
-    const show = el => { if (!el || !el.isConnected || document.activeElement !== el) return; el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); };
+    const show = el => {
+      if (!el || !el.isConnected || document.activeElement !== el) return;
+      const sm = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      // inside a small form (box + its buttons): show the whole form when it fits, else the box
+      const box = el.closest(".rx-comp,[data-reveal]"), sc = el.closest(".rx-sh-b,.rxe-b,[data-scroll]");
+      if (box && sc && box.offsetHeight <= sc.clientHeight - 8) {
+        const r = box.getBoundingClientRect(), v = sc.getBoundingClientRect();
+        if (r.bottom > v.bottom - 6) sc.scrollBy({ top: r.bottom - v.bottom + 10, behavior: sm });
+        else if (r.top < v.top + 6) sc.scrollBy({ top: r.top - v.top - 10, behavior: sm });
+        return;
+      }
+      el.scrollIntoView({ block: "center", behavior: sm });
+    };
     document.addEventListener("focusin", e => {
       const el = e.target; if (!typing(el)) return;
       setTimeout(() => show(el), 320);

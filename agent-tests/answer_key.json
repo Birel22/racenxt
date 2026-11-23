@@ -247,6 +247,227 @@
       "expect": {
         "stream_url": "https://plus.fiawec.com/en"
       }
+    },
+    {
+      "id": "f2-2026-calendar",
+      "series": "FIA Formula 2",
+      "task": "calendar",
+      "year": 2026,
+      "source": "https://www.fiaformula2.com/en/racing/2026",
+      "expect": [
+        {
+          "round": 1,
+          "circuit": "Melbourne",
+          "start": "2026-03-06",
+          "end": "2026-03-08"
+        },
+        {
+          "round": 2,
+          "circuit": "Miami",
+          "start": "2026-05-01",
+          "end": "2026-05-03"
+        },
+        {
+          "round": 3,
+          "circuit": "Montréal",
+          "start": "2026-05-22",
+          "end": "2026-05-24"
+        },
+        {
+          "round": 4,
+          "circuit": "Monaco",
+          "start": "2026-06-05",
+          "end": "2026-06-07"
+        },
+        {
+          "round": 5,
+          "circuit": "Barcelona-Catalunya",
+          "start": "2026-06-12",
+          "end": "2026-06-14"
+        },
+        {
+          "round": 6,
+          "circuit": "Spielberg",
+          "start": "2026-06-26",
+          "end": "2026-06-28"
+        },
+        {
+          "round": 7,
+          "circuit": "Silverstone",
+          "start": "2026-07-03",
+          "end": "2026-07-05"
+        },
+        {
+          "round": 8,
+          "circuit": "Spa-Francorchamps",
+          "start": "2026-07-17",
+          "end": "2026-07-19"
+        },
+        {
+          "round": 9,
+          "circuit": "Budapest",
+          "start": "2026-07-24",
+          "end": "2026-07-26"
+        },
+        {
+          "round": 10,
+          "circuit": "Monza",
+          "start": "2026-09-04",
+          "end": "2026-09-06"
+        },
+        {
+          "round": 11,
+          "circuit": "Madrid",
+          "start": "2026-09-11",
+          "end": "2026-09-13"
+        },
+        {
+          "round": 12,
+          "circuit": "Baku",
+          "start": "2026-09-24",
+          "end": "2026-09-26"
+        },
+        {
+          "round": 13,
+          "circuit": "Lusail",
+          "start": "2026-11-27",
+          "end": "2026-11-29"
+        },
+        {
+          "round": 14,
+          "circuit": "Yas Marina",
+          "start": "2026-12-04",
+          "end": "2026-12-06"
+        }
+      ],
+      "not_races": [
+        "Pre-season test Barcelona 17-19 Feb 2026"
+      ]
+    },
+    {
+      "id": "f2-2027-calendar",
+      "series": "FIA Formula 2",
+      "task": "calendar",
+      "year": 2027,
+      "source": "https://www.fiaformula2.com/en/latest/article/fia-formula-2-championship-announce-2027-season-calendar.4wnKwYRPord5JXNqtqUefN",
+      "expect": [
+        {
+          "round": 1,
+          "circuit": "Sakhir",
+          "start": null,
+          "end": null,
+          "month": "March"
+        },
+        {
+          "round": 2,
+          "circuit": "Jeddah",
+          "start": null,
+          "end": null,
+          "month": "March"
+        },
+        {
+          "round": 3,
+          "circuit": "Melbourne",
+          "start": null,
+          "end": null,
+          "month": null
+        },
+        {
+          "round": 4,
+          "circuit": "Montréal",
+          "start": null,
+          "end": null,
+          "month": null
+        },
+        {
+          "round": 5,
+          "circuit": "Monaco",
+          "start": null,
+          "end": null,
+          "month": "June"
+        },
+        {
+          "round": 6,
+          "circuit": "Silverstone",
+          "start": null,
+          "end": null,
+          "month": "July"
+        },
+        {
+          "round": 7,
+          "circuit": "Spielberg",
+          "start": null,
+          "end": null,
+          "month": "July"
+        },
+        {
+          "round": 8,
+          "circuit": "Monza",
+          "start": null,
+          "end": null,
+          "month": "September"
+        },
+        {
+          "round": 9,
+          "circuit": "Madrid",
+          "start": null,
+          "end": null,
+          "month": "September"
+        },
+        {
+          "round": 10,
+          "circuit": "Baku",
+          "start": null,
+          "end": null,
+          "month": "September"
+        },
+        {
+          "round": 11,
+          "circuit": "Istanbul",
+          "start": null,
+          "end": null,
+          "month": "October"
+        },
+        {
+          "round": 12,
+          "circuit": "Mexico City",
+          "start": null,
+          "end": null,
+          "month": "October"
+        },
+        {
+          "round": 13,
+          "circuit": "Lusail",
+          "start": null,
+          "end": null,
+          "month": "December"
+        },
+        {
+          "round": 14,
+          "circuit": "Yas Island",
+          "start": null,
+          "end": null,
+          "month": "December"
+        }
+      ],
+      "notes": "Only the order and months are announced, no exact dates: the agent must add the 14 rounds without inventing dates (dates TBC)."
+    },
+    {
+      "id": "f2-2026-lusail-schedule",
+      "series": "FIA Formula 2",
+      "task": "schedule",
+      "event": "Lusail 2026",
+      "source": "https://www.fiaformula2.com/en/racing/2026/lusail",
+      "expect": "TO CONFIRM with Louis's screenshot (CET). Page text read without a browser gives: Practice 27 Nov 11:00-11:45, Qualifying 27 Nov 15:00-15:30, Sprint 28 Nov 16:15-17:05, Feature 29 Nov 12:00-13:05, zone unknown.",
+      "notes": "The page has a 'My time / Track time' switch and doesn't label which one the times are in: the classic time-zone trap (the earlier mistake). Qatar = UTC+3, CET = UTC+1."
+    },
+    {
+      "id": "f2-2026-abudhabi-schedule",
+      "series": "FIA Formula 2",
+      "task": "schedule",
+      "event": "Yas Marina 2026",
+      "source": "https://www.fiaformula2.com/en/racing/2026/yas-marina",
+      "expect": "nothing yet: all sessions TBC (4-6 Dec)."
     }
   ]
 }

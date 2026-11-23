@@ -7,9 +7,9 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-135103"></script>
-<script src="rnx-social.js?v=20261123-135103"></script>
-<script src="rnx-ui.js?v=20261123-135103"></script>
+<script src="config.js?v=20261123-135929"></script>
+<script src="rnx-social.js?v=20261123-135929"></script>
+<script src="rnx-ui.js?v=20261123-135929"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -175,25 +175,42 @@ const VFIELDS = [
 const DRIVE = { awd:"AWD", rwd:"RWD", fwd:"FWD" };
 
 // ---------- session (Supabase magic link, no library) ----------
-const KEY = "rnx_user_sess";
+// One session for the whole site (admin, sign-up, the athlete's page), renewed by one page at a time.
+// Two copies of the same session would make the server think a key was stolen and sign the person out.
+const SKEY = "rnx_sess";
 const S = {
-  get(){ try { return JSON.parse(localStorage.getItem(KEY) || localStorage.getItem("rnx_admin_sess") || "null"); } catch(e){ return null; } },
-  set(v){ try { v ? localStorage.setItem(KEY, JSON.stringify(v)) : (localStorage.removeItem(KEY), localStorage.removeItem("rnx_admin_sess")); } catch(e){} }
+  get(){ try {
+    let s = JSON.parse(localStorage.getItem(SKEY) || "null");
+    if (!s){ // older copies: keep the most recent one only
+      s = ["rnx_user_sess", "rnx_admin_sess"].map(k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch(e){ return null; } }).filter(Boolean).sort((a, b) => b.expires_at - a.expires_at)[0] || null;
+      if (s) localStorage.setItem(SKEY, JSON.stringify(s));
+    }
+    localStorage.removeItem("rnx_user_sess"); localStorage.removeItem("rnx_admin_sess");
+    return s;
+  } catch(e){ return null; } },
+  set(v){ try { v ? localStorage.setItem(SKEY, JSON.stringify(v)) : localStorage.removeItem(SKEY); } catch(e){} }
 };
+let refreshing = null;
+async function token(){
+  const s = S.get(); if (!s) return null;
+  if (s.expires_at - 60 > Date.now()/1000) return s.access_token;
+  if (!refreshing) refreshing = (async () => {
+    const run = async () => {
+      const cur = S.get(); if (!cur) return null;
+      if (cur.expires_at - 60 > Date.now()/1000) return cur.access_token; // another tab already renewed it
+      let r; try { r = await fetch(`${C.url}/auth/v1/token?grant_type=refresh_token`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: cur.refresh_token }) }); } catch(e){ return null; } // offline: stay signed in
+      if (!r.ok){ const again = S.get(); if (again && again.refresh_token !== cur.refresh_token) return again.access_token; if (r.status === 400 || r.status === 401 || r.status === 403) S.set(null); return null; }
+      const j = await r.json(); const n = { access_token:j.access_token, refresh_token:j.refresh_token, expires_at: Date.now()/1000 + j.expires_in }; S.set(n); return n.access_token;
+    };
+    try { return navigator.locks ? await navigator.locks.request("rnx-refresh", run) : await run(); } finally { setTimeout(() => { refreshing = null; }, 0); }
+  })();
+  return refreshing;
+}
 function readHash(){
   if (!location.hash.includes("access_token")) return;
   const h = new URLSearchParams(location.hash.slice(1));
   S.set({ access_token:h.get("access_token"), refresh_token:h.get("refresh_token"), expires_at: Date.now()/1000 + (+h.get("expires_in") || 3600) });
   history.replaceState(null, "", location.pathname);
-}
-async function token(){
-  let s = S.get(); if (!s) return null;
-  if (s.expires_at - 60 < Date.now()/1000){
-    const r = await fetch(`${C.url}/auth/v1/token?grant_type=refresh_token`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
-    if (!r.ok){ S.set(null); return null; }
-    const j = await r.json(); s = { access_token:j.access_token, refresh_token:j.refresh_token, expires_at: Date.now()/1000 + j.expires_in }; S.set(s);
-  }
-  return s.access_token;
 }
 async function api(path, opt = {}){
   const t = await token();

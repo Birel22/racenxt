@@ -2,7 +2,6 @@
 // small edit controls on top of it. Every change is saved to the database and the page reloads with it.
 (function () {
   const C = window.RNX_CONFIG;
-  const KEY = "rnx_user_sess";
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   const YEAR = new Date().getFullYear(), TODAY = new Date().toISOString().slice(0, 10);
@@ -22,18 +21,36 @@
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ---------- session ----------
+  // One session for the whole site (admin, sign-up, the athlete's page), renewed by one page at a time.
+  // Two copies of the same session would make the server think a key was stolen and sign the person out.
+  const SKEY = "rnx_sess";
   const S = {
-    get() { try { return JSON.parse(localStorage.getItem(KEY) || localStorage.getItem("rnx_admin_sess") || "null"); } catch (e) { return null; } },
-    set(v) { try { v ? localStorage.setItem(KEY, JSON.stringify(v)) : (localStorage.removeItem(KEY), localStorage.removeItem("rnx_admin_sess")); } catch (e) {} }
+    get(){ try {
+      let s = JSON.parse(localStorage.getItem(SKEY) || "null");
+      if (!s){ // older copies: keep the most recent one only
+        s = ["rnx_user_sess", "rnx_admin_sess"].map(k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch(e){ return null; } }).filter(Boolean).sort((a, b) => b.expires_at - a.expires_at)[0] || null;
+        if (s) localStorage.setItem(SKEY, JSON.stringify(s));
+      }
+      localStorage.removeItem("rnx_user_sess"); localStorage.removeItem("rnx_admin_sess");
+      return s;
+    } catch(e){ return null; } },
+    set(v){ try { v ? localStorage.setItem(SKEY, JSON.stringify(v)) : localStorage.removeItem(SKEY); } catch(e){} }
   };
-  async function token() {
-    let s = S.get(); if (!s) return null;
-    if (s.expires_at - 60 < Date.now() / 1000) {
-      const r = await fetch(`${C.url}/auth/v1/token?grant_type=refresh_token`, { method: "POST", headers: { apikey: C.key, "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
-      if (!r.ok) { S.set(null); return null; }
-      const j = await r.json(); s = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Date.now() / 1000 + j.expires_in }; S.set(s);
-    }
-    return s.access_token;
+  let refreshing = null;
+  async function token(){
+    const s = S.get(); if (!s) return null;
+    if (s.expires_at - 60 > Date.now()/1000) return s.access_token;
+    if (!refreshing) refreshing = (async () => {
+      const run = async () => {
+        const cur = S.get(); if (!cur) return null;
+        if (cur.expires_at - 60 > Date.now()/1000) return cur.access_token; // another tab already renewed it
+        let r; try { r = await fetch(`${C.url}/auth/v1/token?grant_type=refresh_token`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: cur.refresh_token }) }); } catch(e){ return null; } // offline: stay signed in
+        if (!r.ok){ const again = S.get(); if (again && again.refresh_token !== cur.refresh_token) return again.access_token; if (r.status === 400 || r.status === 401 || r.status === 403) S.set(null); return null; }
+        const j = await r.json(); const n = { access_token:j.access_token, refresh_token:j.refresh_token, expires_at: Date.now()/1000 + j.expires_in }; S.set(n); return n.access_token;
+      };
+      try { return navigator.locks ? await navigator.locks.request("rnx-refresh", run) : await run(); } finally { setTimeout(() => { refreshing = null; }, 0); }
+    })();
+    return refreshing;
   }
   async function api(path, opt = {}) {
     const t = await token();

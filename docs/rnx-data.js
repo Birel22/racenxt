@@ -2,7 +2,7 @@
 (function () {
   const C = window.RNX_CONFIG;
   // The page owner (signed in on the Racenxt app in this browser) can preview an unpublished page
-  const sess = (() => { for (const k of ["rnx_user_sess", "rnx_admin_sess"]) { try { const s = JSON.parse(localStorage.getItem(k) || "null"); if (s && s.access_token && s.expires_at > Date.now() / 1000 + 30) return s; } catch (e) {} } return null; })();
+  const sess = (() => { for (const k of ["rnx_sess", "rnx_user_sess", "rnx_admin_sess"]) { try { const s = JSON.parse(localStorage.getItem(k) || "null"); if (s && s.access_token && s.expires_at > Date.now() / 1000 + 30) return s; } catch (e) {} } return null; })();
   const H = { apikey: C.key, Authorization: "Bearer " + (sess ? sess.access_token : C.key) };
   // Car specs: the fixed list from the admin library (old free-form lists still work)
   const DRIVE = { awd: "All-wheel drive (AWD)", rwd: "Rear-wheel drive (RWD)", fwd: "Front-wheel drive (FWD)" };

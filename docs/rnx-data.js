@@ -66,7 +66,7 @@
       EVENTS.push({
         s: e.start_date, e: e.end_date, series: sl, id, uuid: e.id, name: e.name, dur: e.duration_label || "",
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),
-        note: notes[e.id] || e.note || undefined, watch: e.watch_url || ""
+        note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
       });
       const ss = byEvent[e.id];
       if (ss && ss.length) {

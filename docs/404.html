@@ -466,12 +466,20 @@
   @keyframes tt-pop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
   @keyframes tt-pop-out{to{opacity:0;transform:translateY(8px) scale(.98)}}
   @media (prefers-reduced-motion:reduce){ #tt,.tt-modal,#tt.closing,#tt.closing .tt-modal{animation-duration:.01s !important} }
+
+/* custom event links: Where to watch, Live timing, Tickets... */
+.ev-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.ev-link{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line,#2a2d35);background:rgba(255,255,255,.03);color:var(--text,#f4f4f2);font:600 13.5px 'Barlow',sans-serif;text-decoration:none;transition:border-color .2s ease,background .2s ease}
+.ev-link svg{width:16px;height:16px;flex:none;color:var(--c,#FF5A1F)}
+.ev-link .ext{width:12px;height:12px;color:var(--muted,#8e919b)}
+.ev-link:hover,.ev-link:focus-visible{border-color:var(--c,#FF5A1F);background:rgba(255,90,31,.08)}
+.month h2 .yr{color:var(--muted,#8e919b);font-weight:500}
 </style>
-<script src="config.js?v=20261123-163222"></script>
-<script src="rnx-social.js?v=20261123-163222"></script>
-<script src="rnx-ui.js?v=20261123-163222"></script>
-<script src="rnx-edit.js?v=20261123-163222"></script>
-<script src="rnx-data.js?v=20261123-163222"></script>
+<script src="config.js?v=20261123-171705"></script>
+<script src="rnx-social.js?v=20261123-171705"></script>
+<script src="rnx-ui.js?v=20261123-171705"></script>
+<script src="rnx-edit.js?v=20261123-171705"></script>
+<script src="rnx-data.js?v=20261123-171705"></script>
 </head>
 <body>
 <div class="wrap">
@@ -578,28 +586,37 @@ const TIMETABLES = RNX.timetables;
 const OFFICIAL = RNX.official;
 const dayName = iso => { const s = d(iso).toLocaleDateString(T("locale"), {weekday:"short", day:"numeric", month:"short"}); return s.charAt(0).toUpperCase()+s.slice(1); };
 
+const LICO = {
+  tv: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M10 10l4 2-4 2z" fill="currentColor"/></g></svg>',
+  timing: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></g></svg>',
+  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></g></svg>',
+  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+};
+const linkIco = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast/.test(t) ? LICO.tv : /timing|tracker/.test(t) ? LICO.timing : /ticket/.test(t) ? LICO.ticket : /result|standing/.test(t) ? LICO.flag : LICO.link; };
 let filter = "all";
 function render(){
   const list = document.getElementById("list");
   const shown = EVENTS.filter(e => filter==="all" || e.series===filter);
   const groups = {};
-  shown.forEach(e => { const m = d(e.s).getMonth(); (groups[m] ||= []).push(e); });
-  list.innerHTML = Object.keys(groups).map(Number).sort((a,b)=>a-b).map(m => `
+  shown.forEach(e => { const k = e.s.slice(0,7); (groups[k] ||= []).push(e); });
+  const multiY = new Set(Object.keys(groups).map(k => k.slice(0,4))).size > 1;
+  list.innerHTML = Object.keys(groups).sort().map(k => { const m = +k.slice(5,7)-1, yr = +k.slice(0,4); return `
     <section class="month">
-      <h2>${MONTHS[LANG][m]}</h2>
+      <h2>${MONTHS[LANG][m]}${multiY && yr !== SEASON ? ` <span class="yr">${yr}</span>` : ""}</h2>
       <div class="events">
-        ${groups[m].map(ev => { const dl = dateLabel(ev); return `
+        ${groups[k].map(ev => { const dl = dateLabel(ev); return `
           <article class="ev ev2 ${ev.series}${d(ev.e) < today ? " past" : ""}" id="race-${ev.id}">
             <div class="ev-date"><b>${dl.big}</b><small>${dl.small}</small>${LOGO[ev.series] ? `<img class="ev-logo${RNX.square[ev.series]?' sq':''}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">` : `<span class="ev-logo-txt">${esc(LABEL[ev.series])}</span>`}</div>
             <div class="ev-main">
               <div class="ev-head"><h3 class="ev-name">${esc(L(ev.name))}</h3><span class="ev-meta">${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}${ev===nextEv?`<span class="ev-next">${T("next")}</span>`:''}</span><button class="share-btn" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button></div>
               <a class="where" href="${mapUrl(ev)}" target="_blank" rel="noopener" title="${T("maps")}"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${esc(L(ev.where))}</a>
               <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.series]] ? `<button class="car-btn" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}" title="${T("carSpecs")}">${CARICON}<span class="car-lbl">${T("carShort")}</span></button>` : ""}</div>
-              ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}
+              ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}${ev.links && ev.links.length ? `<div class="ev-links">${ev.links.map(l => `<a class="ev-link" href="${esc(l.url)}" target="_blank" rel="noopener">${linkIco(l.label)}<span>${esc(l.label)}</span><svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`).join("")}</div>` : ""}
             </div>
           </article>`; }).join("")}
       </div>
-    </section>`).join("");
+    </section>`; }).join("");
 }
 // Filtre championnat (menu déroulant)
 const ffBtn = document.getElementById("ff-btn"), ffMenu = document.getElementById("ff-menu");

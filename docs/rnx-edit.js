@@ -203,6 +203,7 @@
   .rx-photo-ph svg{width:26px;height:26px}
   /* sheets: the house style (see DESIGN.md) */
   .rx-scrim{position:fixed;inset:0;background:rgba(5,6,8,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:950;opacity:0;pointer-events:none;transition:opacity .28s ease}
+  html.kb-open .rx-sheet{bottom:var(--kb,0px);max-height:calc(var(--vvh,100dvh) - 8px)}
   .rx-sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;max-height:92vh;max-height:92dvh;z-index:951;background:#16181d;color:#f2f2ef;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.85,.25,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);visibility:hidden}
   body.rx-on .rx-scrim{opacity:1;pointer-events:auto}
   body.rx-on .rx-sheet{transform:none;visibility:visible}
@@ -302,6 +303,12 @@
   .rx-comp-f{display:flex;align-items:center;gap:8px}
   .rx-comp-f .rx-b{height:42px;border-radius:12px;padding:0 16px}
   .rx-link.bad{color:#ff6b5e}
+  .rx-lrow .lic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,90,31,.12);color:#FF5A1F}
+  .rx-lrow .lb{display:grid;gap:1px}.rx-lrow .lb small{font-size:12.5px;font-weight:500;color:#8e919b;overflow:hidden;text-overflow:ellipsis}
+  .rx-lrow + .rx-lrow{margin-top:8px}
+  .rx-chips-t button{min-width:0;padding:9px 12px;display:block}
+  .rx-evpen{flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,90,31,.5);background:rgba(255,90,31,.12);color:#FF5A1F;font:700 13px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-evpen svg{width:14px;height:14px}
   @keyframes rxShake{0%,100%{translate:0}25%{translate:-5px 0}75%{translate:5px 0}}
   .rx-shake{animation:rxShake .28s ease;border-color:#ff6b5e !important}
   .rx-seg{display:flex;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;padding:4px;gap:4px}
@@ -733,6 +740,13 @@
     const [v] = await ins("venues", { name: loc.name, city: loc.city || null, country: loc.country || "", country_code: loc.cc || null, lat: loc.lat, lng: loc.lng, timezone: tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
     return v.id;
   }
+  const LI = {
+    tv: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M10 10l4 2-4 2z" fill="currentColor"/></svg>',
+    timing: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></svg>',
+    ticket: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
+    link: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'
+  };
   const PIN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const CALI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   // custom events: anything that isn't in an official championship calendar (tests, media, autograph sessions...)
@@ -743,6 +757,7 @@
     const D = { start: ev?.start_date || "", end: ev?.end_date || "", picking: false, onChange: () => {} };
     let loc = v && v.name ? { id: ev.venue_id, name: v.name, city: v.city || "", country: v.country || "", cc: v.country_code || "" } : null;
     const hm = (t, add) => { const [h, m] = t.split(":").map(Number), x = (h * 60 + m + add) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
+    let LK = (ev?.links || []).filter(l => l && l.url).map(l => ({ label: l.label || "", url: l.url })), lcomp = null;
     let S = ses.map(x => ({ day: x.local_start.slice(0, 10), start: x.local_start.slice(11, 16), end: x.duration_min && x.duration_min !== 60 ? hm(x.local_start.slice(11, 16), x.duration_min) : "", label: x.label }));
     const X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     const r = await sheet(isNew ? "Add a custom event" : "Edit custom event", `
@@ -753,13 +768,14 @@
       <div><label class="rx-f" for="rx-eq">Location</label><input type="hidden" id="rx-eloc" value="">
         <div id="rx-lw"></div><div class="rx-help">Search a circuit, a venue, a city or an address. Optional.</div></div>
       <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off" maxlength="90" placeholder="e.g. Free entry · Fan zone stand 4"><div class="rx-help">Optional. Shown under the event on your page.</div></div>
+      <div><label class="rx-f">Links</label><input type="hidden" id="rx-ljson" value=""><div id="rx-lkw"></div></div>
       <div><label class="rx-f">Schedule</label><input type="hidden" id="rx-sjson" value=""><div id="rx-sw"></div></div>`,
       { ok: isNew ? "Add event" : "Save", del: !isNew && ROLE === "owner" ? "Delete" : null, delText: `Delete ${ev?.name || "this event"}?`,
         after() {
           // dates
           const cal = rangeCal($("#rx-cal"), D);
           const dText = () => { $("#rx-dtx").textContent = D.start ? rangeText(D.start, D.end) : "Choose the dates"; const n = daysOf(D.start, D.end || D.start).length; $("#rx-dn").textContent = n ? `${n} day${n > 1 ? "s" : ""}` : ""; $("#rx-dbtn").classList.toggle("empty", !D.start); $("#rx-es").value = D.start; $("#rx-ee").value = D.end || D.start; };
-          const openCal = on => { $("#rx-cal").hidden = !on; $("#rx-dbtn").setAttribute("aria-expanded", on); $("#rx-dbtn").classList.toggle("open", on); if (on) cal.show(D.start); };
+          const openCal = on => { $("#rx-cal").hidden = !on; $("#rx-dbtn").setAttribute("aria-expanded", on); $("#rx-dbtn").classList.toggle("open", on); if (on) { cal.show(D.start); window.rnxReveal?.($("#rx-cal")); } };
           D.onChange = () => { dText(); if (comp !== null && comp < 0) comp = null; drawSched(); if (!D.picking) setTimeout(() => openCal(false), 380); };
           $("#rx-cal").addEventListener("click", e => { if (e.target.closest("[data-done]")) { D.picking = false; openCal(false); $("#rx-dbtn").focus(); } });
           $("#rx-dbtn").onclick = () => openCal($("#rx-cal").hidden);
@@ -789,6 +805,42 @@
             box.onkeydown = e => { const bs = [...box.querySelectorAll("button")], i = bs.indexOf(document.activeElement); if (e.key === "ArrowDown") { e.preventDefault(); bs[Math.min(bs.length - 1, i + 1)]?.focus(); } if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? bs[i - 1] : q).focus(); } };
           };
           drawLoc();
+          // links: Where to watch, Live timing, Tickets... or anything
+          const PRE = [["Where to watch", "tv"], ["Live timing", "timing"], ["Tickets", "ticket"], ["Results", "flag"]];
+          const linkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|live stream|broadcast/.test(t) ? LI.tv : /timing|live tim|tracker/.test(t) ? LI.timing : /ticket/.test(t) ? LI.ticket : /result|standing/.test(t) ? LI.flag : LI.link; };
+          const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
+          function drawLinks() {
+            $("#rx-ljson").value = JSON.stringify(LK);
+            let h = LK.map((l, i) => i === lcomp ? "" : `<button type="button" class="rx-srow2 rx-lrow" data-l="${i}"><span class="lic">${linkIcon(l.label)}</span><span class="lb">${esc(l.label)}<small>${esc(host(l.url))}</small></span>${CHEV}</button>`).join("");
+            if (lcomp !== null) {
+              const l = lcomp >= 0 ? LK[lcomp] : { label: LK.some(x => /watch/i.test(x.label)) ? "" : "Where to watch", url: "" };
+              h += `<div class="rx-comp" id="rx-lcomp"><b class="rx-comp-t">${lcomp >= 0 ? "Change link" : "New link"}</b>
+                <div class="rx-chips rx-chips-t" role="radiogroup" aria-label="Kind of link">${PRE.map(([t]) => `<button type="button" role="radio" data-pre="${t}" aria-checked="${t === l.label}">${t}</button>`).join("")}<button type="button" role="radio" data-pre="" aria-checked="${!!l.label && !PRE.some(([t]) => t === l.label)}">Other</button></div>
+                <label class="rx-cl">Name on the button<input id="rx-lname" value="${esc(l.label)}" maxlength="30" placeholder="e.g. Live stream" autocomplete="off"></label>
+                <label class="rx-cl">Link<input id="rx-lurl" value="${esc(l.url)}" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+                <div class="rx-comp-f">${lcomp >= 0 ? `<button type="button" class="rx-link bad" id="rx-lrm">Remove</button>` : ""}<span style="flex:1"></span><button type="button" class="rx-b" id="rx-lcx">Cancel</button><button type="button" class="rx-b pri" id="rx-lok">${lcomp >= 0 ? "Save link" : "Add link"}</button></div></div>`;
+            } else if (LK.length < 8) h += `<button type="button" class="rx-b rx-add-s" id="rx-lon">${PLUS.replace("<svg", '<svg width="16" height="16"')} ${LK.length ? "Add another link" : "Add a link"}</button>`;
+            h += `<div class="rx-help">${LK.length ? "Shown as buttons on the event card. Tap one to change it." : "Optional. Where to watch, live timing, tickets… shown as buttons on the card."}</div>`;
+            $("#rx-lkw").innerHTML = h;
+            if ($("#rx-lon")) $("#rx-lon").onclick = () => { lcomp = -1; drawLinks(); const n = $("#rx-lname"); (n.value ? $("#rx-lurl") : n).focus(); window.rnxReveal?.($("#rx-lcomp")); };
+            $$("#rx-lkw [data-l]").forEach(b => b.onclick = () => { lcomp = +b.dataset.l; drawLinks(); window.rnxReveal?.($("#rx-lcomp")); });
+            if (lcomp === null) return;
+            $$("#rx-lcomp [data-pre]").forEach(b => b.onclick = () => { $$("#rx-lcomp [data-pre]").forEach(o => o.setAttribute("aria-checked", o === b)); $("#rx-lname").value = b.dataset.pre; (b.dataset.pre ? $("#rx-lurl") : $("#rx-lname")).focus(); });
+            $("#rx-lname").oninput = () => { const v = $("#rx-lname").value.trim(); $$("#rx-lcomp [data-pre]").forEach(o => o.setAttribute("aria-checked", o.dataset.pre ? o.dataset.pre === v : !!v && !PRE.some(([t]) => t === v))); };
+            $("#rx-lcx").onclick = () => { lcomp = null; drawLinks(); };
+            if ($("#rx-lrm")) $("#rx-lrm").onclick = () => { LK.splice(lcomp, 1); lcomp = null; drawLinks(); };
+            $("#rx-lok").onclick = () => {
+              const bad = el => { el.classList.remove("rx-shake"); void el.offsetWidth; el.classList.add("rx-shake"); el.focus(); };
+              const name = $("#rx-lname").value.trim(), raw = $("#rx-lurl").value.trim();
+              if (!name) return bad($("#rx-lname"));
+              const url = /^https?:\/\//i.test(raw) ? raw : raw ? "https://" + raw.replace(/^\/+/, "") : "";
+              if (!/^https?:\/\/[^\s/]+\.[^\s]{2,}/i.test(url)) return bad($("#rx-lurl"));
+              const item = { label: name, url };
+              if (lcomp >= 0) LK[lcomp] = item; else LK.push(item);
+              lcomp = null; drawLinks();
+            };
+          }
+          drawLinks();
           // schedule: a clean list, and one small form to add or change a time
           let comp = null; // null = closed, -1 = new time, n = editing S[n]
           const TIMES = []; for (let m = 0; m < 1440; m += 15) TIMES.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
@@ -836,10 +888,11 @@
           if (!need("#rx-en", "Give the event a name.")) return null;
           if (!D.start) { alert("Choose the dates."); $("#rx-dbtn").focus(); return null; }
           const days = daysOf(D.start, D.end || D.start);
+          if ($("#rx-lcomp")) { alert("Add or cancel the link you're editing first."); window.rnxReveal?.($("#rx-lcomp")); return null; }
           if ($("#rx-comp")) { alert("Add or cancel the time you're editing in the schedule first."); $("#rx-comp").scrollIntoView({ block: "nearest" }); return null; }
           const times = S.filter(x => days.includes(x.day));
           if (times.length && !loc) { alert("Add the location, so the times are in the right local time."); $("#rx-eq")?.focus(); return null; }
-          return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, loc, times };
+          return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, links: LK, loc, times };
         } });
     if (!r) return;
     if (r.__delete) return save(() => api(`events?id=eq.${ev.id}`, { method: "DELETE" }), "Event deleted");
@@ -913,6 +966,16 @@
     strip.insertAdjacentElement("afterend", evCard);
     $("#rx-eadd").onclick = () => editEvent();
     evCard.querySelectorAll("[data-ev]").forEach(b => b.onclick = () => editEvent(evs.find(x => x.id === b.dataset.ev)));
+
+    // custom event cards on the page: a pencil to edit them right there
+    const pens = () => document.querySelectorAll("#list article.ev").forEach(a => {
+      if (a.querySelector(".rx-evpen")) return;
+      const ce = evs.find(x => "race-" + (x.ext_key || x.id.slice(0, 8)) === a.id); if (!ce) return;
+      const b = document.createElement("button"); b.className = "rx-evpen rx-only"; b.type = "button"; b.setAttribute("aria-label", `Edit ${ce.name}`); b.title = "Edit event";
+      b.innerHTML = PEN + "<span>Edit</span>"; b.onclick = e => { e.stopPropagation(); editEvent(ce); };
+      (a.querySelector(".ev-actions") || a.querySelector(".ev-main"))?.appendChild(b);
+    });
+    pens(); const lst = $("#list"); if (lst) new MutationObserver(pens).observe(lst, { childList: true });
 
     // partners
     const sps = [...(R.sponsors || [])].sort((a, b) => (a.sort || 0) - (b.sort || 0));

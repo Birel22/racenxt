@@ -19,7 +19,7 @@
   /* editors (photo, logo): the house style, see DESIGN.md */
   .rxe{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-end;justify-content:center}
   .rxe-back{position:absolute;inset:0;background:rgba(5,6,8,.7);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;transition:opacity .28s ease}
-  .rxe-box{position:relative;width:100%;max-width:540px;max-height:96dvh;background:#16181d;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;color:#f2f2ef;font:16px Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
+  .rxe-box{position:relative;width:100%;max-width:540px;max-height:96dvh;max-height:calc(var(--vvh,100dvh) - 8px);margin-bottom:var(--kb,0px);transition-property:transform,opacity,margin-bottom;background:#16181d;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;color:#f2f2ef;font:16px Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
   .rxe.on .rxe-back{opacity:1}.rxe.on .rxe-box{transform:none}
   @media (min-width:700px){.rxe{align-items:center}.rxe-box{border-bottom:1px solid #2c2f37;border-radius:22px;max-height:92dvh;transform:translateY(12px) scale(.97);opacity:0;transition:transform .24s cubic-bezier(.2,.85,.25,1),opacity .2s ease;box-shadow:0 24px 70px rgba(0,0,0,.55)}.rxe.on .rxe-box{opacity:1}}
   @media (prefers-reduced-motion:reduce){.rxe-box,.rxe-back{transition:opacity .15s ease !important}.rxe-box{transform:none !important}}
@@ -275,4 +275,27 @@
       })();
     });
   };
+
+  // the phone keyboard never hides what you're typing in:
+  // sheets sit just above the keyboard, and the focused box scrolls into view
+  (function keyboard() {
+    if (window.__rnxKb) return; window.__rnxKb = 1;
+    const vv = window.visualViewport, root = document.documentElement;
+    const upd = () => {
+      const h = vv ? vv.height : innerHeight, k = vv ? Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)) : 0;
+      root.style.setProperty("--kb", (k > 60 ? k : 0) + "px"); root.style.setProperty("--vvh", Math.round(h) + "px");
+      root.classList.toggle("kb-open", k > 60);
+    };
+    if (vv) { vv.addEventListener("resize", upd); vv.addEventListener("scroll", upd); }
+    upd();
+    const typing = el => el && el.matches && el.matches('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),textarea,select,[contenteditable="true"]');
+    const show = el => { if (!el || !el.isConnected || document.activeElement !== el) return; el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); };
+    document.addEventListener("focusin", e => {
+      const el = e.target; if (!typing(el)) return;
+      setTimeout(() => show(el), 320);
+      if (vv) { const once = () => { vv.removeEventListener("resize", once); setTimeout(() => show(el), 60); }; vv.addEventListener("resize", once); setTimeout(() => vv.removeEventListener("resize", once), 1200); }
+    });
+    // something opening right under a tap (a calendar, a list): bring it into view too
+    window.rnxReveal = el => setTimeout(() => el && el.isConnected && el.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+  })();
 })();

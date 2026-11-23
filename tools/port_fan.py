@@ -98,6 +98,25 @@ s = s.replace("@louisdeletraz-calendar", "@racenxt")
 for bad in ["louis-calendar", "Louis Delétraz", "louisdeletraz"]:
     for m in re.finditer(re.escape(bad), s):
         print("leftover:", bad, s[max(0,m.start()-60):m.end()+40].replace("\n"," "))
+# months are grouped by year too (a custom event in Nov 2026 doesn't hide among Nov 2027 races)
+rep("shown.forEach(e => { const m = d(e.s).getMonth(); (groups[m] ||= []).push(e); });\n  list.innerHTML = Object.keys(groups).map(Number).sort((a,b)=>a-b).map(m => `",
+    "shown.forEach(e => { const k = e.s.slice(0,7); (groups[k] ||= []).push(e); });\n  const multiY = new Set(Object.keys(groups).map(k => k.slice(0,4))).size > 1;\n  list.innerHTML = Object.keys(groups).sort().map(k => { const m = +k.slice(5,7)-1, yr = +k.slice(0,4); return `")
+rep("<h2>${MONTHS[LANG][m]}</h2>", '<h2>${MONTHS[LANG][m]}${multiY && yr !== SEASON ? ` <span class="yr">${yr}</span>` : ""}</h2>')
+rep('    </section>`).join("");', '    </section>`; }).join("");')
+rep('${groups[m].map(ev =>', '${groups[k].map(ev =>')
+# a custom event's own links (Where to watch, Live timing...) as buttons on its card
+rep("${ev.note?`<div class=\"note\">${esc(L(ev.note))}</div>`:''}",
+    "${ev.note?`<div class=\"note\">${esc(L(ev.note))}</div>`:''}${ev.links && ev.links.length ? `<div class=\"ev-links\">${ev.links.map(l => `<a class=\"ev-link\" href=\"${esc(l.url)}\" target=\"_blank\" rel=\"noopener\">${linkIco(l.label)}<span>${esc(l.label)}</span><svg class=\"ext\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M7 17L17 7M9 7h8v8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>`).join(\"\")}</div>` : \"\"}")
+rep("let filter = \"all\";", """const LICO = {
+  tv: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M10 10l4 2-4 2z" fill="currentColor"/></g></svg>',
+  timing: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></g></svg>',
+  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></g></svg>',
+  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+};
+const linkIco = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast/.test(t) ? LICO.tv : /timing|tracker/.test(t) ? LICO.timing : /ticket/.test(t) ? LICO.ticket : /result|standing/.test(t) ? LICO.flag : LICO.link; };
+let filter = "all";""")
+
 open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
 # GitHub Pages serves 404.html for any unknown path, e.g. /racenxt/louis -> fan page for "louis"
 s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)

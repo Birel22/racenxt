@@ -855,7 +855,7 @@
           D.onChange = () => { dText(); if (comp !== null && comp < 0) comp = null; drawSched(); if (!D.picking) setTimeout(() => openCal(false), 380); };
           $("#rx-cal").addEventListener("click", e => { if (e.target.closest("[data-done]")) { D.picking = false; openCal(false); $("#rx-dbtn").focus(); } });
           $("#rx-dbtn").onclick = () => openCal($("#rx-cal").hidden);
-          dText(); if (isNew) openCal(true);
+          dText();
           // location
           let tmr = null, seq = 0;
           const drawLoc = () => {

@@ -29,6 +29,27 @@ Deno.serve(async (req) => {
   const kind = u.searchParams.get("k");
   if (!/^[a-z0-9-]{2,40}$/.test(slug)) return new Response("Not found", { status: 404 });
   try {
+    // one race's sessions ("Add to calendar"): race sessions are public data, so this also works while the page is in preview
+    if (ids.length) {
+      const ss = await get(`session_times?id=in.(${ids.join(",")})&select=id,event_id,type,label,start_utc,end_utc&order=start_utc`);
+      if (!ss.length) return new Response("Not found", { status: 404 });
+      const evs = await get(`events?id=in.(${[...new Set(ss.map((x: any) => x.event_id))].join(",")})&select=id,series_id,name,venues(name,city,country),series(short_name,website_url)`);
+      const [pf] = await get(`profiles?slug=eq.${slug}&select=display_name`);
+      const byId = Object.fromEntries(evs.map((e: any) => [e.id, e]));
+      const now = dt(new Date());
+      const L: string[] = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Racenxt//Race Hub//EN", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+      for (const x of ss) {
+        const e = byId[x.event_id]; if (!e) continue;
+        const t = `${e.series?.short_name ? e.series.short_name + " " : ""}${e.name}`, summary = `${t} – ${x.label}`;
+        const loc = [e.venues?.name, e.venues?.city, e.venues?.country].filter(Boolean).join(", ");
+        L.push("BEGIN:VEVENT", `UID:${x.id}@racenxt`, `DTSTAMP:${now}`, `DTSTART:${dt(new Date(x.start_utc))}`, `DTEND:${dt(new Date(x.end_utc))}`,
+          fold(`SUMMARY:${esc(summary)}`), fold(`LOCATION:${esc(loc)}`),
+          fold(`DESCRIPTION:${esc([pf?.display_name, t, e.series?.website_url].filter(Boolean).join(" · "))}`),
+          "BEGIN:VALARM", "ACTION:DISPLAY", fold(`DESCRIPTION:${esc(summary)}`), "TRIGGER:-PT15M", "END:VALARM", "END:VEVENT");
+      }
+      L.push("END:VCALENDAR");
+      return new Response(L.join("\r\n") + "\r\n", { headers: { "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": `inline; filename="${slug}-sessions.ics"`, "Cache-Control": "public, max-age=300", "Access-Control-Allow-Origin": "*" } });
+    }
     const [prof] = await get(`profiles?slug=eq.${slug}&published=eq.true&select=id,display_name,first_name`);
     if (!prof) return new Response("Not found", { status: 404 });
     const entries = await get(`entries?profile_id=eq.${prof.id}&select=series_id,year,series(short_name,website_url)`);

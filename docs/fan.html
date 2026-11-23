@@ -397,19 +397,45 @@
     .ev.ev2 .tt-btn{padding:0 10px}
   }
   @media (max-width:360px){ .ev.ev2 .tt-btn span{display:none} .ev.ev2 .tt-btn{padding:0 9px} .ev.ev2 .where{-webkit-line-clamp:1} .ev.ev2 .ev-name{font-size:18px} }
-  .wdrop{position:relative;display:inline-flex}
-  .wmenu{position:absolute;right:0;bottom:calc(100% + 8px);z-index:40;min-width:220px;display:grid;gap:2px;padding:6px;background:#15161a;border:1px solid #33363e;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);text-align:left}
-  .wmenu[hidden]{display:none}
-  .wmenu a{display:grid;gap:2px;padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none;font:600 15px/1.2 'Barlow',sans-serif;letter-spacing:0;text-transform:none}
-  .wmenu a small{font:500 12.5px/1.2 'Barlow',sans-serif;color:var(--muted)}
-  .wmenu a:hover,.wmenu a:focus-visible{background:#23252b;outline:none}
-  @media (max-width:620px){ .cd-btns > .wdrop{flex:1} .wdrop .watch{width:100%} .wmenu{left:0;right:auto;min-width:0;width:max(100%,220px)} }
+  html.ws-lock{overflow:hidden}
+  .ws{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center}
+  .ws-back{position:absolute;inset:0;background:rgba(5,6,8,.62);opacity:0;transition:opacity .28s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .ws-card{position:relative;width:100%;max-width:520px;background:#16181d;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -18px 50px rgba(0,0,0,.5);transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
+  .ws.on .ws-back{opacity:1}
+  .ws.on .ws-card{transform:none}
+  .ws-grab{display:block;width:40px;height:4px;border-radius:4px;background:#3a3d46;margin:2px auto 12px}
+  .ws-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .ws-head small{display:block;font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--c)}
+  .ws-head h3{font:700 24px/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.01em;margin-top:6px;color:var(--text)}
+  .ws-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s}
+  .ws-x:hover{background:#2a2d34;color:var(--text)}
+  .ws-x svg{width:16px;height:16px}
+  .ws-list{display:grid;gap:8px}
+  .ws-row{display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 14px;border-radius:16px;background:#1d2026;border:1px solid #2a2d35;color:var(--text);text-decoration:none;transition:background .15s,border-color .15s,transform .15s}
+  .ws-row:hover{background:#23262d;border-color:#3a3d46}
+  .ws-row:active{transform:scale(.985)}
+  .ws-row:focus-visible,.ws-x:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+  .ws-ic{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}
+  .ws-ic svg{width:24px;height:24px}
+  .ws-t{flex:1;min-width:0;display:grid;gap:3px}
+  .ws-t b{font:600 17px/1.2 'Barlow',sans-serif}
+  .ws-t small{font:500 13.5px/1.25 'Barlow',sans-serif;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ws-go{flex:none;color:var(--dim)}
+  .ws-go svg{width:18px;height:18px}
+  .ws-note{margin-top:12px;font-size:12.5px;color:var(--dim);text-align:center}
+  @media (min-width:700px){
+    .ws{align-items:center}
+    .ws-card{border-radius:22px;border-bottom:1px solid #2c2f37;padding:20px 22px 18px;transform:translateY(12px) scale(.97);opacity:0;transition:transform .24s cubic-bezier(.2,.85,.25,1),opacity .2s ease;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+    .ws.on .ws-card{opacity:1}
+    .ws-grab{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ .ws-card,.ws-back{transition:opacity .15s ease !important} .ws-card{transform:none !important} }
 </style>
-<script src="config.js?v=20261123-130653"></script>
-<script src="rnx-social.js?v=20261123-130653"></script>
-<script src="rnx-ui.js?v=20261123-130653"></script>
-<script src="rnx-edit.js?v=20261123-130653"></script>
-<script src="rnx-data.js?v=20261123-130653"></script>
+<script src="config.js?v=20261123-133452"></script>
+<script src="rnx-social.js?v=20261123-133452"></script>
+<script src="rnx-ui.js?v=20261123-133452"></script>
+<script src="rnx-edit.js?v=20261123-133452"></script>
+<script src="rnx-data.js?v=20261123-133452"></script>
 </head>
 <body>
 <div class="wrap">
@@ -459,13 +485,13 @@ if (!RNX) return;
 // ===== Langue / Language =====
 rnxDecorate(RNX);
 const I18N = {
-  en:{wStream:"Official stream", wTv:"TV broadcasters", wTvRace:"TV for this race", wTvSub:"Channels by country", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
+  en:{wTitle:"Where to watch", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
       socials:"Social media", website:"Website", partners:"Partners", filterBy:"Filter by championship", all:"All", lmFull:"24 Hours of Le Mans",
       disclaimer:"Dates are provisional and subject to change.", poweredBy:"Powered by", shareLocal:"local time,", shareSoon:"Schedule: coming soon", shareMore:"Where to watch, times in your own time zone + add to your calendar:", close:"Close", next:"Next", raceLength:"Race length", maps:"View on Google Maps",
       schedule:"Schedule", watch:"Where to watch", nextRace:"Next race", now:"Right now", racing:"Racing 🏁", season:"Season 2027", over:"Over — thanks for the support!",
       days:"days", hours:"hours", min:"min", sec:"sec", notYet:"Not published yet.<br>Schedules usually come out a few weeks before the race.",
       official:"View on the official website ↗", localTrack:"Local track time", partialLM:"practice, qualifying and Hyperpole not published yet", locale:"en-GB", timeMode:"Time zone", trackTime:"Track time", myTime:"My time", yourTime:"Your local time", addOne:"Add to my calendar", addAll:"Add all to my calendar", calNote:"Saved in your phone’s calendar in your own time zone, with an alert 15 minutes before each session.", selectAll:"Select all", carShort:"Car", drivers:"Drivers", raceWord:"Race", seasonDone:"Season complete", share:"Share", shareText:"Follow Louis at {race}, {dates} 🏁", copied:"Link copied", filter:"Filter", allChamps:"All races", n_imsa:"IMSA WeatherTech Championship", n_elms:"European Le Mans Series", n_alms:"Asian Le Mans Series", n_lm:"Le Mans 24 Hours", nextSession:"Next session", endsAround:"Ends around", then:"then", yourTimeShort:"your time", carSpecs:"Car specs", more:"More", moreRaces:"More races", cancel:"Cancel", calHint:"Tap the calendar icon next to a session to add it — you can then select several at once. Saved in your own time zone, with an alert 15 minutes before.", selectNone:"Clear selection", pickNone:"Select sessions to add", addOneSel:"Add 1 session to my calendar", addN:"Add {n} sessions to my calendar", subscribe:"Subscribe to the calendar", incomplete:"Incomplete schedule — not published yet:", cat_fp:"free practice", cat_q:"qualifying", cat_r:"race", subTitle:"Subscribe to Louis’s calendar", subIntro:"Pick what you want on your phone. Race weekends are always included, and new schedules are added automatically.", sub_all:"Everything", sub_all_d:"Free practice, qualifying and races", sub_qr:"Qualifying & races", sub_qr_d:"No free practice", sub_r:"Races only", sub_r_d:"Just the race starts", subNote:"All race weekends and schedules, updated automatically on your phone."},
-  fr:{wStream:"Stream officiel", wTv:"Chaînes TV", wTvRace:"TV pour cette course", wTvSub:"Chaînes par pays", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
+  fr:{wTitle:"Où regarder", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
       socials:"Réseaux sociaux", website:"Site web", partners:"Partenaires", filterBy:"Filtrer par championnat", all:"Tout", lmFull:"24 Heures du Mans",
       disclaimer:"Dates indicatives, susceptibles de changer.", poweredBy:"Propulsé par", shareLocal:"heure locale,", shareSoon:"Horaires : bientôt disponibles", shareMore:"Où regarder, les horaires à ton heure + ajout au calendrier :", close:"Fermer", next:"Prochaine", raceLength:"Durée de course", maps:"Voir sur Google Maps",
       schedule:"Horaires", watch:"Où regarder", nextRace:"Prochaine course", now:"En ce moment", racing:"En course 🏁", season:"Saison 2027", over:"Terminée — merci pour le soutien !",
@@ -745,22 +771,49 @@ function seasonProgress(){
 // Where to watch
 const WATCH = RNX.watch, TV = RNX.tv || {};
 const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>';
+const W_ICON = {
+  stream: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="currentColor" d="M10 8.3v7.4l6.2-3.7z"/></svg>',
+  tv: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="6" width="18.4" height="12.4" rx="2.4"/><path d="M8.5 21h7M9 2.8l3 3.2 3-3.2"/></svg>',
+  out: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
-// Where to watch: the championship's official stream + TV broadcasters (this race's own page if it has one, else the full list)
+// Where to watch: the championship's Official stream + TV broadcast (this race's own page if it has one, else the channels by country)
 function watchLinks(ev){
   const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
   if (!st && !tv) return "";
-  if (!st || !tv) return `<a class="watch" href="${esc0(st || tv)}" target="_blank" rel="noopener">${PLAY}${T("watch")}</a>`;
-  return `<span class="wdrop"><button type="button" class="watch wbtn" aria-haspopup="true" aria-expanded="false">${PLAY}${T("watch")}</button><span class="wmenu" role="menu" hidden>`
-    + `<a role="menuitem" href="${esc0(st)}" target="_blank" rel="noopener"><b>${T("wStream")}</b><small>${esc0(hostOf(st))}</small></a>`
-    + `<a role="menuitem" href="${esc0(tv)}" target="_blank" rel="noopener"><b>${ev.watch ? T("wTvRace") : T("wTv")}</b><small>${T("wTvSub")}</small></a></span></span>`;
+  return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>`;
 }
-document.addEventListener("click", e => {
-  const b = e.target.closest(".wbtn");
-  document.querySelectorAll(".wmenu").forEach(m => { if (!b || m.previousElementSibling !== b){ m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); } });
-  if (b){ const m = b.nextElementSibling; m.hidden = !m.hidden; b.setAttribute("aria-expanded", String(!m.hidden)); if (!m.hidden) m.querySelector("a").focus(); }
-});
-document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".wmenu:not([hidden])").forEach(m => { m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); m.previousElementSibling.focus(); }); });
+let wLast = null;
+function openWatch(ev, from){
+  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
+  const row = (href, icon, title, sub) => `<a class="ws-row" href="${esc0(href)}" target="_blank" rel="noopener"><span class="ws-ic">${W_ICON[icon]}</span><span class="ws-t"><b>${title}</b><small>${esc0(sub)}</small></span><span class="ws-go">${W_ICON.out}</span></a>`;
+  const el = document.createElement("div");
+  el.className = "ws"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "ws-h");
+  el.style.setProperty("--c", (RNX.color && RNX.color[ev.series]) || "#ff6a1f");
+  el.innerHTML = `<div class="ws-back" data-close></div><div class="ws-card"><span class="ws-grab" aria-hidden="true"></span>
+    <div class="ws-head"><div><small>${T("wTitle")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
+    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}</div>
+    <p class="ws-note">${T("wOpens")}</p></div>`;
+  document.body.appendChild(el);
+  wLast = from || null;
+  document.documentElement.classList.add("ws-lock");
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on")));
+  el.querySelector(".ws-row, .ws-x").focus({ preventScroll: true });
+  const close = () => { el.classList.remove("on"); document.documentElement.classList.remove("ws-lock"); document.removeEventListener("keydown", key, true); setTimeout(() => el.remove(), 320); if (wLast) wLast.focus({ preventScroll: true }); };
+  const key = e => {
+    if (e.key === "Escape"){ e.stopPropagation(); close(); }
+    if (e.key === "Tab"){ const f = [...el.querySelectorAll("a,button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); } }
+  };
+  document.addEventListener("keydown", key, true);
+  el.addEventListener("click", e => { if (e.target.closest("[data-close]")) close(); else if (e.target.closest(".ws-row")) setTimeout(close, 150); });
+  // swipe down to close on phones
+  const card = el.querySelector(".ws-card"); let y0 = null, dy = 0;
+  card.addEventListener("touchstart", e => { if (card.scrollTop <= 0) { y0 = e.touches[0].clientY; dy = 0; card.style.transition = "none"; } }, { passive: true });
+  card.addEventListener("touchmove", e => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); card.style.transform = `translateY(${dy}px)`; }, { passive: true });
+  card.addEventListener("touchend", () => { if (y0 == null) return; card.style.transition = ""; card.style.transform = ""; if (dy > 90) close(); y0 = null; });
+}
+document.addEventListener("click", e => { const b = e.target.closest(".wbtn"); if (b) openWatch(EVENTS[+b.dataset.i], b); });
 const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
 
 // Countdown

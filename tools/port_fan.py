@@ -80,8 +80,8 @@ rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.serie
 s = s.replace('${(ev.watch || WATCH[ev.series]) ? `<a class="watch" href="${ev.watch || WATCH[ev.series]}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>${T("watch")}</a>` : ""}', '${watchLinks(ev)}')
 assert '${watchLinks(ev)}' in s, "watch button not found"
 rep('const WATCH = RNX.watch;', open('/home/claude/racenxt/tools/fan_watch.js').read().strip())
-rep('en:{docTitle:', 'en:{wStream:"Official stream", wTv:"TV broadcasters", wTvRace:"TV for this race", wTvSub:"Channels by country", docTitle:')
-rep('fr:{docTitle:', 'fr:{wStream:"Stream officiel", wTv:"Chaînes TV", wTvRace:"TV pour cette course", wTvSub:"Chaînes par pays", docTitle:')
+rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
+rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
 s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + '</style>', 1)
 # single-day events (the athlete's own: tests, appearances) and no race length
 rep("return {big:`${a.getDate()}–${b.getDate()}`,", "return {big: a.getTime()===b.getTime() ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`,")

@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-130653"></script>
+<script src="config.js?v=20261123-133452"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -557,14 +557,14 @@ async function championshipPage(slug, openId){
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
   const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
   const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
-  const watchChip = (w, e) => w === "race" ? '<span class="chip good">This race</span>' : w === "championship" ? '<span class="chip">Championship</span>' : e.end_date < TODAY ? '<span class="chip">–</span>' : e.start_date <= new Date(Date.now() + 7*864e5).toISOString().slice(0,10) ? '<span class="chip warn">Missing</span>' : '<span class="chip">Race week</span>';
+  const watchChip = (w, e) => w === "race" ? '<span class="chip good">Event broadcast</span>' : w === "championship" ? '<span class="chip">Championship</span>' : e.end_date < TODAY ? '<span class="chip">–</span>' : e.start_date <= new Date(Date.now() + 7*864e5).toISOString().slice(0,10) ? '<span class="chip warn">Missing</span>' : '<span class="chip">Race week</span>';
   const schedChip = e => e.session_count ? `<span class="chip good">${e.session_count} sessions</span>` : (e.end_date < TODAY ? '<span class="chip">–</span>' : '<span class="chip warn">Missing</span>');
   const table = list => `<div class="tbl"><table><tr><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
       ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status, e)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
   $("#main").innerHTML = `<a class="back" href="#/championships">${I.back}All championships</a>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
-      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">All broadcasters ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
+      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
       <button class="btn ai" id="s-ai"${aiBusy(s.id) ? " disabled" : ""} title="Finds the official site, logo, calendar and where to watch">${aiBusy(s.id) ? "Checking…" : "Check calendar with AI"}</button><button class="btn ai" id="s-tt" title="Searches the official timetable of each race in the next 60 days that has no schedule yet">Find timetables</button><button class="btn" id="s-edit">Edit championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="e-q" placeholder="Search races, circuits…" aria-label="Search races"></label>
       <span class="grow"></span><button class="btn" id="e-import">Import calendar</button><button class="btn pri" id="e-add">+ Add race</button></div>
@@ -615,11 +615,11 @@ async function editRace(s, e, yr){
         : `<div class="rc-empty"><div><b style="color:var(--text)">No schedule yet</b><div style="font-size:14px;margin-top:4px">${e.end_date < TODAY ? "This race is over." : "The AI checks automatically in race week, or you can do it now."}</div></div><div class="bar" style="margin:0;justify-content:center"><button type="button" class="btn ai pri" id="rc-ai"${busy ? " disabled" : ""}>${busy ? "Searching…" : "Search with AI"}</button><button type="button" class="btn" id="rc-sched">Add manually</button></div></div>`}
     </section>
     <section class="fs"><h4><i></i>Where to watch</h4>
-      ${s.stream_url || s.broadcasters_url ? `<div class="rc-wl"><span class="muted">Championship</span>${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">All broadcasters ↗</a>` : ""}</div>` : `<div class="dim" style="font-size:14px;margin-bottom:10px">No championship links yet: add them in Edit championship.</div>`}
-      <label class="f" style="margin-top:12px">This race's broadcast page</label>
+      ${s.stream_url || s.broadcasters_url ? `<div class="rc-wl"><span class="muted">Championship</span>${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}</div>` : `<div class="dim" style="font-size:14px;margin-bottom:10px">No championship links yet: add them in Edit championship.</div>`}
+      <label class="f" style="margin-top:12px">Event broadcast</label>
       ${e.watch_url ? `<div class="rc-link"><a href="${esc(e.watch_url)}" target="_blank" rel="noopener">${esc(e.watch_url)}</a><button type="button" class="btn sm" id="rc-wedit">Change</button></div>` : ""}
-      <div id="rc-wform"${e.watch_url ? " hidden" : ""}>${e.watch_url ? "" : `<div class="dim" style="font-size:14px;margin-bottom:10px">Only if there's a page just for this race (fans then see it instead of All broadcasters). The AI looks for one in race week.</div>`}
-        <div class="bar" style="margin:0;flex-wrap:nowrap"><input id="rc-wurl" type="url" placeholder="https://" aria-label="This race's broadcast page" value="${esc(e.watch_url || "")}"><button type="button" class="btn pri" id="rc-wsave">Save</button></div></div>
+      <div id="rc-wform"${e.watch_url ? " hidden" : ""}>${e.watch_url ? "" : `<div class="dim" style="font-size:14px;margin-bottom:10px">Only if there's a broadcast page just for this race: fans then see it as “TV broadcast” instead of the championship's TV broadcasters. The AI looks for one in race week.</div>`}
+        <div class="bar" style="margin:0;flex-wrap:nowrap"><input id="rc-wurl" type="url" placeholder="https://" aria-label="Event broadcast" value="${esc(e.watch_url || "")}"><button type="button" class="btn pri" id="rc-wsave">Save</button></div></div>
     </section>`;
   const p = drawer(e.name, [{ html }], {}, { view:true, after(){
     $("#rc-edit").onclick = () => { closeDrawer(null); editRaceDetails(s, e, yr); };
@@ -1007,9 +1007,9 @@ async function editSeries(s, src){
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
-    { section:"Where to watch", sub:"For the whole season. A race can also get its own broadcast page.", items:[
+    { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
       { k:"stream_url", l:"Official stream", type:"url", help:"The championship's own live stream, e.g. F1 TV, MotoGP VideoPass, FIA WEC+, an official YouTube live page." },
-      { k:"broadcasters_url", l:"All broadcasters", type:"url", help:"The official page listing the TV channels by country." },
+      { k:"broadcasters_url", l:"TV broadcasters", type:"url", help:"The official page listing the TV channels by country. Fans see it as “TV broadcast” on every race without an Event broadcast." },
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], s, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
@@ -1040,7 +1040,7 @@ async function review(slug){
   if (only?.logo_url?.includes("-agent-") && await finalizeLogo(only.id)) only = D.series.find(x => x.slug === slug);
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Race broadcast page", new_season:"New season", series_links:"Where to watch (championship)" };
+  const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1050,7 +1050,7 @@ async function review(slug){
   $("#main").innerHTML = (only ? `<a class="back" href="#/review">${I.back}Whole review queue</a>` : "") + `<div class="ph"><h1>${only ? `Review ${esc(only.short_name || only.name)}` : "Review queue"}</h1>${only ? `<a class="btn" href="#/championships/${esc(only.slug)}">Open championship</a>` : `<button class="btn" id="rv-new">+ Create a change by hand</button>`}</div>` +
     (only ? `<div id="logo-card"></div>` : "") +
     grouped.map((g, gi) => `<div class="card" style="margin-bottom:12px" data-g="${gi}">
-      <div class="bar"><div class="grow"><span class="chip warn">Race broadcast page</span> <b>${esc(ser[g[0].series_id]?.short_name || "")} · same link for ${g.length} races</b><div class="muted" style="font-size:13px">Agent · ${ago(g[g.length - 1].created_at)}</div></div></div>
+      <div class="bar"><div class="grow"><span class="chip warn">Event broadcast</span> <b>${esc(ser[g[0].series_id]?.short_name || "")} · same link for ${g.length} races</b><div class="muted" style="font-size:13px">Agent · ${ago(g[g.length - 1].created_at)}</div></div></div>
       <div style="font-size:15px;margin:2px 0 10px">${linkHtml(g[0].payload.watch_url)}</div>
       <details><summary class="dim" style="cursor:pointer;font-size:13px">Races it applies to</summary><ul class="dim" style="margin:6px 0 0;padding-left:18px;font-size:13px;columns:2">${g.map(p => `<li>${esc(p.events?.name || "")}${p.events?.start_date ? ` <span class="muted">${esc(new Date(p.events.start_date + "T12:00:00Z").toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" }))}</span>` : ""}</li>`).join("")}</ul></details>
       <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject all ${g.length}</button><button class="btn good" data-act="approve">Approve for all ${g.length} races</button></div></div>`).join("") +
@@ -1092,7 +1092,7 @@ function tzLine(tz, date){
   try { off = new Intl.DateTimeFormat("en-GB", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date((date || TODAY) + "T12:00:00Z")).find(x => x.type === "timeZoneName")?.value.replace("GMT", "UTC") || ""; } catch(e){}
   return `All times in <b>local circuit time</b> · ${esc(tz)}${off ? ` (${esc(off === "UTC" ? "UTC+0" : off)})` : ""}`;
 }
-const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","All broadcasters"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
+const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","TV broadcasters"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
 function pretty(p){
   const pl = p.payload || {};
   if (p.kind === "timetable") return (pl.sessions || []).map(s => `${String(s.local_start).slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}${s.end_estimated ? "  (end not published)" : ""}${s.category ? "  · " + s.category : ""}`).join("\n");
@@ -1112,7 +1112,7 @@ async function manualProposal(){
   const evs = await api(`events?series_id=not.is.null&end_date=gte.${TODAY}&select=id,series_id,name,start_date&order=start_date&limit=300`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
   const r = await drawer("Create a change", [
-    { k:"kind", l:"Type", type:"select", empty:false, options:[["timetable","Timetable"],["watch_link","Where to watch"],["event_change","Race change"]].map(([v,l]) => ({v,l})) },
+    { k:"kind", l:"Type", type:"select", empty:false, options:[["timetable","Timetable"],["watch_link","Event broadcast"],["event_change","Race change"]].map(([v,l]) => ({v,l})) },
     { k:"event_id", l:"Race", type:"select", req:true, options: evs.map(e => ({ v:e.id, l:`${ser[e.series_id]?.short_name} ${e.name} (${fmtD(e.start_date)})` })) },
     { k:"url", l:"Source (official page)", type:"url" },
     { k:"payload", l:"Data", type:"textarea", ph:'{"sessions":[{"type":"race","label":"Race","local_start":"2027-06-12 16:00","duration_min":1440}]}' }

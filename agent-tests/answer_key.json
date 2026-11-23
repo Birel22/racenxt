@@ -5,15 +5,46 @@
       "id": "eepc-2026-calendar",
       "series": "European Endurance Prototype Cup",
       "parent": "Ultimate Cup Series (ultimatecupseries.eu)",
-      "task": "calendar", "year": 2026,
+      "task": "calendar",
+      "year": 2026,
       "source": "https://ultimatecupseries.eu/calendrier",
       "expect": [
-        { "round": 1, "circuit": "Circuit Paul Ricard (Le Castellet)", "start": "2026-04-24", "end": "2026-04-26" },
-        { "round": 2, "circuit": "Magny-Cours", "start": "2026-05-29", "end": "2026-05-31" },
-        { "round": 3, "circuit": "Mugello", "start": "2026-07-10", "end": "2026-07-12" },
-        { "round": 4, "circuit": "Spa-Francorchamps", "start": "2026-09-18", "end": "2026-09-20" },
-        { "round": 5, "circuit": "Navarra", "start": "2026-10-15", "end": "2026-10-18" },
-        { "round": 6, "circuit": "Portimão", "start": "2026-11-27", "end": "2026-11-29" }
+        {
+          "round": 1,
+          "circuit": "Circuit Paul Ricard (Le Castellet)",
+          "start": "2026-04-24",
+          "end": "2026-04-26"
+        },
+        {
+          "round": 2,
+          "circuit": "Magny-Cours",
+          "start": "2026-05-29",
+          "end": "2026-05-31"
+        },
+        {
+          "round": 3,
+          "circuit": "Mugello",
+          "start": "2026-07-10",
+          "end": "2026-07-12"
+        },
+        {
+          "round": 4,
+          "circuit": "Spa-Francorchamps",
+          "start": "2026-09-18",
+          "end": "2026-09-20"
+        },
+        {
+          "round": 5,
+          "circuit": "Navarra",
+          "start": "2026-10-15",
+          "end": "2026-10-18"
+        },
+        {
+          "round": 6,
+          "circuit": "Portimão",
+          "start": "2026-11-27",
+          "end": "2026-11-29"
+        }
       ],
       "notes": "The site is the Ultimate Cup Series, which runs several championships; EEPC is one of them."
     },
@@ -21,23 +52,58 @@
       "id": "eepc-2027-calendar",
       "series": "European Endurance Prototype Cup",
       "parent": "Ultimate Cup Series",
-      "task": "calendar", "year": 2027,
+      "task": "calendar",
+      "year": 2027,
       "source": "https://ultimatecupseries.eu/lultimate-cup-european-series-devoile-son-calendrier-2027",
       "expect": [
-        { "round": 1, "circuit": "Circuit Paul Ricard", "start": "2027-03-05", "end": "2027-03-07" },
-        { "round": 2, "circuit": "Misano", "start": "2027-04-16", "end": "2027-04-18" },
-        { "round": 3, "circuit": "Portimão", "start": "2027-05-14", "end": "2027-05-16" },
-        { "round": 4, "circuit": "Mugello", "start": "2027-07-09", "end": "2027-07-11" },
-        { "round": 5, "circuit": "Magny-Cours", "start": "2027-09-24", "end": "2027-09-26" },
-        { "round": 6, "circuit": "Circuit Paul Ricard", "start": null, "end": null, "tbc": "November 2027, date TBC" }
+        {
+          "round": 1,
+          "circuit": "Circuit Paul Ricard",
+          "start": "2027-03-05",
+          "end": "2027-03-07"
+        },
+        {
+          "round": 2,
+          "circuit": "Misano",
+          "start": "2027-04-16",
+          "end": "2027-04-18"
+        },
+        {
+          "round": 3,
+          "circuit": "Portimão",
+          "start": "2027-05-14",
+          "end": "2027-05-16"
+        },
+        {
+          "round": 4,
+          "circuit": "Mugello",
+          "start": "2027-07-09",
+          "end": "2027-07-11"
+        },
+        {
+          "round": 5,
+          "circuit": "Magny-Cours",
+          "start": "2027-09-24",
+          "end": "2027-09-26"
+        },
+        {
+          "round": 6,
+          "circuit": "Circuit Paul Ricard",
+          "start": null,
+          "end": null,
+          "tbc": "November 2027, date TBC"
+        }
       ],
-      "not_races": ["Test days 10-11 Feb 2027 at Paul Ricard"],
+      "not_races": [
+        "Test days 10-11 Feb 2027 at Paul Ricard"
+      ],
       "notes": "Published as the Ultimate Cup Series calendar (all championships), not under the EEPC name. Missed by the agent before. Round 6 has no date yet: must not invent one."
     },
     {
       "id": "eepc-2026-portimao-schedule",
       "series": "European Endurance Prototype Cup",
-      "task": "schedule", "event": "Portimão 2026 (R6)",
+      "task": "schedule",
+      "event": "Portimão 2026 (R6)",
       "source": "https://ultimatecupseries.eu/wp-content/uploads/2026/10/Timetable-UCS-R6-Portimao-V8.pdf",
       "timezone": "local track time (official PDF, no zone written)",
       "expect": "TO FILL: EEPC sessions with day + start/end (from Louis)",
@@ -47,7 +113,83 @@
       "id": "eepc-stream",
       "series": "European Endurance Prototype Cup",
       "task": "watch",
-      "expect": { "stream_url": "https://www.youtube.com/@ultimatecuptv/streams" }
+      "expect": {
+        "stream_url": "https://www.youtube.com/@ultimatecuptv/streams"
+      }
+    },
+    {
+      "id": "elms-2027-calendar",
+      "series": "European Le Mans Series",
+      "task": "calendar",
+      "year": 2027,
+      "source": "https://www.europeanlemansseries.com/fr/news/un-calendrier-de-six-courses-et-un-coup-d-envoi-anticipe-pour-une-passionnante-saison-elms-2027/13656",
+      "expect": [
+        {
+          "round": 1,
+          "name": "4 Hours of Barcelona",
+          "circuit": "Circuit de Barcelona-Catalunya",
+          "start": "2027-03-12",
+          "end": "2027-03-14"
+        },
+        {
+          "round": 2,
+          "name": "4 Hours of Le Castellet",
+          "circuit": "Circuit Paul Ricard",
+          "start": "2027-04-30",
+          "end": "2027-05-02"
+        },
+        {
+          "round": 3,
+          "name": "4 Hours of Imola",
+          "circuit": "Imola",
+          "start": "2027-07-02",
+          "end": "2027-07-04"
+        },
+        {
+          "round": 4,
+          "name": "4 Hours of Spa-Francorchamps",
+          "circuit": "Spa-Francorchamps",
+          "start": null,
+          "end": null,
+          "tbc": "to confirm with Louis: the news article gives no date, the site's season bar shows 20 August"
+        },
+        {
+          "round": 5,
+          "name": "Goodyear 4 Hours of Silverstone",
+          "circuit": "Silverstone",
+          "start": "2027-09-03",
+          "end": "2027-09-05"
+        },
+        {
+          "round": 6,
+          "name": "4 Hours of Portimão",
+          "circuit": "Algarve International Circuit",
+          "start": "2027-10-09",
+          "end": "2027-10-11",
+          "note": "moved from 30 Sep-2 Oct"
+        }
+      ],
+      "not_races": [
+        "Official test (Prologue) Barcelona 8-9 March 2027"
+      ],
+      "notes": "Sources disagree in places (season bar vs article): the agent must flag the doubt, not pick silently."
+    },
+    {
+      "id": "elms-2027-barcelona-schedule",
+      "series": "European Le Mans Series",
+      "task": "schedule",
+      "event": "4 Hours of Barcelona 2027",
+      "source": "https://www.europeanlemansseries.com/fr/race/4-heures-de-barcelone-2027",
+      "expect": "nothing yet: every session is TBC. The agent must propose nothing.",
+      "notes": "Page has a 'my time' switch; some livestream links still point to 2026."
+    },
+    {
+      "id": "elms-stream",
+      "series": "European Le Mans Series",
+      "task": "watch",
+      "expect": {
+        "stream_url": "https://plus.fiawec.com/en"
+      }
     }
   ]
 }

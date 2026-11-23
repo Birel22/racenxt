@@ -81,8 +81,8 @@ rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.serie
 s = s.replace('${(ev.watch || WATCH[ev.series]) ? `<a class="watch" href="${ev.watch || WATCH[ev.series]}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>${T("watch")}</a>` : ""}', '${watchLinks(ev)}')
 assert '${watchLinks(ev)}' in s, "watch button not found"
 rep('const WATCH = RNX.watch;', open('/home/claude/racenxt/tools/fan_watch.js').read().strip())
-rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wLinks:"Links", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
-rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wLinks:"Liens", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
+rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wLinks:"Links", searchEv:"Search events", searchPh:"Search an event, a place…", noEv:"No event found", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
+rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wLinks:"Liens", searchEv:"Chercher un événement", searchPh:"Chercher un événement, un lieu…", noEv:"Aucun événement trouvé", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
 s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + open('/home/claude/racenxt/tools/fan_ui.css').read() + '</style>', 1)
 # close the schedule sheet with a short exit animation (reopening cancels it)
 s = s.replace('document.getElementById("tt").hidden = false;', 'document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false;')
@@ -111,6 +111,17 @@ s = s.replace('CARS[CAR_OF[ev.series]]', 'CARS[CAR_OF[ev.carKey || ev.series]]')
 rep('class="car-btn" data-series="${ev.series}"', 'class="car-btn" data-series="${ev.carKey || ev.series}"')
 rep('class="watch ghost cd-car" data-series="${ev.series}"', 'class="watch ghost cd-car" data-series="${ev.carKey || ev.series}"')
 rep('<span class="car-lbl">${T("carShort")}</span></button>` : ""}</div>', '<span class="car-lbl">${T("carShort")}</span></button>` : ""}${linkBtn(ev)}</div>')
+
+# "events" rather than "races" (custom events are on the page too), and a search next to the filter
+rep('allChamps:"All races"', 'allChamps:"All events"'); rep('allChamps:"Toutes les courses"', 'allChamps:"Tous les événements"')
+rep('raceWord:"Race"', 'raceWord:"Event"'); rep('raceWord:"Course"', 'raceWord:"Événement"')
+rep('nextRace:"Next race"', 'nextRace:"Next event"'); rep('nextRace:"Prochaine course"', 'nextRace:"Prochain événement"')
+rep('moreRaces:"More races"', 'moreRaces:"More events"'); rep('moreRaces:"Plus de courses"', 'moreRaces:"Plus d’événements"')
+rep('d="M6 9l6 6 6-6"/></svg></button>', 'd="M6 9l6 6 6-6"/></svg></button><button type="button" class="ff-sbtn" id="ff-sbtn" aria-label="Search events"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></svg></button></div><div class="ff-search" id="ff-search" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></g></svg><input id="ff-q" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Search events"><button type="button" id="ff-qx" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button></div>')
+rep('<button type="button" class="ff-btn" id="ff-btn"', '<div class="ff-l"><button type="button" class="ff-btn" id="ff-btn"')
+rep('const shown = EVENTS.filter(e => filter==="all" || e.series===filter);', 'const shown = EVENTS.filter(e => (filter==="all" || e.series===filter) && evMatch(e)); ffSearchSync();')
+rep('    </section>`; }).join("");', '    </section>`; }).join("") + (Q && !shown.length ? `<p class="ff-none">${T("noEv")}</p>` : "");')
+rep('let filter = "all";', open('/home/claude/racenxt/tools/fan_search.js').read().strip() + '\nlet filter = "all";')
 open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
 # GitHub Pages serves 404.html for any unknown path, e.g. /racenxt/louis -> fan page for "louis"
 s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)

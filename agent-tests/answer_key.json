@@ -458,8 +458,42 @@
       "task": "schedule",
       "event": "Lusail 2026",
       "source": "https://www.fiaformula2.com/en/racing/2026/lusail",
-      "expect": "TO CONFIRM with Louis's screenshot (CET). Page text read without a browser gives: Practice 27 Nov 11:00-11:45, Qualifying 27 Nov 15:00-15:30, Sprint 28 Nov 16:15-17:05, Feature 29 Nov 12:00-13:05, zone unknown.",
-      "notes": "The page has a 'My time / Track time' switch and doesn't label which one the times are in: the classic time-zone trap (the earlier mistake). Qatar = UTC+3, CET = UTC+1."
+      "expect": [
+        {
+          "day": "2026-11-27",
+          "label": "Practice",
+          "start": "14:00",
+          "end": "14:45",
+          "utc": "11:00-11:45",
+          "cet": "12:00-12:45"
+        },
+        {
+          "day": "2026-11-27",
+          "label": "Qualifying",
+          "start": "18:00",
+          "end": "18:30",
+          "utc": "15:00-15:30",
+          "cet": "16:00-16:30"
+        },
+        {
+          "day": "2026-11-28",
+          "label": "Sprint Race",
+          "start": "19:15",
+          "end": "20:05",
+          "utc": "16:15-17:05",
+          "cet": "17:15-18:05"
+        },
+        {
+          "day": "2026-11-29",
+          "label": "Feature Race",
+          "start": "15:00",
+          "end": "16:05",
+          "utc": "12:00-13:05",
+          "cet": "13:00-14:05"
+        }
+      ],
+      "notes": "Louis's screenshot in CET ('My time' selected): f2-lusail-2026-cet.png. The raw page (what the agent reads, no browser) shows the times in UTC (11:00, 15:00, 16:15, 12:00), neither track time nor the viewer's time, and doesn't say so. This is the earlier time-zone mistake: the agent must treat fiaformula2.com raw times as UTC and convert to track time (Qatar UTC+3).",
+      "timezone": "local track time = Qatar (UTC+3). Stored as local time."
     },
     {
       "id": "f2-2026-abudhabi-schedule",

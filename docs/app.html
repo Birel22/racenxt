@@ -7,9 +7,9 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-142646"></script>
-<script src="rnx-social.js?v=20261123-142646"></script>
-<script src="rnx-ui.js?v=20261123-142646"></script>
+<script src="config.js?v=20261123-143000"></script>
+<script src="rnx-social.js?v=20261123-143000"></script>
+<script src="rnx-ui.js?v=20261123-143000"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -139,7 +139,7 @@
   .tile .lg{height:40px} .tile .tn{font-size:14px;font-weight:600;line-height:1.25}
   .tile[aria-checked="true"]{border-color:var(--acc);background:rgba(255,90,31,.08)}
   .tile[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;line-height:22px;font-weight:700}
-.ob-lgx{background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
+.ob-lgrow{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center}.ob-lgbox{grid-column:1;grid-row:1}.ob-lgbtns{grid-column:2;grid-row:1;display:grid;gap:8px;justify-self:start}.ob-lgx{grid-column:1;grid-row:2;justify-self:center;background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
 </style>
 </head>
 <body>
@@ -407,7 +407,7 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `<div style="display:flex;align-items:center;gap:14px"><div style="display:grid;gap:6px;justify-items:center">${rnxLogoThumb(url)}${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}</div><div style="display:grid;gap:8px"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
+  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxLogoThumb(url)}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
   const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) OB.logo = { src: r.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; obLogo(); };

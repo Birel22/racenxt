@@ -218,7 +218,7 @@ const SKIPPED = "Official pages unchanged since the last check: AI not needed.";
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
 - Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
-- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". If the page doesn't say, write "unknown".
+- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". If the page doesn't say, write "unknown". Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
 - For support series (e.g. F2, F3, Porsche Supercup, F1 Academy), the main event's official timetable (e.g. formula1.com, which lists every series in local time) is an official source too.
 - Never guess. If something is not published on the official site, leave it out or set it to null.
 - Be economical: open each page at most once, go straight to the calendar / race pages, and stop as soon as you have the answer.
@@ -282,7 +282,7 @@ JSON schema:
       const tz = e.circuit?.timezone || "";
       const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
       const conv = tz && zone && zone !== tz;
-      return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" ? " (the page didn't say which time zone: check the times)" : "",
+      return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
         sessions: cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
     });
   const fresh: any[] = [];
@@ -355,7 +355,7 @@ JSON schema:
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
   const zone = ctz ? pageZone(out.times_zone, ctz) : "";
   const conv = !!ctz && zone !== ctz;
-  const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : String(out.times_zone || "").toLowerCase() === "unknown" ? " (the page didn't say which time zone: check the times)" : "";
+  const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : String(out.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(out.source_url || "") ? " (the page didn't say which time zone: check the times)" : "";
   const sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
   if (out.timetable_found && sessions.length) {
     const key = (l: any[]) => JSON.stringify(l.map(s => [String(s.local_start).replace("T", " ").slice(0, 16), norm(s.label), s.duration_min]).sort());

@@ -177,6 +177,9 @@
   .rx-rd[aria-checked="false"] .rx-rd-t,.rx-rd[aria-checked="false"] .rx-rd-d{opacity:.45}
   .rx-rd-d{font:700 15px 'Barlow Condensed'}
   .rx-rd-t{display:grid;min-width:0} .rx-rd-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rx-rd-t small{color:#8e919b;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-phrow{display:flex;align-items:center;gap:14px}
+  .rx-phbtns{display:grid;gap:8px}
+  .rx-noph{display:flex;align-items:center;justify-content:center;color:#7d808a} .rx-noph svg{width:24px;height:24px}
   .rx-grp2{font:700 12px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:-6px}
   .rx-ph{width:100%;aspect-ratio:16/10;border-radius:16px;border:1.5px dashed #3b3e47;background:#15161b center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0;color:#f4f4f2}
   .rx-ph[style*="background-image"]{border-style:solid}
@@ -282,11 +285,9 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "", framer = null;
+    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
-    const phHtml = () => prev ? `<div id="rx-frame"></div><div style="text-align:center;margin-top:10px"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} Choose another photo</button></div>`
-      : `<button type="button" class="rx-ph" id="rx-ph"><span class="rx-ph-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`;
-    const mountFrame = () => { framer = prev && window.rnxPhotoFramer ? rnxPhotoFramer($("#rx-frame"), prev, file ? null : p.photo_pos, title) : null; };
+    const phHtml = () => `<div class="rx-phrow">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt rx-noph">${CAM}</div>`}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
       <div class="rx-grp2">Name</div>
@@ -296,7 +297,10 @@
       ${SOCIALS.map(s => `<div><label class="rx-f" for="rx-s-${s.k}">${s.l}</label><input id="rx-s-${s.k}" value="${esc(handleOf(s.k, so[s.k]))}" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="rx-help">${s.help}</div></div>`).join("")}
       <div><label class="rx-f" for="rx-web">Website</label><input id="rx-web" value="${esc(so.website || "")}" inputmode="url" autocapitalize="off"></div>
       <div><label class="rx-f" for="rx-mail">Contact email</label><input id="rx-mail" type="email" value="${esc(p.contact_email || "")}" inputmode="email"><div class="rx-help">Shown on your page for teams, media and partners.</div></div>`,
-      { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); $("#rx-phw").innerHTML = phHtml(); bind(); mountFrame(); }; bind(); mountFrame(); },
+      { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => {
+          $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
+          if ($("#rx-adj")) $("#rx-adj").onclick = async () => { const n = await rnxPhotoEditor(prev, pos, title); if (n) { pos = n; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); } };
+        }; bind(); },
         collect() {
           if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
           const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
@@ -305,7 +309,7 @@
           if (webRaw && /@/.test(webRaw) && !/\//.test(webRaw.replace(/^https?:\/\//, ""))) { alert("That looks like an email address. Put it in Contact email, and your website address (like louisdeletraz.com) here."); $("#rx-web").focus(); return null; }
           const web = toUrl("website", webRaw); if (web) socials.website = web;
           const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
-          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(framer ? { photo_pos: framer.get() } : {}) };
+          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(posChanged ? { photo_pos: pos } : {}) };
         } });
     if (!r) return;
     save(async () => {

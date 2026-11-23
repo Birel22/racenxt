@@ -16,6 +16,17 @@
   .rxf-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;pointer-events:none;white-space:nowrap}
   .rxf-row{display:flex;align-items:center;gap:12px}
   .rxf-row input[type=range]{flex:1;accent-color:#FF5A1F;min-height:0;padding:0;border:0;background:none}
+  .rxe{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
+  @media (min-width:760px){.rxe{align-items:center}}
+  .rxe-box{width:100%;max-width:520px;max-height:100dvh;background:#111216;border:1px solid #3b3e47;border-radius:22px 22px 0 0;display:flex;flex-direction:column;color:#f4f4f2;font:16px Barlow,system-ui,sans-serif}
+  @media (min-width:760px){.rxe-box{border-radius:20px}}
+  .rxe-h{flex:none;padding:16px 18px;border-bottom:1px solid #2a2c33;font:700 22px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.02em}
+  .rxe-b{flex:1 1 auto;min-height:0;overflow-y:auto;padding:16px 18px}
+  .rxe-f{flex:none;display:flex;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #2a2c33}
+  .rxe-f button{flex:1;height:46px;border-radius:12px;border:1px solid #3b3e47;background:#1b1c22;color:#f4f4f2;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rxe-f button.pri{background:#FF5A1F;border-color:#FF5A1F;color:#fff}
+  .rxt{width:132px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;position:relative;background:#15161b;border:1px solid #3b3e47;flex:none}
+  .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .rxc{display:grid;gap:10px;font:14px Barlow,system-ui,sans-serif;color:#a9abb2}
   .rxc-stage{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0b0c0f;touch-action:none;user-select:none}
   .rxc-stage img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
@@ -54,6 +65,29 @@
     main.addEventListener("pointerup", end); main.addEventListener("pointercancel", end);
     range.oninput = () => { st.z = +range.value; apply(); };
     return { get: () => ({ x: Math.round(st.x), y: Math.round(st.y), z: Math.round(st.z * 100) / 100 }) };
+  };
+
+  // full-screen photo editor on top of everything; resolves with the framing, or null if cancelled
+  window.rnxPhotoEditor = function (src, pos, title) {
+    style();
+    return new Promise(res => {
+      const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", "Position your photo");
+      ov.innerHTML = `<div class="rxe-box"><div class="rxe-h">Position your photo</div><div class="rxe-b"><div id="rxe-fr"></div></div><div class="rxe-f"><button type="button" id="rxe-no">Cancel</button><button type="button" class="pri" id="rxe-ok">Done</button></div></div>`;
+      document.body.appendChild(ov);
+      const fr = window.rnxPhotoFramer(ov.querySelector("#rxe-fr"), src, pos, title);
+      const close = v => { ov.remove(); document.removeEventListener("keydown", key); res(v); };
+      const key = e => { if (e.key === "Escape") close(null); };
+      document.addEventListener("keydown", key);
+      ov.querySelector("#rxe-no").onclick = () => close(null);
+      ov.querySelector("#rxe-ok").onclick = () => close(fr.get());
+      ov.querySelector("#rxe-ok").focus();
+    });
+  };
+  // small preview of the framed photo
+  window.rnxPhotoThumb = function (src, pos) {
+    style();
+    const p = pos || { x: 50, y: 35, z: 1 };
+    return `<div class="rxt"><img src="${esc(src)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"></div>`;
   };
 
   // ---------- logo: AI finds it in a screenshot, you can adjust the box ----------

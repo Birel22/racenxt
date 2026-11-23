@@ -317,7 +317,7 @@ function obStep(){
     <div><h1 class="ob-h">${titles[n-1]}</h1><div class="dim" style="margin-top:6px">${subs[n-1]}</div></div>`;
   let body = "";
   if (n === 1) body = `
-    ${OB.photoUrl ? `<div><div id="ob-frame"></div><div style="text-align:center;margin-top:10px"><button type="button" class="btn sm" id="ob-photo">${CAM.replace("<svg", '<svg width="16" height="16"')} Choose another photo</button></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
+    ${OB.photoUrl ? `<div class="field"><label class="f">Your photo</label><div style="display:flex;align-items:center;gap:14px">${rnxPhotoThumb(OB.photoUrl, OB.pos)}<div style="display:grid;gap:8px"><button type="button" class="btn sm" id="ob-photo">Change photo</button><button type="button" class="btn sm" id="ob-adj">Adjust</button></div></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
     <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
     <div class="field"><label class="f" for="o-slug">Your page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" value="${esc(OB.slug)}" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false"></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>`;
   if (n === 2) body = `
@@ -343,8 +343,8 @@ function obStep(){
     $("#o-first").oninput = auto; $("#o-last").oninput = auto;
     $("#o-slug").oninput = () => { OB.touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
     if (OB.slug) check();
-    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = null; obSave(); obStep(); }; i.click(); };
-    FRAMER = OB.photoUrl && window.rnxPhotoFramer ? rnxPhotoFramer($("#ob-frame"), OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`) : null;
+    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = async () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; obSave(); OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = (await rnxPhotoEditor(OB.photoUrl, null, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`)) || { x:50, y:35, z:1 }; obStep(); }; i.click(); };
+    if ($("#ob-adj")) $("#ob-adj").onclick = async () => { obSave(); const n = await rnxPhotoEditor(OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`); if (n){ OB.pos = n; obStep(); } };
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
   if (n === 3){
@@ -378,7 +378,6 @@ function obStep(){
   };
 }
 function obSave(){
-  if (FRAMER && $("#ob-frame")) OB.pos = FRAMER.get();
   if ($("#o-first")){ OB.first = $("#o-first").value.trim(); OB.last = $("#o-last").value.trim(); OB.slug = $("#o-slug").value.trim().toLowerCase(); }
   if ($("#o-web")){ SOCIALS.forEach(s => { const v = toUrl(s.k, $("#o-" + s.k).value); if (v) OB.socials[s.k] = v; else delete OB.socials[s.k]; }); OB.website = toUrl("website", $("#o-web").value); OB.email = $("#o-mail").value.trim(); }
 }

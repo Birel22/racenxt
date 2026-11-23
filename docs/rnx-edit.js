@@ -634,7 +634,7 @@
 
     // app bar
     const bar = document.createElement("header"); bar.className = "rx-app"; bar.setAttribute("aria-label", "Racenxt");
-    bar.innerHTML = `<div class="rx-app-in"><span class="rx-brand">RACEN<span class="x">X</span>T</span><span class="rx-status ${p.published ? "live" : ""}"><i></i>${p.published ? "Live" : "Draft"}</span><span style="flex:1"></span>
+    bar.innerHTML = `<div class="rx-app-in"><span class="rx-brand">RACEN<span class="x">X</span>T</span>${p.published ? "" : `<span class="rx-status"><i></i>Hidden</span>`}<span style="flex:1"></span>
       <button class="rx-icon-b" id="rx-prev" aria-label="Preview as a fan">${EYE}<span>Preview</span></button>
       <button class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button></div>`;
     document.body.prepend(bar);

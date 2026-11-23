@@ -94,11 +94,11 @@
     if (!slug) { message("Race Hub", "Open an athlete's page, for example racenxt.com/louis"); return null; }
     try {
       const [prof] = await get(`profiles?slug=eq.${encodeURIComponent(slug)}&select=*`);
-      if (!prof) { message("Page not found", "This Race Hub doesn’t exist or isn’t published yet."); return null; }
+      if (!prof) { message("Page not found", "This Race Hub doesn’t exist."); return null; }
       if (!prof.published) {
         // only members get here (RLS): show a small preview banner
         const b = document.createElement("div"); b.id = "rnx-preview";
-        b.textContent = "Preview · only you can see this page until it's published";
+        b.textContent = "Hidden by Racenxt · only you and your team can see this page";
         b.style.cssText = "position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9999;background:#FF5A1F;color:#fff;font:600 13px Barlow,system-ui,sans-serif;padding:7px 14px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);white-space:nowrap";
         document.addEventListener("DOMContentLoaded", () => document.body.appendChild(b)); if (document.body) document.body.appendChild(b);
       }

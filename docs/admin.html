@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-144403"></script>
+<script src="config.js?v=20261123-145743"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -1270,7 +1270,7 @@ async function users(){
   const loose = accts.filter(a => !a.pages && !a.is_admin);
   $("#main").innerHTML = `<div class="ph"><h1>Users</h1><label class="search">${I.search}<input id="u-q" placeholder="Search users" aria-label="Search users"></label><button class="btn pri" id="u-add">+ Add page</button></div>
     ${pages.length ? `<div class="tbl"><table><tr><th>Page</th><th class="hide-m">Account</th><th>Status</th><th class="hide-m">Subscription</th></tr>
-      ${pages.map(p => `<tr class="click" data-pid="${p.profile_id}"><td><b>${esc(p.display_name)}</b> <span class="muted">/${esc(p.slug)}</span></td><td class="hide-m dim">${p.members.length ? p.members.map(m => `${esc(m.email)}${m.role !== "owner" ? ` <span class="muted">(${m.role})</span>` : ""}`).join(", ") : '<span class="muted">Managed by admin</span>'}</td><td>${p.published ? '<span class="chip good">Published</span>' : '<span class="chip">Draft</span>'}</td><td class="hide-m">${p.subscription_status === "active" ? '<span class="chip good">Active</span>' : `<span class="chip">${esc(p.subscription_status || "–")}</span>`}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No user pages yet.</div>`}
+      ${pages.map(p => `<tr class="click" data-pid="${p.profile_id}"><td><b>${esc(p.display_name)}</b> <span class="muted">/${esc(p.slug)}</span></td><td class="hide-m dim">${p.members.length ? p.members.map(m => `${esc(m.email)}${m.role !== "owner" ? ` <span class="muted">(${m.role})</span>` : ""}`).join(", ") : '<span class="muted">Managed by admin</span>'}</td><td>${p.published ? '<span class="chip good">Live</span>' : '<span class="chip">Hidden</span>'}</td><td class="hide-m">${p.subscription_status === "active" ? '<span class="chip good">Active</span>' : `<span class="chip">${esc(p.subscription_status || "–")}</span>`}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No user pages yet.</div>`}
     ${loose.length ? `<h3>Accounts without a page</h3><div class="tbl"><table><tr><th>Email</th><th>Joined</th></tr>${loose.map(a => `<tr><td>${esc(a.email)}</td><td class="muted">${ago(a.created_at)}</td></tr>`).join("")}</table></div>` : ""}`;
   $("#u-add").onclick = () => editProfile();
   $$("[data-pid]").forEach(r => r.onclick = () => openProfile(r.dataset.pid));
@@ -1286,7 +1286,7 @@ async function editProfile(p){
     { row:[{ k:"s_instagram", l:"Instagram", type:"url" }, { k:"s_facebook", l:"Facebook", type:"url" }] },
     { row:[{ k:"s_x", l:"X", type:"url" }, { k:"s_youtube", l:"YouTube", type:"url" }] },
     { row:[{ k:"s_tiktok", l:"TikTok", type:"url" }, { k:"s_website", l:"Website", type:"url" }] },
-    { k:"published", l:"Page", type:"bool", l2:"Published – visible to fans" }
+    { k:"published", l:"Page", type:"bool", l2:"Visible to fans (switch off to take the page down)" }
   ], { ...(p || {}), ...Object.fromEntries(SOC.map(s => ["s_" + s, p?.socials?.[s] || ""])) }, { onDelete: !!p, deleteText:"Delete this page and everything on it?" });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("profiles", p.id); location.hash = "#/users"; route(); }, "Page deleted");
@@ -1301,7 +1301,7 @@ async function openProfile(id){
   const [[p], ens, sps] = await Promise.all([api(`profiles?id=eq.${id}&select=*`), api(`entries?profile_id=eq.${id}&select=*,series(short_name,name),vehicles(name)&order=year.desc`), api(`sponsors?profile_id=eq.${id}&select=*&order=sort`)]);
   const page = new URL(`./${p.slug}`, location.href.split("#")[0]).href;
   $("#main").innerHTML = `<a class="back" href="#/users">${I.back}All users</a>
-    <div class="ph"><h1>${esc(p.display_name)}</h1>${p.published ? '<span class="chip good">Published</span>' : '<span class="chip">Draft</span>'}<a class="btn" href="${esc(page)}" target="_blank" rel="noopener">Open page ↗</a><button class="btn" id="p-edit">Edit</button></div>
+    <div class="ph"><h1>${esc(p.display_name)}</h1>${p.published ? '<span class="chip good">Live</span>' : '<span class="chip">Hidden</span>'}<a class="btn" href="${esc(page)}" target="_blank" rel="noopener">Open page ↗</a><button class="btn" id="p-edit">Edit</button></div>
     <h3>Championships</h3>
     ${ens.length ? `<div class="tbl"><table><tr><th>Championship</th><th>Team</th><th class="hide-m">Vehicle</th><th>#</th><th class="hide-m">Colour</th></tr>${ens.map((e, i) => `<tr class="click" data-e="${i}"><td><b>${esc(e.series?.short_name)}</b> ${e.year}</td><td>${esc(e.team || "")}</td><td class="hide-m dim">${esc(e.vehicles?.name || "")}</td><td>${esc(e.car_number || "")}</td><td class="hide-m">${e.color ? `<span class="light" style="background:${esc(e.color)}"></span>` : ""}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No championships yet.</div>`}
     <div class="bar" style="margin-top:8px"><button class="btn pri" id="en-add">+ Add championship</button></div>

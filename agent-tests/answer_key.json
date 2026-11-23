@@ -645,6 +645,16 @@
       "series": "Italian ACI Karting Championship",
       "task": "watch",
       "expect": "TO CONFIRM: ACI championship YouTube channel (exact link from Louis)"
+    },
+    {
+      "id": "f2-watch",
+      "series": "FIA Formula 2",
+      "task": "watch",
+      "expect": {
+        "broadcasters_url": "https://www.fiaformula2.com/en/information/where-to-watch-us-f2.5KKoOKrH2MbJlUgtRMYDQy",
+        "stream_url": "TO CONFIRM (official stream, likely F1 TV)"
+      },
+      "notes": "The broadcasters page is on the official F2 site, under Information."
     }
   ]
 }

@@ -635,7 +635,30 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "POST only" }, 405);
   const cron = req.headers.get("x-cron-secret");
-  if (cron) return tick(cron);
+  if (cron) {
+    // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
+    const b = await req.json().catch(() => ({}));
+    if (b.action !== "test_all" && b.action !== "test_one") return tick(cron);
+    const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
+    if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
+    if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
+    await loadGuidance();
+    if (b.action === "test_one") {
+      // one test per call, so each has the function's full time limit
+      const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }));
+      // @ts-ignore EdgeRuntime is provided by Supabase
+      if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
+      return json({ ok: true });
+    }
+    await syncCases();
+    const cases = await db(`agent_test_cases?select=id&order=sort`);
+    for (const c of cases) {
+      const [run] = await ins("agent_test_runs", { case_id: c.id, status: "running" });
+      await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { "x-cron-secret": cron, "Content-Type": "application/json" }, body: JSON.stringify({ action: "test_one", case_id: c.id, run_id: run.id }) });
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    return json({ started: cases.length });
+  }
   const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!token || !(await isAdmin(token))) return json({ error: "admins only" }, 403);
   if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);

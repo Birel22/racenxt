@@ -310,6 +310,16 @@
   .rx-comp-f{display:flex;align-items:center;gap:8px}
   .rx-comp-f .rx-b{height:42px;border-radius:12px;padding:0 16px}
   .rx-link.bad{color:#ff6b5e}
+  .rx-vres{max-height:232px;overflow-y:auto}
+  .rx-vres button[data-v]{padding:12px 14px;font-weight:600}
+  .rx-mine{margin-top:12px}
+  .rx-mine small{display:block;font:700 11px Barlow,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:6px}
+  .rx-mine > div{display:flex;flex-wrap:wrap;gap:6px}
+  .rx-mine button{display:inline-flex;align-items:center;gap:7px;max-width:100%;height:34px;padding:0 10px 0 3px;border:1px solid #2c2f37;border-radius:999px;background:#1b1c22;color:#e8e8e6;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-mine button img{width:38px;height:26px;border-radius:999px;object-fit:cover}
+  .rx-mine button i{width:26px;height:26px;display:grid;place-items:center;color:#FF5A1F;font-style:normal}
+  .rx-mine button i svg{width:15px;height:15px}
+  .rx-mine button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rx-mycars{display:grid;gap:8px}
   .rx-mycars img,.rx-carc img{flex:none;width:56px;height:38px;border-radius:8px;object-fit:cover;background:#0d0e11}
   .rx-mycars .lic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,90,31,.12);color:#FF5A1F}
@@ -544,19 +554,20 @@
     const isNew = !en.id, s = en.series || SERIES.find(x => x.id === en.series_id);
     let year = en.year, color = (en.color || COLORS[0]).toUpperCase(), vehicle = en.vehicles || VEH.find(v => v.id === en.vehicle_id) || null;
     let photoFile = null, photoUrl = en.car_photo_url || "", rounds = en.hide ? { year, hide: en.hide, show: [] } : null;
-    const vbox = () => vehicle ? `<div class="rx-vchip"><b>${esc(vehicle.name)}</b><button type="button" class="rx-b" id="rx-vchg">Change</button></div>`
-      : `<div class="rx-vp"><input id="rx-vq" autocomplete="off" aria-label="Search the car catalogue"><div class="rx-vl" id="rx-vl" hidden></div></div><div class="rx-help">Type to search the catalogue.</div>`;
-    const phbox = () => `<div class="rx-carph">${photoUrl ? `<img src="${esc(photoUrl)}" alt="">` : `<div class="rx-none">No photo</div>`}<button type="button" class="rx-b" id="rx-ph">${photoUrl ? "Change photo" : "Add photo"}</button></div><div class="rx-help">A photo of your car, with your livery. Shown when fans tap the car.</div>`;
+    const vbox = () => vehicle ? `<div class="rx-vchip"><b>${esc(vehicle.name)}</b><button type="button" class="rx-b" id="rx-vchg">Change</button></div>` : `<div id="rx-vpk"></div>`;
+    const phbox = () => `<div class="rx-carph">${photoUrl ? `<img src="${esc(photoUrl)}" alt="">` : `<div class="rx-none">No photo</div>`}<button type="button" class="rx-b" id="rx-ph">${photoUrl ? "Change photo" : "Add photo"}</button></div><div class="rx-help">A photo of your vehicle, with your livery. Shown when fans tap it.</div>`;
     const html = `
       <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><div style="display:grid"><b style="font-size:17px">${esc(s?.name || "")}</b><small style="color:#8e919b">${year} season</small></div></div>
       ${isNew ? "" : `<button type="button" class="rx-full" id="rx-rounds"><span><b>Races</b><small>Choose the rounds you do</small></span>${CHEV}</button>`}
       <div class="rx-two" style="grid-template-columns:120px 1fr"><div><label class="rx-f" for="rx-num">Car number</label><input id="rx-num" value="${esc(en.car_number || "")}" inputmode="numeric" autocomplete="off"></div><div><label class="rx-f" for="rx-team">Team</label><input id="rx-team" value="${esc(en.team || "")}" autocomplete="off"></div></div>
       <div><label class="rx-f" for="rx-mates">Teammates</label><input id="rx-mates" value="${esc((en.teammates || []).join(", "))}" autocomplete="off"><div class="rx-help">Separate names with commas.</div></div>
-      <div><label class="rx-f">Car</label><div id="rx-vbox">${vbox()}</div><div class="rx-help">Not in the catalogue? <button type="button" class="rx-link" id="rx-vnew">Add your car</button></div></div>
-      <div><label class="rx-f">Car photo</label><div id="rx-phbox">${phbox()}</div></div>
+      <div><label class="rx-f">Vehicle</label><div id="rx-vbox">${vbox()}</div></div>
+      <div><label class="rx-f">Vehicle photo</label><div id="rx-phbox">${phbox()}</div></div>
       <div><label class="rx-f" id="rx-cl">Colour</label><div class="rx-sw" role="radiogroup" aria-labelledby="rx-cl" id="rx-cs">${COLORS.map(c => `<button type="button" role="radio" aria-label="${c}" data-c="${c}" aria-checked="${c === color}" style="background:${c}"></button>`).join("")}<label title="Custom colour"><input type="color" id="rx-cc" value="${esc(color)}" aria-label="Custom colour"></label></div></div>`;
     const bindV = () => {
-      if ($("#rx-vchg")) $("#rx-vchg").onclick = () => { vehicle = null; $("#rx-vbox").innerHTML = vbox(); bindV(); $("#rx-vq").focus(); };
+      if ($("#rx-vchg")) $("#rx-vchg").onclick = () => { vehicle = null; $("#rx-vbox").innerHTML = vbox(); bindV(); $("#rx-vq2")?.focus(); };
+      if ($("#rx-vpk")) vehPicker($("#rx-vpk"), { onPick: v => { vehicle = v; $("#rx-vbox").innerHTML = vbox(); bindV(); } });
+      return;
       const q = $("#rx-vq"); if (!q) return; const l = $("#rx-vl");
       const show = () => { const t = q.value.trim().toLowerCase(); const hits = VEH.filter(v => !t || v.name.toLowerCase().includes(t)).slice(0, 12);
         l.innerHTML = hits.map(v => `<button type="button" data-v="${v.id}">${esc(v.name)}${v.engine ? `<br><small>${esc(v.engine)}</small>` : ""}</button>`).join("") || `<div class="rx-help" style="padding:8px 12px">No car found. Use "Add your car".</div>`;
@@ -570,7 +581,7 @@
         $$("#rx-cs button").forEach(b => b.onclick = () => { color = b.dataset.c; $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", x === b)); });
         $("#rx-cc").oninput = e => { color = e.target.value.toUpperCase(); $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", "false")); };
         bindV(); bindPh();
-        $("#rx-vnew").onclick = async () => { const draft = { car_number: $("#rx-num").value, team: $("#rx-team").value, teammates: $("#rx-mates").value.split(",").map(x => x.trim()).filter(Boolean) };
+        if ($("#rx-vnew")) $("#rx-vnew").onclick = async () => { const draft = { car_number: $("#rx-num").value, team: $("#rx-team").value, teammates: $("#rx-mates").value.split(",").map(x => x.trim()).filter(Boolean) };
           sheetResolve = null; const v = await newVehicle(); editEntry({ ...en, ...draft, year, color, hide: rounds?.hide, vehicles: v || vehicle, vehicle_id: (v || vehicle)?.id || null }); };
       },
       collect() { return { year, color: /^#[0-9A-F]{6}$/i.test(color) ? color : COLORS[0], car_number: $("#rx-num").value.trim() || null, team: $("#rx-team").value.trim() || null, teammates: $("#rx-mates").value.split(",").map(x => x.trim()).filter(Boolean), vehicle_id: vehicle?.id || null }; } });
@@ -582,6 +593,50 @@
       else await upd("entries", en.id, r);
     }, isNew ? "Added to your season" : "Saved");
   }
+  // ---------- vehicle picker: one search box, names only (A→Z), create it if it isn't there; your vehicles below ----------
+  // vehPicker(host, { mine:[{v, photo, from}], onPick(v, photo) })
+  function vehPicker(host, o) {
+    const sorted = () => [...VEH].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+    let creating = null;
+    const draw = () => {
+      if (creating != null) {
+        host.innerHTML = `<div class="rx-comp" id="rx-vcomp"><b class="rx-comp-t">New vehicle</b>
+          <label class="rx-cl">Name<input id="rx-vn" value="${esc(creating)}" autocomplete="off" data-form-type="other" maxlength="80"></label>
+          <button type="button" class="rx-link" id="rx-vmore" style="justify-self:start">+ Add specs (optional)</button>
+          <div id="rx-vspecs" hidden style="display:grid;gap:10px">${VFIELDS.map(([k, l]) => `<label class="rx-cl">${l}<input id="rx-vf-${k}" autocomplete="off" data-form-type="other"></label>`).join("")}</div>
+          <div class="rx-help" style="margin:0">Our team checks it before it joins the catalogue for everyone.</div>
+          <div class="rx-comp-f"><span style="flex:1"></span><button type="button" class="rx-b" id="rx-vcx">Cancel</button><button type="button" class="rx-b pri" id="rx-vok">Create vehicle</button></div></div>`;
+        $("#rx-vmore").onclick = () => { $("#rx-vspecs").hidden = false; $("#rx-vmore").remove(); $("#rx-vf-engine").focus(); };
+        $("#rx-vcx").onclick = () => { creating = null; draw(); };
+        $("#rx-vok").onclick = async () => {
+          const name = $("#rx-vn").value.trim(); if (!name) { $("#rx-vn").focus(); return; }
+          const row = { name }; VFIELDS.forEach(([k]) => { const x = $("#rx-vf-" + k); if (x && x.value.trim()) row[k] = x.value.trim(); });
+          $("#rx-vok").disabled = true;
+          try { const [v] = await ins("vehicles", { ...row, status: "pending", created_by_profile: R.profile.id }); VEH.push(v); creating = null; o.onPick(v, ""); }
+          catch (e) { $("#rx-vok").disabled = false; alert("Couldn't create the vehicle: " + e.message); }
+        };
+        $("#rx-vn").focus(); return;
+      }
+      host.innerHTML = `<div class="rx-srch">${CARI}<input id="rx-vq2" autocomplete="off" placeholder="Search a vehicle" aria-label="Search a vehicle" role="combobox" aria-expanded="false" aria-controls="rx-vres" data-form-type="other"></div><div class="rx-lres rx-vres" id="rx-vres" role="listbox" hidden></div>
+        ${o.mine && o.mine.length ? `<div class="rx-mine"><small>Your vehicles</small><div>${o.mine.map((m, i) => `<button type="button" data-mc="${i}" title="${esc(m.v.name)}">${m.photo ? `<img src="${esc(m.photo)}" alt="">` : `<i>${CARI}</i>`}<span>${esc(m.v.name)}</span></button>`).join("")}</div></div>` : ""}`;
+      host.querySelectorAll("[data-mc]").forEach(b => b.onclick = () => { const m = o.mine[+b.dataset.mc]; o.onPick(m.v, m.photo); });
+      const q = $("#rx-vq2"), box = $("#rx-vres");
+      const show = () => {
+        const t = q.value.trim(), tl = t.toLowerCase();
+        const hits = sorted().filter(v => !tl || v.name.toLowerCase().includes(tl));
+        const exact = hits.some(v => v.name.toLowerCase() === tl);
+        box.innerHTML = hits.map(v => `<button type="button" role="option" data-v="${v.id}">${esc(v.name)}</button>`).join("")
+          + (t && !exact ? `<button type="button" class="rx-lres-own" data-new="1">+ Create “${esc(t)}”</button>` : "")
+          + (!hits.length && !t ? `<div class="rx-lres-m">No vehicles yet. Type a name to create one.</div>` : "");
+        box.hidden = false; q.setAttribute("aria-expanded", "true");
+        box.querySelectorAll("[data-v]").forEach(b => b.onmousedown = e => { e.preventDefault(); o.onPick(VEH.find(v => v.id === b.dataset.v), ""); });
+        const nb = box.querySelector("[data-new]"); if (nb) nb.onmousedown = e => { e.preventDefault(); creating = t; draw(); window.rnxReveal?.($("#rx-vcomp")); };
+      };
+      q.onfocus = show; q.oninput = show; q.onblur = () => setTimeout(() => { if (box.isConnected) { box.hidden = true; q.setAttribute("aria-expanded", "false"); } }, 150);
+    };
+    draw();
+  }
+
   async function newVehicle() {
     let drive = "";
     const fld = ([k, l]) => `<div><label class="rx-f" for="rx-v-${k}">${l}</label><input id="rx-v-${k}" autocomplete="off"></div>`;
@@ -786,7 +841,7 @@
         <div class="rx-cal" id="rx-cal" hidden></div></div>
       <div><label class="rx-f" for="rx-eq">Location</label><input type="hidden" id="rx-eloc" value="">
         <div id="rx-lw"></div><div class="rx-help">Search a circuit, a venue, a city or an address. Optional.</div></div>
-      <div><label class="rx-f">Car</label><input type="hidden" id="rx-ecar" value=""><div id="rx-carw"></div></div>
+      <div><label class="rx-f">Vehicle</label><input type="hidden" id="rx-ecar" value=""><div id="rx-carw"></div></div>
       <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off" maxlength="90" placeholder="e.g. Free entry · Fan zone stand 4"><div class="rx-help">Optional. Shown under the event on your page.</div></div>
       <div><label class="rx-f">Links</label><input type="hidden" id="rx-ljson" value=""><div id="rx-lkw"></div></div>
       <div><label class="rx-f">Schedule</label><input type="hidden" id="rx-sjson" value=""><div id="rx-sw"></div></div>`,
@@ -830,19 +885,12 @@
             $("#rx-ecar").value = car ? car.v.id + "|" + (carFile ? "new" : car.photo) : "";
             if (car) {
               const img = carFile ? URL.createObjectURL(carFile) : car.photo;
-              $("#rx-carw").innerHTML = `<div class="rx-loc rx-carc">${img ? `<img src="${esc(img)}" alt="">` : `<span class="rx-loc-i">${CARI}</span>`}<span class="rx-loc-t"><b>${esc(car.v.name)}</b><small>${img ? "With your photo" : "No photo"} · <button type="button" class="rx-link" id="rx-ecph">${img ? "Change photo" : "Add photo"}</button></small></span><button type="button" class="rx-link" id="rx-ecx">Remove</button></div><div class="rx-help">Fans see it next to Schedule on the card.</div>`;
+              $("#rx-carw").innerHTML = `<div class="rx-loc rx-carc">${img ? `<img src="${esc(img)}" alt="">` : `<span class="rx-loc-i">${CARI}</span>`}<span class="rx-loc-t"><b>${esc(car.v.name)}</b><small><button type="button" class="rx-link" id="rx-ecph">${img ? "Change photo" : "Add photo"}</button></small></span><button type="button" class="rx-link" id="rx-ecx">Remove</button></div><div class="rx-help">Fans see it next to Schedule on the card.</div>`;
               $("#rx-ecx").onclick = () => { car = null; carFile = null; drawCar(); };
               $("#rx-ecph").onclick = async () => { const f = await pickFile(); if (f) { carFile = f; drawCar(); } };
               return;
             }
-            $("#rx-carw").innerHTML = (mine.length ? `<div class="rx-mycars">${mine.map((m, i) => `<button type="button" class="rx-srow2" data-mc="${i}">${m.photo ? `<img src="${esc(m.photo)}" alt="">` : `<span class="lic">${CARI}</span>`}<span class="lb">${esc(m.v.name)}<small>Your ${esc(m.from)} car</small></span><span class="rx-plus">${PLUS.replace("<svg", '<svg width="16" height="16"')}</span></button>`).join("")}</div>` : "")
-              + `<div class="rx-vp rx-srch" style="margin-top:${mine.length ? 8 : 0}px">${CARI}<input id="rx-ecq" autocomplete="off" placeholder="${mine.length ? "Or search all cars" : "Search a car"}" aria-label="Search the car catalogue" data-form-type="other"><div class="rx-vl" id="rx-ecl" hidden></div></div><div class="rx-help">Optional. For a test or a demo in a car you want fans to see.</div>`;
-            $$("#rx-carw [data-mc]").forEach(b => b.onclick = () => { const m = mine[+b.dataset.mc]; car = { v: m.v, photo: m.photo }; drawCar(); });
-            const q = $("#rx-ecq"), l = $("#rx-ecl");
-            const show = () => { const t = q.value.trim().toLowerCase(); const hits = VEH.filter(v => !t || v.name.toLowerCase().includes(t)).slice(0, 12);
-              l.innerHTML = hits.map(v => `<button type="button" data-v="${v.id}">${esc(v.name)}${v.engine ? `<br><small>${esc(v.engine)}</small>` : ""}</button>`).join("") || `<div class="rx-help" style="padding:8px 12px">No car found.</div>`;
-              l.hidden = false; l.querySelectorAll("[data-v]").forEach(b => b.onmousedown = e => { e.preventDefault(); car = { v: VEH.find(v => v.id === b.dataset.v), photo: "" }; drawCar(); }); };
-            q.onfocus = show; q.oninput = show; q.onblur = () => setTimeout(() => l.hidden = true, 120);
+            vehPicker($("#rx-carw"), { mine, onPick: (v, photo) => { car = { v, photo }; carFile = null; drawCar(); } });
           };
           drawCar();
           // links: Where to watch, Live timing, Tickets... or anything

@@ -692,7 +692,26 @@
     return { draw, show: d => { if (d) view = [+d.slice(0, 4), +d.slice(5, 7) - 1]; draw(); } };
   }
   // place search (OpenStreetMap): type and pick, the city and country fill in by themselves
+  // Google Places first (through our server, the key stays secret); OpenStreetMap if Google isn't set up or fails
+  let gSess = null, gOff = false;
+  const gCall = async body => { const r = await fetch(`${C.url}/functions/v1/places`, { method: "POST", headers: { apikey: C.key, Authorization: `Bearer ${await token()}`, "Content-Type": "application/json" }, body: JSON.stringify({ ...body, s: gSess }) }); const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || "places"); return j; };
   async function placeSearch(q) {
+    if (!gOff) {
+      try {
+        gSess = gSess || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+        const j = await gCall({ action: "auto", q });
+        return j.list.map(x => ({ gid: x.id, name: x.name, sub: x.sub, city: "", country: "", cc: "" }));
+      } catch (e) { if (String(e.message) === "no_key") gOff = true; }
+    }
+    return osmSearch(q);
+  }
+  // after a Google pick: city, country, flag and position
+  async function placeDetails(x) {
+    if (!x.gid) return x;
+    try { const d = await gCall({ action: "details", id: x.gid }); gSess = null; return { name: x.name, city: d.city, country: d.country, cc: d.cc, lat: d.lat, lng: d.lng, sub: x.sub }; }
+    catch (e) { gSess = null; const [o] = await osmSearch([x.name, x.sub].filter(Boolean).join(", ")).catch(() => []); return o ? { ...o, name: x.name } : { name: x.name, city: "", country: (x.sub.split(",").pop() || "").trim(), cc: "" }; }
+  }
+  async function osmSearch(q) {
     const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lang=en`).then(r => r.json());
     const seen = new Set();
     return (r.features || []).map(f => {
@@ -757,8 +776,8 @@
             const show = (list, text) => {
               box.hidden = false; q.setAttribute("aria-expanded", "true");
               box.innerHTML = (list.length ? list.map((x, i) => `<button type="button" role="option" data-i="${i}"><span class="rx-loc-i">${PIN}</span><span class="rx-loc-t"><b>${esc(x.name)}</b><small>${esc(x.sub)} ${flag(x.cc)}</small></span></button>`).join("") : `<div class="rx-lres-m">${text}</div>`)
-                + `<button type="button" class="rx-lres-own" data-own="1">Use “${esc(q.value.trim())}” as it is</button><div class="rx-lres-c">Places © OpenStreetMap</div>`;
-              box.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { loc = list[+b.dataset.i]; drawLoc(); });
+                + `<button type="button" class="rx-lres-own" data-own="1">Use “${esc(q.value.trim())}” as it is</button><div class="rx-lres-c">${list.some(x => x.gid) ? "Powered by Google" : "Places © OpenStreetMap"}</div>`;
+              box.querySelectorAll("[data-i]").forEach(b => b.onclick = async () => { const x = list[+b.dataset.i]; if (x.gid) { b.disabled = true; b.querySelector("small").textContent = "Getting the address…"; } loc = await placeDetails(x); drawLoc(); });
               box.querySelector("[data-own]").onclick = () => { loc = { name: q.value.trim(), city: "", country: "", cc: "" }; drawLoc(); };
             };
             q.oninput = () => {

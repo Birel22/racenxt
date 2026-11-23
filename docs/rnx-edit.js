@@ -104,7 +104,7 @@
   .rx-exit b{color:#FF5A1F;font-weight:700}
   .rx-exit svg{width:17px;height:17px}
   body.rx-view .rx-exit{display:inline-flex}
-  .rx-edit-b{position:absolute;left:14px;top:14px;z-index:6;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 15px 0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,12,15,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .rx-edit-b{position:relative;z-index:6;margin:0 0 12px;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 15px 0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,12,15,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
   .rx-edit-b svg{width:16px;height:16px;color:#FF5A1F}
   .rx-edit-b:hover{background:rgba(11,12,15,.8)}
   .rx-season{margin:18px 0 8px;border-radius:18px;background:#14151a;border:1px solid #2a2c33;overflow:hidden;font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
@@ -194,20 +194,30 @@
   .rx-b:disabled{opacity:.45;cursor:not-allowed}
   .rx-photo-ph{width:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:2px dashed #3b3e47;color:#a9abb2;font:600 14px Barlow,system-ui,sans-serif;background:#15161b;cursor:pointer}
   .rx-photo-ph svg{width:26px;height:26px}
-  .rx-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;opacity:0;pointer-events:none;transition:opacity .2s}
-  .rx-sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;max-height:92dvh;z-index:951;background:#111216;color:#f4f4f2;border-top:1px solid #3b3e47;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .24s cubic-bezier(.2,.8,.2,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+  /* sheets: the house style (see DESIGN.md) */
+  .rx-scrim{position:fixed;inset:0;background:rgba(5,6,8,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:950;opacity:0;pointer-events:none;transition:opacity .28s ease}
+  .rx-sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;max-height:92vh;max-height:92dvh;z-index:951;background:#16181d;color:#f2f2ef;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.85,.25,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);visibility:hidden}
   body.rx-on .rx-scrim{opacity:1;pointer-events:auto}
-  body.rx-on .rx-sheet{transform:none}
-  @media (min-width:760px){.rx-sheet{left:auto;top:0;width:520px;max-height:none;border-radius:0;border-top:0;border-left:1px solid #3b3e47;transform:translateX(105%)}}
-  @media (prefers-reduced-motion:reduce){.rx-sheet,.rx-scrim{transition:none}}
+  body.rx-on .rx-sheet{transform:none;visibility:visible}
+  .rx-grab{display:block;width:40px;height:4px;border-radius:4px;background:#3a3d46;margin:10px auto 0;flex:none}
+  @media (min-width:700px){
+    .rx-sheet{top:50%;bottom:auto;border-bottom:1px solid #2c2f37;border-radius:22px;max-height:86vh;max-height:86dvh;transform:translateY(-46%) scale(.97);opacity:0;transition:transform .24s cubic-bezier(.2,.85,.25,1),opacity .2s ease,visibility 0s .24s;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+    body.rx-on .rx-sheet{transform:translateY(-50%);opacity:1;transition:transform .24s cubic-bezier(.2,.85,.25,1),opacity .2s ease}
+    .rx-grab{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){.rx-sheet,.rx-scrim{transition:opacity .15s ease !important}.rx-sheet{transform:none !important}@media (min-width:700px){.rx-sheet{transform:translateY(-50%) !important}}}
   .rx-sh-h,.rx-sh-f{flex:none}
-  .rx-sh-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #2a2c33}
-  .rx-sh-h b{flex:1;font:700 22px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.02em}
-  .rx-x{width:38px;height:38px;border-radius:50%;border:1px solid #3b3e47;background:#1b1c22;color:#f4f4f2;cursor:pointer;font-size:18px}
+  .rx-sh-h{display:flex;align-items:flex-start;gap:12px;padding:14px 20px 14px;border-bottom:1px solid #24262d}
+  .rx-sh-h > div{flex:1;min-width:0}
+  .rx-sh-h small{display:block;font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#FF5A1F}
+  .rx-sh-h b{display:block;margin-top:6px;font:700 24px/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.01em}
+  .rx-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:#9a9ca3;cursor:pointer;display:grid;place-items:center;transition:background .15s,color .15s}
+  .rx-x:hover{background:#2a2d34;color:#f2f2ef}
+  .rx-x svg{width:16px;height:16px}
   body.rx-on{overflow:hidden}
-  .rx-sh-b{grid-auto-rows:max-content;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px;display:grid;gap:16px;align-content:start}
-  .rx-sh-f{display:flex;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #2a2c33}
-  .rx-sh-f .rx-b{flex:1;justify-content:center;height:46px;border-radius:12px}
+  .rx-sh-b{grid-auto-rows:max-content;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px 20px;display:grid;gap:16px;align-content:start}
+  .rx-sh-f{display:flex;gap:10px;padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #24262d}
+  .rx-sh-f .rx-b{flex:1;justify-content:center;height:48px;border-radius:14px;font-size:15px}
   .rx-sh-f .rx-b.bad{flex:none}
   .rx-sheet label.rx-f{display:block;font-size:14px;font-weight:600;color:#e9e9e6;margin:0 0 6px}
   .rx-sheet .rx-help{font-size:13px;color:#8e919b;margin-top:5px}
@@ -251,11 +261,14 @@
 
   // ---------- sheet ----------
   let sheetResolve = null;
-  function closeSheet(v) { document.body.classList.remove("rx-on"); if (sheetResolve) { const r = sheetResolve; sheetResolve = null; r(v); } }
+  let sheetOpener = null;
+  function closeSheet(v) { document.body.classList.remove("rx-on"); if (sheetResolve) { const r = sheetResolve; sheetResolve = null; r(v); } if (sheetOpener && document.body.contains(sheetOpener)) setTimeout(() => sheetOpener.focus({ preventScroll: true }), 50); }
   function sheet(title, html, opts = {}) {
     return new Promise(resolve => {
       sheetResolve = resolve;
+      if (!document.body.classList.contains("rx-on")) sheetOpener = document.activeElement;
       $("#rx-t").textContent = title;
+      $("#rx-l").textContent = opts.label || "Your page";
       $("#rx-b").innerHTML = html;
       const f = $("#rx-f");
       f.hidden = opts.footer === false;
@@ -265,6 +278,7 @@
       if ($("#rx-del")) $("#rx-del").onclick = () => { if (confirm(opts.delText || "Delete?")) closeSheet({ __delete: true }); };
       document.body.classList.add("rx-on");
       $("#rx-b").scrollTop = 0;
+      setTimeout(() => $("#rx-x").focus({ preventScroll: true }), 60);
       if (opts.after) opts.after();
     });
   }
@@ -288,11 +302,12 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false;
+    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false, lp = null;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
     const phHtml = () => `<div class="rx-phrow">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt rx-noph">${CAM}</div>`}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
+      <div class="rx-grp2">Logo</div><div id="rx-logo"></div>
       <div class="rx-grp2">Name</div>
       <div class="rx-two"><div><label class="rx-f" for="rx-first">First name</label><input id="rx-first" value="${esc(p.first_name || "")}" autocomplete="given-name"></div>
       <div><label class="rx-f" for="rx-last">Last name</label><input id="rx-last" value="${esc(last)}" autocomplete="family-name"></div></div>
@@ -303,7 +318,9 @@
       { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => {
           $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
           if ($("#rx-adj")) $("#rx-adj").onclick = async () => { const n = await rnxPhotoEditor(prev, pos, title); if (n) { pos = n; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); } };
-        }; bind(); },
+        }; bind();
+          lp = rnxLogoPicker($("#rx-logo"), { current: p.logo_url || "", currentSrc: p.logo_src_url || "", mode: p.logo_style || "original", photo: prev, getToken: token, pickFile });
+        },
         collect() {
           if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
           const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
@@ -317,6 +334,16 @@
     if (!r) return;
     save(async () => {
       if (file) { r.photo_url = await upload(await safePicture(file, false, 1800), `profiles/${p.id}-${Date.now()}.jpg`); r.hero_url = null; }
+      // logo: the cut-out original is kept, so the colour can change later without uploading again
+      const L = lp ? await lp.result() : { changed: false };
+      if (L.changed && L.removed) Object.assign(r, { logo_url: null, logo_src_url: null, logo_style: "original" });
+      else if (L.changed && L.out) {
+        const stamp = Date.now();
+        if (L.src) r.logo_src_url = await upload(L.src, `profiles/${p.id}-logo-${stamp}-src.png`);
+        else if (!p.logo_src_url && p.logo_url) r.logo_src_url = p.logo_url;
+        r.logo_url = await upload(L.out, `profiles/${p.id}-logo-${stamp}-${L.mode}.png`);
+        r.logo_style = L.mode;
+      }
       await upd("profiles", p.id, { ...r, updated_at: new Date().toISOString() });
     }, "Profile saved");
   }
@@ -598,8 +625,15 @@
   // ---------- put the controls on the page ----------
   function mount() {
     const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
-    document.body.insertAdjacentHTML("beforeend", `<div class="rx-scrim" id="rx-scrim"></div><div class="rx-sheet" id="rx-sheet" role="dialog" aria-modal="true" aria-labelledby="rx-t"><div class="rx-sh-h"><b id="rx-t"></b><button class="rx-x" id="rx-x" aria-label="Close">×</button></div><div class="rx-sh-b" id="rx-b"></div><div class="rx-sh-f" id="rx-f"></div></div>`);
+    document.body.insertAdjacentHTML("beforeend", `<div class="rx-scrim" id="rx-scrim"></div><div class="rx-sheet" id="rx-sheet" role="dialog" aria-modal="true" aria-labelledby="rx-t"><span class="rx-grab" aria-hidden="true"></span><div class="rx-sh-h"><div><small id="rx-l">Your page</small><b id="rx-t"></b></div><button class="rx-x" id="rx-x" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="rx-sh-b" id="rx-b"></div><div class="rx-sh-f" id="rx-f"></div></div>`);
     $("#rx-x").onclick = () => closeSheet(null); $("#rx-scrim").onclick = () => closeSheet(null);
+    // phones: pull the sheet down by its header to close it
+    { const sh = $("#rx-sheet"); let y0 = null, dy = 0;
+      sh.addEventListener("touchstart", e => { if (!e.target.closest(".rx-sh-h,.rx-grab") || e.target.closest("button")) return; y0 = e.touches[0].clientY; dy = 0; sh.style.transition = "none"; }, { passive: true });
+      sh.addEventListener("touchmove", e => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); sh.style.transform = `translateY(${dy}px)`; }, { passive: true });
+      sh.addEventListener("touchend", () => { if (y0 == null) return; sh.style.transition = ""; sh.style.transform = ""; if (dy > 90) closeSheet(null); y0 = null; }); }
+    // keep Tab inside an open sheet
+    document.addEventListener("keydown", e => { if (e.key !== "Tab" || !document.body.classList.contains("rx-on")) return; const f = [...$("#rx-sheet").querySelectorAll("a[href],button:not([disabled]),input,select,textarea,[tabindex='0']")].filter(x => x.offsetParent); if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } });
     document.addEventListener("keydown", e => { if (e.key === "Escape") { if (document.body.classList.contains("rx-on")) closeSheet(null); else closeMenu(); } });
     document.body.classList.add("rx-edit");
     document.getElementById("rnx-preview")?.remove();
@@ -623,7 +657,9 @@
     if (hero) {
       if (getComputedStyle(hero).position === "static") hero.style.position = "relative";
       if (!photo) { const ph = document.createElement("button"); ph.type = "button"; ph.className = "rx-photo-ph rx-only"; ph.innerHTML = `${CAM}<span>Add your photo</span>`; ph.onclick = editProfile; ph.style.cssText = "position:absolute;inset:0;border-radius:inherit;padding-bottom:18%"; hero.prepend(ph); }
-      const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile; hero.appendChild(eb);
+      const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile;
+      // just above "NAME RACE HUB", so the top-left corner stays free for the athlete's logo
+      const ht = hero.querySelector(".hero-text"); if (ht) ht.prepend(eb); else hero.appendChild(eb);
     }
 
     // your season

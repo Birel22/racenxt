@@ -430,12 +430,47 @@
     .ws-grab{display:none}
   }
   @media (prefers-reduced-motion:reduce){ .ws-card,.ws-back{transition:opacity .15s ease !important} .ws-card{transform:none !important} }
+  /* house style for the schedule / car / calendar sheet (see DESIGN.md) */
+  #tt{background:rgba(5,6,8,.62);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);align-items:flex-end;padding:0;animation:tt-fade .28s ease}
+  .tt-modal{max-width:520px;max-height:90vh;max-height:90dvh;background:#16181d;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;box-shadow:0 -18px 50px rgba(0,0,0,.5);animation:tt-up .32s cubic-bezier(.2,.85,.25,1)}
+  .tt-modal::before{content:"";display:block;flex:none;width:40px;height:4px;border-radius:4px;background:#3a3d46;margin:10px auto 0}
+  #tt.closing{animation:tt-fade-out .26s ease forwards}
+  #tt.closing .tt-modal{animation:tt-down .26s ease forwards}
+  .tt-hd{padding:12px 16px 14px 20px;border-bottom:1px solid #24262d;align-items:flex-start}
+  .tt-hd .tt-head{border-left:0;padding-left:0;display:flex;flex-direction:column-reverse}
+  .tt-hd .tt-head small{margin:0 0 6px;font:700 12px/1.2 'Barlow Condensed',sans-serif;letter-spacing:.16em;color:var(--c,#FF5A1F)}
+  .tt-hd .tt-head h3{font:700 24px/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.01em}
+  #tt-close{width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:transparent;font-size:0;position:relative;transition:background .15s}
+  #tt-close::before,#tt-close::after{content:"";position:absolute;left:50%;top:50%;width:14px;height:2px;border-radius:2px;background:#9a9ca3;transform:translate(-50%,-50%) rotate(45deg)}
+  #tt-close::after{transform:translate(-50%,-50%) rotate(-45deg)}
+  #tt-close:hover{background:#2a2d34}
+  #tt-close:hover::before,#tt-close:hover::after{background:#f2f2ef}
+  #tt-body{padding-left:20px;padding-right:20px}
+  #tt-ft{border-radius:0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .tt-row{border-bottom-color:#24262d}
+  .tt-mode{background:#0d0e11;border-color:#2a2d35;border-radius:14px;padding:4px}
+  .tt-mode button{border-radius:10px}
+  .tt-mode button[aria-pressed="true"]{background:#23262d;color:var(--text)}
+  @media (min-width:700px){
+    #tt{align-items:center;padding:16px}
+    .tt-modal{border-bottom:1px solid #2c2f37;border-radius:22px;max-height:86vh;max-height:86dvh;box-shadow:0 24px 70px rgba(0,0,0,.55);animation:tt-pop .24s cubic-bezier(.2,.85,.25,1)}
+    .tt-modal::before{display:none}
+    #tt.closing .tt-modal{animation:tt-pop-out .2s ease forwards}
+    #tt-ft{border-bottom-left-radius:22px;border-bottom-right-radius:22px}
+  }
+  @keyframes tt-fade{from{opacity:0}to{opacity:1}}
+  @keyframes tt-fade-out{to{opacity:0}}
+  @keyframes tt-up{from{transform:translateY(100%)}to{transform:none}}
+  @keyframes tt-down{to{transform:translateY(100%)}}
+  @keyframes tt-pop{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes tt-pop-out{to{opacity:0;transform:translateY(8px) scale(.98)}}
+  @media (prefers-reduced-motion:reduce){ #tt,.tt-modal,#tt.closing,#tt.closing .tt-modal{animation-duration:.01s !important} }
 </style>
-<script src="config.js?v=20261123-133452"></script>
-<script src="rnx-social.js?v=20261123-133452"></script>
-<script src="rnx-ui.js?v=20261123-133452"></script>
-<script src="rnx-edit.js?v=20261123-133452"></script>
-<script src="rnx-data.js?v=20261123-133452"></script>
+<script src="config.js?v=20261123-135103"></script>
+<script src="rnx-social.js?v=20261123-135103"></script>
+<script src="rnx-ui.js?v=20261123-135103"></script>
+<script src="rnx-edit.js?v=20261123-135103"></script>
+<script src="rnx-data.js?v=20261123-135103"></script>
 </head>
 <body>
 <div class="wrap">
@@ -670,11 +705,11 @@ document.querySelector(".tt-modal").addEventListener("click", e => {
     return;
   }
 });
-function openTT(i){ ttOpenIdx = i; document.querySelector(".tt-modal").classList.remove("selecting"); fillTT(i); ttLastFocus = document.activeElement; if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").hidden = false; document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue); document.getElementById("tt-close").focus(); }
+function openTT(i){ ttOpenIdx = i; document.querySelector(".tt-modal").classList.remove("selecting"); fillTT(i); ttLastFocus = document.activeElement; if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false; document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue); document.getElementById("tt-close").focus(); }
 let lockY = 0;
 function lockScroll(){ lockY = window.scrollY; const b = document.body.style; b.position = "fixed"; b.top = `-${lockY}px`; b.left = "0"; b.right = "0"; b.width = "100%"; document.documentElement.style.overflow = "hidden"; }
 function unlockScroll(){ const b = document.body.style; b.position = b.top = b.left = b.right = b.width = ""; document.documentElement.style.overflow = ""; window.scrollTo(0, lockY); }
-function closeTT(){ ttOpenIdx = null; document.getElementById("tt").hidden = true; unlockScroll(); if (ttLastFocus) ttLastFocus.focus(); }
+function closeTT(){ ttOpenIdx = null; const tt = document.getElementById("tt"); tt.classList.add("closing"); setTimeout(() => { if (tt.classList.contains("closing")) { tt.hidden = true; tt.classList.remove("closing"); } }, 240); unlockScroll(); if (ttLastFocus) ttLastFocus.focus(); }
 document.getElementById("tt-hdc").addEventListener("click", e => {
   const b = e.target.closest(".tt-mode button"); if (!b) return;
   const keep = [...document.querySelectorAll("#tt-body .tt-pick:checked")].map(c => c.dataset.k);
@@ -689,7 +724,7 @@ function fillSub(){
   document.getElementById("tt-body").innerHTML = `<p class="tt-empty" style="padding-top:0">${T("subIntro")}</p>`
     + SUBS.map(([t,dsc,f]) => `<a class="sub-opt" href="${rnxSubUrl(P.slug, f)}"><span><b>${T(t)}</b><small>${T(dsc)}</small></span><span class="arr" aria-hidden="true">›</span></a>`).join("");
 }
-document.getElementById("sub-open").addEventListener("click", () => { ttOpenIdx = "sub"; document.querySelector(".tt-modal").classList.remove("selecting"); fillSub(); ttLastFocus = document.activeElement; if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").hidden = false; document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue); document.getElementById("tt-close").focus(); });
+document.getElementById("sub-open").addEventListener("click", () => { ttOpenIdx = "sub"; document.querySelector(".tt-modal").classList.remove("selecting"); fillSub(); ttLastFocus = document.activeElement; if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false; document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue); document.getElementById("tt-close").focus(); });
 document.getElementById("tt").addEventListener("click", e => { if (e.target.id === "tt") closeTT(); });
 document.getElementById("tt-close").addEventListener("click", closeTT);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("tt").hidden) closeTT(); });
@@ -713,7 +748,7 @@ document.addEventListener("click", e => {
   const b = e.target.closest(".car-btn, .cd-car"); if (!b) return;
   ttOpenIdx = "car:" + b.dataset.series; document.querySelector(".tt-modal").classList.remove("selecting");
   fillCar(b.dataset.series); ttLastFocus = b;
-  if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").hidden = false;
+  if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false;
   document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue);
   const img = document.querySelector("#tt-body .car-img"); if (img) img.addEventListener("load", updateCue, {once:true});
   document.getElementById("tt-close").focus();

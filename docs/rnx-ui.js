@@ -138,4 +138,110 @@
       }
     };
   };
+
+  // ---------- logos: cut out (background removed), trimmed, in original colours, white or black ----------
+  window.rnxProcessLogo = async function (file, mode) {
+    const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = rej; im.src = typeof file === "string" ? file : URL.createObjectURL(file); });
+    const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
+    const k = /svg/.test((file && file.type) || "") ? 1200 / Math.max(iw, ih) : Math.min(1, 1200 / Math.max(iw, ih));
+    const w = Math.max(1, Math.round(iw * k)), h = Math.max(1, Math.round(ih * k));
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h), px = d.data;
+    const border = []; const pick = (x, y) => { const i = (y * w + x) * 4; border.push([px[i], px[i + 1], px[i + 2], px[i + 3]]); };
+    for (let x = 0; x < w; x += Math.max(1, w >> 6)) { pick(x, 0); pick(x, h - 1); }
+    for (let y = 0; y < h; y += Math.max(1, h >> 6)) { pick(0, y); pick(w - 1, y); }
+    const transparentBg = border.filter(b => b[3] < 40).length > border.length * 0.5;
+    const solid = border.filter(b => b[3] >= 40), med = j => solid.map(b => b[j]).sort((a, c) => a - c)[solid.length >> 1] || 0;
+    const bg = [med(0), med(1), med(2)];
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let i = 0; i < px.length; i += 4) {
+      const a = transparentBg ? px[i + 3] : Math.max(0, Math.min(255, (Math.hypot(px[i] - bg[0], px[i + 1] - bg[1], px[i + 2] - bg[2]) - 20) * 4)) * (px[i + 3] / 255);
+      if (mode === "white") px[i] = px[i + 1] = px[i + 2] = 255;
+      else if (mode === "black") px[i] = px[i + 1] = px[i + 2] = 0;
+      px[i + 3] = a;
+      if (a > 24) { const n = i >> 2, x = n % w, y = (n / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    }
+    cx.putImageData(d, 0, 0);
+    if (maxX < minX) throw new Error("No logo found in this picture");
+    const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.03);
+    const ox = Math.max(0, minX - pad), oy = Math.max(0, minY - pad), ow = Math.min(w, maxX + pad + 1) - ox, oh = Math.min(h, maxY + pad + 1) - oy;
+    const out = document.createElement("canvas"); out.width = ow; out.height = oh;
+    out.getContext("2d").drawImage(cv, ox, oy, ow, oh, 0, 0, ow, oh);
+    return await new Promise(r => out.toBlob(r, "image/png"));
+  };
+
+  // A personal logo field: add a file / photo / screenshot -> the AI finds the logo -> cut out -> Original / White / Black,
+  // previewed on top of the athlete's photo. result() -> { changed, removed, src (cut-out original), out (chosen colour), mode }
+  const LCSS = `.rxl{display:grid;gap:12px}
+  .rxl-pv{position:relative;height:150px;border-radius:16px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2a2d35}
+  .rxl-pv::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0) 55%)}
+  .rxl-pv img{position:absolute;z-index:1;top:14px;left:16px;max-width:42%;max-height:60px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+  .rxl-pv .rxl-empty{position:absolute;z-index:1;inset:0;display:grid;place-items:center;color:#9a9ca3;font:600 14px Barlow,system-ui,sans-serif}
+  .rxl-pv .rxl-busy{position:absolute;z-index:2;inset:0;display:grid;place-items:center;background:rgba(13,14,17,.55);color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif}
+  .rxl-row{display:flex;gap:8px;flex-wrap:wrap}
+  .rxl-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:14px;border:1px solid #2f323a;background:#1d2026;color:#f2f2ef;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s}
+  .rxl-btn:hover{background:#23262d;border-color:#3a3d46}
+  .rxl-btn.ghost{background:transparent;color:#9a9ca3}
+  .rxl-btn svg{width:18px;height:18px;color:var(--rx-acc,#FF5A1F)}
+  .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
+  .rxl-seg button{min-height:40px;border:0;border-radius:10px;background:transparent;color:#9a9ca3;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
+  .rxl-seg button i{width:14px;height:14px;border-radius:50%;border:1px solid #4a4d56}
+  .rxl-seg button[aria-checked="true"]{background:#23262d;color:#f2f2ef}
+  .rxl-seg button:focus-visible,.rxl-btn:focus-visible{outline:2px solid var(--rx-acc,#FF5A1F);outline-offset:2px}
+  .rxl-hint{font-size:13px;color:#8e919b;line-height:1.4}`;
+  let lstyled = false;
+  const PIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+  window.rnxLogoPicker = function (box, opt) {
+    if (!lstyled) { const st = document.createElement("style"); st.textContent = LCSS; document.head.appendChild(st); lstyled = true; }
+    const S = { file: null, cropper: null, src: null, out: null, mode: opt.mode || "original", current: opt.current || "", currentSrc: opt.currentSrc || "", removed: false, busy: false, seq: 0 };
+    const has = () => !S.removed && (S.file || S.current || S.currentSrc);
+    const draw = () => {
+      box.innerHTML = `<div class="rxl">
+        <div class="rxl-pv" id="rxl-pv" style="${opt.photo ? `background-image:url('${String(opt.photo).replace(/'/g, "%27")}')` : ""}">${has() ? "" : `<span class="rxl-empty">Your logo appears here, over your photo</span>`}</div>
+        <div id="rxl-crop"></div>
+        ${has() ? `<div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "linear-gradient(135deg,#FF5A1F,#2f7bff)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${S.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>` : ""}
+        <div class="rxl-row"><button type="button" class="rxl-btn" id="rxl-add">${PIC}${has() ? "Change logo" : "Add your logo"}</button>${has() ? `<button type="button" class="rxl-btn ghost" id="rxl-rm">Remove</button>` : ""}</div>
+        <div class="rxl-hint">A logo file, a photo or a screenshot: we find the logo, cut it out and remove the background.</div></div>`;
+      box.querySelector("#rxl-add").onclick = async () => { const f = await opt.pickFile(); if (f) take(f); };
+      const rm = box.querySelector("#rxl-rm"); if (rm) rm.onclick = () => { Object.assign(S, { removed: true, file: null, cropper: null, src: null, out: null }); draw(); };
+      box.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { S.mode = b.dataset.m; box.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
+      if (S.cropper) box.querySelector("#rxl-crop").appendChild(S.cropEl);
+      render();
+    };
+    const render = async () => {
+      const pv = box.querySelector("#rxl-pv"); if (!pv || !has()) return;
+      const my = ++S.seq; S.busy = true;
+      pv.querySelector("img")?.remove(); pv.insertAdjacentHTML("beforeend", `<span class="rxl-busy">Cleaning up the logo…</span>`);
+      try {
+        if (S.file) { const cut = S.cropper ? await S.cropper.crop() : S.file; S.src = await rnxProcessLogo(cut, "original"); }
+        const base = S.src || S.currentSrc || S.current;
+        S.out = await rnxProcessLogo(base, S.mode);
+        if (my !== S.seq) return;
+        const url = S.out ? URL.createObjectURL(S.out) : S.current;
+        pv.querySelector(".rxl-busy")?.remove(); pv.insertAdjacentHTML("beforeend", `<img src="${url}" alt="Logo preview">`);
+      } catch (e) { if (my === S.seq) { pv.querySelector(".rxl-busy")?.remove(); pv.insertAdjacentHTML("beforeend", `<span class="rxl-busy">${e.message === "No logo found in this picture" ? "No logo found: move the box around it" : "Couldn't read this picture"}</span>`); } }
+      finally { if (my === S.seq) S.busy = false; }
+    };
+    const take = async f => {
+      if (!f || !/^image\//.test(f.type)) return;
+      Object.assign(S, { file: f, removed: false, src: null, out: null });
+      S.cropEl = document.createElement("div");
+      S.cropper = window.rnxLogoCropper ? await rnxLogoCropper(S.cropEl, f, opt.getToken) : null;
+      if (S.cropper) S.cropper.onChange(render);
+      draw();
+    };
+    const onPaste = e => { if (!document.body.contains(box)) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
+    document.addEventListener("paste", onPaste);
+    draw();
+    return {
+      busy: () => S.busy,
+      async result() {
+        while (S.busy) await new Promise(r => setTimeout(r, 120));
+        if (S.removed) return { changed: true, removed: true };
+        const changed = !!S.file || S.mode !== (opt.mode || "original");
+        return { changed, removed: false, src: S.file ? S.src : null, out: S.out, mode: S.mode };
+      }
+    };
+  };
 })();

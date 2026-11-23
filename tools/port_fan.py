@@ -82,7 +82,10 @@ assert '${watchLinks(ev)}' in s, "watch button not found"
 rep('const WATCH = RNX.watch;', open('/home/claude/racenxt/tools/fan_watch.js').read().strip())
 rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
 rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
-s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + '</style>', 1)
+s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + open('/home/claude/racenxt/tools/fan_ui.css').read() + '</style>', 1)
+# close the schedule sheet with a short exit animation (reopening cancels it)
+s = s.replace('document.getElementById("tt").hidden = false;', 'document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false;')
+rep('function closeTT(){ ttOpenIdx = null; document.getElementById("tt").hidden = true; unlockScroll(); if (ttLastFocus) ttLastFocus.focus(); }', 'function closeTT(){ ttOpenIdx = null; const tt = document.getElementById("tt"); tt.classList.add("closing"); setTimeout(() => { if (tt.classList.contains("closing")) { tt.hidden = true; tt.classList.remove("closing"); } }, 240); unlockScroll(); if (ttLastFocus) ttLastFocus.focus(); }')
 # single-day events (the athlete's own: tests, appearances) and no race length
 rep("return {big:`${a.getDate()}–${b.getDate()}`,", "return {big: a.getTime()===b.getTime() ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`,")
 rep('<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>', '${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}')

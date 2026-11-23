@@ -7,9 +7,9 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-133452"></script>
-<script src="rnx-social.js?v=20261123-133452"></script>
-<script src="rnx-ui.js?v=20261123-133452"></script>
+<script src="config.js?v=20261123-135103"></script>
+<script src="rnx-social.js?v=20261123-135103"></script>
+<script src="rnx-ui.js?v=20261123-135103"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -307,10 +307,10 @@ async function heroPhoto(file){
   cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
   return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
 }
-const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, socials:{}, website:"", email:"", picked:new Set() };
+const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, lp:null, socials:{}, website:"", email:"", picked:new Set() };
 let FRAMER = null;
 async function onboarding(another){
-  if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, socials:{}, website:"", email:"", picked:new Set() });
+  if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, lp:null, socials:{}, website:"", email:"", picked:new Set() });
   if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url&order=name"); } catch(e){}
   try { const ds = await api("disciplines?select=key,name,icon_svg&order=sort,name"); if (ds.length) SPORT = Object.fromEntries(ds.map(d => [d.key, { l:d.name, i:d.icon_svg }])); } catch(e){}
   OB.another = another;
@@ -323,6 +323,7 @@ function obStep(){
   let body = "";
   if (n === 1) body = `
     ${OB.photoUrl ? `<div class="field"><label class="f">Your photo</label><div style="display:flex;align-items:center;gap:14px">${rnxPhotoThumb(OB.photoUrl, OB.pos)}<div style="display:grid;gap:8px"><button type="button" class="btn sm" id="ob-photo">Change photo</button><button type="button" class="btn sm" id="ob-adj">Adjust</button></div></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
+    <div class="field"><label class="f">Your logo <span class="muted" style="font-weight:500">· optional</span></label><div id="ob-logo"></div></div>
     <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
     <div class="field"><label class="f" for="o-slug">Your page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" value="${esc(OB.slug)}" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false"></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>`;
   if (n === 2) body = `
@@ -348,8 +349,9 @@ function obStep(){
     $("#o-first").oninput = auto; $("#o-last").oninput = auto;
     $("#o-slug").oninput = () => { OB.touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
     if (OB.slug) check();
-    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = async () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; obSave(); OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = (await rnxPhotoEditor(OB.photoUrl, null, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`)) || { x:50, y:35, z:1 }; obStep(); }; i.click(); };
-    if ($("#ob-adj")) $("#ob-adj").onclick = async () => { obSave(); const n = await rnxPhotoEditor(OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`); if (n){ OB.pos = n; obStep(); } };
+    OB.lp = rnxLogoPicker($("#ob-logo"), { current: OB.logo?.out ? URL.createObjectURL(OB.logo.out) : "", currentSrc: OB.logo?.src ? URL.createObjectURL(OB.logo.src) : "", mode: OB.logo?.mode || "original", photo: OB.photoUrl, getToken: token, pickFile: obPick });
+    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = async () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; obSave(); await obStash(); OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = (await rnxPhotoEditor(OB.photoUrl, null, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`)) || { x:50, y:35, z:1 }; obStep(); }; i.click(); };
+    if ($("#ob-adj")) $("#ob-adj").onclick = async () => { obSave(); await obStash(); const n = await rnxPhotoEditor(OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`); if (n){ OB.pos = n; obStep(); } };
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
   if (n === 3){
@@ -357,7 +359,7 @@ function obStep(){
     $$("#o-champs .tile").forEach(b => b.onclick = () => { const id = b.dataset.s; OB.picked.has(id) ? OB.picked.delete(id) : OB.picked.add(id); b.setAttribute("aria-checked", OB.picked.has(id)); $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"; });
   }
   $("#o-next").onclick = async () => {
-    obSave();
+    obSave(); if (n === 1) await obStash();
     if (n === 1){
       if (!OB.first){ $("#o-first").focus(); return alert("Add your first name."); }
       if (!OB.last){ $("#o-last").focus(); return alert("Add your last name."); }
@@ -371,6 +373,7 @@ function obStep(){
       const id = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" });
       const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
       if (OB.photo){ let pic; try { pic = await heroPhoto(OB.photo); } catch(e){ pic = OB.photo; } row.photo_url = await upload(pic, `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
+      if (OB.logo?.out){ const stamp = Date.now(); if (OB.logo.src) row.logo_src_url = await upload(OB.logo.src, `profiles/${id}-logo-${stamp}-src.png`); row.logo_url = await upload(OB.logo.out, `profiles/${id}-logo-${stamp}-${OB.logo.mode}.png`); row.logo_style = OB.logo.mode; }
       await upd("profiles", id, row);
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){
@@ -382,6 +385,13 @@ function obStep(){
     } catch(err){ alert("Couldn't create the page: " + err.message); $("#o-next").disabled = false; $("#o-next").textContent = "Create my Race Hub"; }
   };
 }
+// keep the logo the athlete prepared (cut-out original + chosen colour) while the steps re-render
+async function obStash(){
+  if (!OB.lp || !$("#ob-logo")) return;
+  const r = await OB.lp.result();
+  if (r.removed) OB.logo = null; else if (r.out) OB.logo = { src: r.src || OB.logo?.src || null, out: r.out, mode: r.mode };
+}
+const obPick = () => new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = () => { res(i.files[0] || null); setTimeout(() => i.remove(), 1000); }; i.click(); });
 function obSave(){
   if ($("#o-first")){ OB.first = $("#o-first").value.trim(); OB.last = $("#o-last").value.trim(); OB.slug = $("#o-slug").value.trim().toLowerCase(); }
   if ($("#o-web")){ SOCIALS.forEach(s => { const v = toUrl(s.k, $("#o-" + s.k).value); if (v) OB.socials[s.k] = v; else delete OB.socials[s.k]; }); OB.website = toUrl("website", $("#o-web").value); OB.email = $("#o-mail").value.trim(); }

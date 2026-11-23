@@ -282,13 +282,28 @@
   .rx-sday{margin-top:12px;display:grid;gap:8px}
   .rx-sday-h{display:flex;align-items:center;justify-content:space-between}
   .rx-sday-h b{font:700 13px Barlow,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#c9cad0}
-  .rx-ses{display:grid;gap:8px;padding:10px;background:#1d2026;border:1px solid #2a2d35;border-radius:14px}
-  .rx-ses-1{display:grid;grid-template-columns:1fr 44px;gap:8px;align-items:center}
-  .rx-ses .rx-sx{height:44px;width:44px;display:grid;place-items:center;border:1px solid #2c2f37;border-radius:12px;background:none;color:#a9abb2;cursor:pointer}
-  .rx-ses-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .rx-ses-2 label{display:grid;gap:4px;font-size:12px;font-weight:600;color:#8a8d96}
-  .rx-sheet .rx-ses input{min-height:44px}
   .rx-sheet .rx-help.warn{color:#f2b20f}
+  .rx-srow2{width:100%;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;background:#1d2026;border:1px solid #2a2d35;border-radius:14px;color:#f4f4f2;text-align:left;cursor:pointer;font:15px Barlow,system-ui,sans-serif}
+  .rx-srow2 .tm{flex:none;min-width:58px;font-weight:700;font-variant-numeric:tabular-nums;display:grid;line-height:1.15}
+  .rx-srow2 .tm small{font-size:12px;font-weight:500;color:#8e919b}
+  .rx-srow2 .lb{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rx-srow2 .rx-chev{width:18px;height:18px;color:#6f727b;flex:none}
+  .rx-comp{margin-top:12px;display:grid;gap:12px;padding:14px;background:#121419;border:1px solid #FF5A1F;border-radius:16px;animation:rxCalIn .22s cubic-bezier(.2,.85,.25,1)}
+  .rx-comp-t{font:700 12px Barlow,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#FF5A1F}
+  .rx-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
+  .rx-chips::-webkit-scrollbar{display:none}
+  .rx-chips button{flex:none;min-width:62px;padding:7px 10px;border:1px solid #2c2f37;border-radius:12px;background:#0d0e11;color:#e8e8e6;font:700 14px Barlow,system-ui,sans-serif;display:grid;gap:1px;cursor:pointer}
+  .rx-chips button small{font-size:11px;font-weight:600;color:#8e919b}
+  .rx-chips button[aria-checked="true"]{background:#FF5A1F;border-color:#FF5A1F;color:#fff}
+  .rx-chips button[aria-checked="true"] small{color:#ffe3d6}
+  .rx-sheet .rx-cl{display:grid;gap:6px;min-width:0;font-size:13px;font-weight:600;color:#a9abb2}
+  .rx-c2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .rx-sheet .rx-cl select{width:100%;min-width:0;min-height:48px;padding:0 12px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:600 16px Barlow,system-ui,sans-serif;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8d96' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  .rx-comp-f{display:flex;align-items:center;gap:8px}
+  .rx-comp-f .rx-b{height:42px;border-radius:12px;padding:0 16px}
+  .rx-link.bad{color:#ff6b5e}
+  @keyframes rxShake{0%,100%{translate:0}25%{translate:-5px 0}75%{translate:5px 0}}
+  .rx-shake{animation:rxShake .28s ease;border-color:#ff6b5e !important}
   .rx-seg{display:flex;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;padding:4px;gap:4px}
   .rx-seg button{flex:1;height:40px;border:0;border-radius:9px;background:none;color:#a9abb2;font:700 15px Barlow,system-ui,sans-serif;cursor:pointer}
   .rx-seg button[aria-checked="true"]{background:#FF5A1F;color:#fff}
@@ -710,7 +725,6 @@
     let loc = v && v.name ? { id: ev.venue_id, name: v.name, city: v.city || "", country: v.country || "", cc: v.country_code || "" } : null;
     const hm = (t, add) => { const [h, m] = t.split(":").map(Number), x = (h * 60 + m + add) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
     let S = ses.map(x => ({ day: x.local_start.slice(0, 10), start: x.local_start.slice(11, 16), end: x.duration_min && x.duration_min !== 60 ? hm(x.local_start.slice(11, 16), x.duration_min) : "", label: x.label }));
-    let showSched = S.length > 0;
     const X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     const r = await sheet(isNew ? "Add a custom event" : "Edit custom event", `
       <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off" maxlength="80" placeholder="e.g. Autograph session"><div class="rx-help">As fans will see it: a test, a media day, an autograph session…</div></div>
@@ -720,14 +734,14 @@
       <div><label class="rx-f" for="rx-eq">Location</label><input type="hidden" id="rx-eloc" value="">
         <div id="rx-lw"></div><div class="rx-help">Search a circuit, a venue, a city or an address. Optional.</div></div>
       <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off" maxlength="90" placeholder="e.g. Free entry · Fan zone stand 4"><div class="rx-help">Optional. Shown under the event on your page.</div></div>
-      <div><div class="rx-sched-h"><label class="rx-f" style="margin:0">Schedule</label></div><div id="rx-sw"></div></div>`,
+      <div><label class="rx-f">Schedule</label><input type="hidden" id="rx-sjson" value=""><div id="rx-sw"></div></div>`,
       { ok: isNew ? "Add event" : "Save", del: !isNew && ROLE === "owner" ? "Delete" : null, delText: `Delete ${ev?.name || "this event"}?`,
         after() {
           // dates
           const cal = rangeCal($("#rx-cal"), D);
           const dText = () => { $("#rx-dtx").textContent = D.start ? rangeText(D.start, D.end) : "Choose the dates"; const n = daysOf(D.start, D.end || D.start).length; $("#rx-dn").textContent = n ? `${n} day${n > 1 ? "s" : ""}` : ""; $("#rx-dbtn").classList.toggle("empty", !D.start); $("#rx-es").value = D.start; $("#rx-ee").value = D.end || D.start; };
           const openCal = on => { $("#rx-cal").hidden = !on; $("#rx-dbtn").setAttribute("aria-expanded", on); $("#rx-dbtn").classList.toggle("open", on); if (on) cal.show(D.start); };
-          D.onChange = () => { dText(); drawSched(); if (!D.picking) setTimeout(() => openCal(false), 380); };
+          D.onChange = () => { dText(); if (comp !== null && comp < 0) comp = null; drawSched(); if (!D.picking) setTimeout(() => openCal(false), 380); };
           $("#rx-cal").addEventListener("click", e => { if (e.target.closest("[data-done]")) { D.picking = false; openCal(false); $("#rx-dbtn").focus(); } });
           $("#rx-dbtn").onclick = () => openCal($("#rx-cal").hidden);
           dText(); if (isNew) openCal(true);
@@ -756,30 +770,55 @@
             box.onkeydown = e => { const bs = [...box.querySelectorAll("button")], i = bs.indexOf(document.activeElement); if (e.key === "ArrowDown") { e.preventDefault(); bs[Math.min(bs.length - 1, i + 1)]?.focus(); } if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? bs[i - 1] : q).focus(); } };
           };
           drawLoc();
-          // schedule, day by day
-          const sync = () => $$("#rx-sw .rx-ses").forEach(c => { const x = S[+c.dataset.i]; x.label = c.querySelector(".rx-sl").value; x.start = c.querySelector(".rx-st").value; x.end = c.querySelector(".rx-se").value; });
+          // schedule: a clean list, and one small form to add or change a time
+          let comp = null; // null = closed, -1 = new time, n = editing S[n]
+          const TIMES = []; for (let m = 0; m < 1440; m += 15) TIMES.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+          const opts = (sel, first) => { const l = sel && !TIMES.includes(sel) ? [...TIMES, sel].sort() : TIMES; return (first ? `<option value="">${first}</option>` : "") + l.map(t => `<option${t === sel ? " selected" : ""}>${t}</option>`).join(""); };
+          const sortS = () => S.sort((a, b) => (a.day + a.start).localeCompare(b.day + b.start));
           function drawSched() {
-            sync();
             const days = daysOf(D.start, D.end || D.start);
-            if (!showSched) { $("#rx-sw").innerHTML = `<button type="button" class="rx-b rx-add-s" id="rx-son">${PLUS.replace("<svg", '<svg width="16" height="16"')} Add a schedule</button><div class="rx-help">Optional. Times fans can add to their calendar.</div>`; $("#rx-son").onclick = () => { if (!D.start) { openCal(true); $("#rx-dbtn").focus(); return; } showSched = true; if (!S.length) S.push({ day: D.start, start: "", end: "", label: "" }); drawSched(); $("#rx-sw .rx-sl")?.focus(); }; return; }
-            if (!days.length) { $("#rx-sw").innerHTML = `<div class="rx-help">Choose the dates first.</div>`; return; }
+            $("#rx-sjson").value = JSON.stringify(S);
             const off = S.filter(x => !days.includes(x.day));
-            $("#rx-sw").innerHTML = days.map(d => `<div class="rx-sday"><div class="rx-sday-h"><b>${dayLbl(d)}</b><button type="button" class="rx-link" data-add="${d}">+ Add</button></div>
-              ${S.map((x, i) => x.day === d ? `<div class="rx-ses" data-i="${i}"><div class="rx-ses-1"><input class="rx-sl" value="${esc(x.label)}" placeholder="What" aria-label="What" maxlength="60"><button type="button" class="rx-sx" data-x="${i}" aria-label="Remove">${X}</button></div><div class="rx-ses-2"><label>Start<input type="time" class="rx-st" value="${esc(x.start)}"></label><label>End<input type="time" class="rx-se" value="${esc(x.end)}"></label></div></div>` : "").join("")}</div>`).join("")
-              + (off.length ? `<div class="rx-help warn">${off.length} time${off.length > 1 ? "s are" : " is"} outside the new dates and won't be saved.</div>` : "")
-              + `<div class="rx-help">Local time at the place. End is optional.</div>`;
-            $$("#rx-sw [data-add]").forEach(b => b.onclick = () => { sync(); S.push({ day: b.dataset.add, start: "", end: "", label: "" }); drawSched(); $$(`#rx-sw .rx-ses`).pop()?.querySelector(".rx-sl").focus(); });
-            $$("#rx-sw [data-x]").forEach(b => b.onclick = () => { sync(); S.splice(+b.dataset.x, 1); if (!S.length) showSched = false; drawSched(); });
+            const list = days.filter(d => S.some(x => x.day === d)).map(d => `<div class="rx-sday"><div class="rx-sday-h"><b>${dayLbl(d)}</b></div>${S.map((x, i) => x.day === d && i !== comp ? `<button type="button" class="rx-srow2" data-e="${i}"><span class="tm">${esc(x.start)}${x.end ? `<small>– ${esc(x.end)}</small>` : ""}</span><span class="lb">${esc(x.label)}</span>${CHEV}</button>` : "").join("")}</div>`).join("");
+            let html = list + (off.length ? `<div class="rx-help warn">${off.length} time${off.length > 1 ? "s are" : " is"} outside the new dates and won't be saved.</div>` : "");
+            if (comp !== null) {
+              const x = comp >= 0 ? S[comp] : { day: (S.length && days.includes(S[S.length - 1].day) ? S[S.length - 1].day : days[0]), start: S.length ? S[S.length - 1].end || hm(S[S.length - 1].start, 60) : "09:00", end: "", label: "" };
+              html += `<div class="rx-comp" id="rx-comp"><b class="rx-comp-t">${comp >= 0 ? "Change time" : "New time"}</b>
+                ${days.length > 1 ? `<div class="rx-chips" role="radiogroup" aria-label="Day">${days.map(d => `<button type="button" role="radio" data-day="${d}" aria-checked="${d === x.day}">${dayLbl(d).replace(/ \w+$/, "")}<small>${MONTHS[+d.slice(5, 7) - 1]}</small></button>`).join("")}</div>` : ""}
+                <label class="rx-cl">What<input id="rx-cw" value="${esc(x.label)}" placeholder="e.g. Autograph session" maxlength="60" autocomplete="off"></label>
+                <div class="rx-c2"><label class="rx-cl">Starts<select id="rx-cs">${opts(x.start, "Choose")}</select></label><label class="rx-cl">Ends<select id="rx-ce">${opts(x.end, "No end time")}</select></label></div>
+                <div class="rx-comp-f">${comp >= 0 ? `<button type="button" class="rx-link bad" id="rx-crm">Remove</button>` : ""}<span style="flex:1"></span><button type="button" class="rx-b" id="rx-ccx">Cancel</button><button type="button" class="rx-b pri" id="rx-cok">${comp >= 0 ? "Save time" : "Add time"}</button></div></div>`;
+            } else if (days.length) {
+              html += `<button type="button" class="rx-b rx-add-s" id="rx-son">${PLUS.replace("<svg", '<svg width="16" height="16"')} ${S.length ? "Add another time" : "Add a time"}</button>`;
+            }
+            html += `<div class="rx-help">${days.length ? (S.length ? "Local time at the place. Tap a time to change it." : "Optional. Times fans can add to their calendar.") : "Choose the dates first."}</div>`;
+            $("#rx-sw").innerHTML = html;
+            if ($("#rx-son")) $("#rx-son").onclick = () => { comp = -1; drawSched(); $("#rx-cw").focus(); $("#rx-comp").scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+            $$("#rx-sw [data-e]").forEach(b => b.onclick = () => { comp = +b.dataset.e; drawSched(); $("#rx-comp").scrollIntoView({ block: "nearest", behavior: "smooth" }); });
+            if (comp === null) return;
+            let day = comp >= 0 ? S[comp].day : $('#rx-comp [aria-checked="true"]')?.dataset.day || days[0];
+            $$("#rx-comp [data-day]").forEach(b => b.onclick = () => { day = b.dataset.day; $$("#rx-comp [data-day]").forEach(o => o.setAttribute("aria-checked", o === b)); });
+            $("#rx-cs").onchange = () => { const s = $("#rx-cs").value, e = $("#rx-ce").value; if (e && s && e <= s) $("#rx-ce").value = ""; };
+            $("#rx-ccx").onclick = () => { comp = null; drawSched(); };
+            if ($("#rx-crm")) $("#rx-crm").onclick = () => { S.splice(comp, 1); comp = null; drawSched(); };
+            $("#rx-cok").onclick = () => {
+              const w = $("#rx-cw").value.trim(), s = $("#rx-cs").value, e = $("#rx-ce").value;
+              const bad = el => { el.classList.remove("rx-shake"); void el.offsetWidth; el.classList.add("rx-shake"); el.focus(); };
+              if (!w) return bad($("#rx-cw"));
+              if (!s) return bad($("#rx-cs"));
+              const item = { day, start: s, end: e, label: w };
+              if (comp >= 0) S[comp] = item; else S.push(item);
+              sortS(); comp = null; drawSched();
+            };
           }
           drawSched();
         },
         collect() {
           if (!need("#rx-en", "Give the event a name.")) return null;
           if (!D.start) { alert("Choose the dates."); $("#rx-dbtn").focus(); return null; }
-          $$("#rx-sw .rx-ses").forEach(c => { const x = S[+c.dataset.i]; x.label = c.querySelector(".rx-sl").value; x.start = c.querySelector(".rx-st").value; x.end = c.querySelector(".rx-se").value; });
           const days = daysOf(D.start, D.end || D.start);
-          const times = S.filter(x => days.includes(x.day) && (x.start || x.label.trim()));
-          if (times.some(x => !x.start || !x.label.trim())) { alert("Each time in the schedule needs a start time and what it is."); return null; }
+          if ($("#rx-comp")) { alert("Add or cancel the time you're editing in the schedule first."); $("#rx-comp").scrollIntoView({ block: "nearest" }); return null; }
+          const times = S.filter(x => days.includes(x.day));
           if (times.length && !loc) { alert("Add the location, so the times are in the right local time."); $("#rx-eq")?.focus(); return null; }
           return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, loc, times };
         } });

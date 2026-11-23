@@ -163,12 +163,42 @@
       n.innerHTML = soc.map(k => `<a href="${esc(href(k))}"${k === "email" ? "" : ' target="_blank" rel="noopener"'} aria-label="${NAMES[k]}" title="${NAMES[k]}">${ICONS[k]}</a>`).join("");
       if (!soc.length) n.hidden = true;
     });
-    const sp = R.sponsors.map(s => {
-      const src = s.logo_url || (s.display === "white" ? (s.logo_white_url || s.logo_original_url) : (s.logo_original_url || s.logo_white_url));
-      const img = `<img class="rnx-sp${!s.logo_url && s.display === "white" && !s.logo_white_url ? " to-white" : ""}" src="${esc(src || "")}" alt="${esc(s.name)}">`;
-      return s.link_url ? `<a href="${esc(s.link_url)}" target="_blank" rel="noopener" data-sp="${s.id}">${img}</a>` : `<span class="rnx-sp-wrap">${img}</span>`;
-    }).join("");
-    document.querySelectorAll(".partners").forEach(n => { n.innerHTML = sp; if (!R.sponsors.length) n.style.display = "none"; });
+    // partners: the first 6 under the header, all of them at the bottom of the page.
+    // Every logo gets the same visual weight: wide logos are lower, square ones taller (equal area), all centred in equal slots.
+    const spSrc = s => s.logo_url || (s.display === "white" ? (s.logo_white_url || s.logo_original_url) : (s.logo_original_url || s.logo_white_url)) || "";
+    const slot = s => {
+      const img = `<img class="rnx-sp${!s.logo_url && s.display === "white" && !s.logo_white_url ? " to-white" : ""}" src="${esc(spSrc(s))}" alt="${esc(s.name)}" loading="lazy">`;
+      return s.link_url ? `<a class="pt-slot" href="${esc(s.link_url)}" target="_blank" rel="noopener" data-sp="${s.id}">${img}</a>` : `<div class="pt-slot">${img}</div>`;
+    };
+    const ps = R.sponsors.filter(s => spSrc(s));
+    document.querySelectorAll(".partners").forEach(n => {
+      const list = n.classList.contains("partners-foot") ? ps : ps.slice(0, 6);
+      if (!list.length) { n.style.display = "none"; return; }
+      n.classList.add("pt"); n.style.setProperty("--n", list.length);
+      n.innerHTML = `<div class="pt-grid">${list.map(slot).join("")}</div>`;
+    });
+    // trim any empty edges left in the picture (keeps every logo truly centred) and measure its shape
+    document.querySelectorAll(".partners.pt img.rnx-sp").forEach(img => {
+      const fit = r => img.style.setProperty("--sr", Math.sqrt(Math.max(.2, Math.min(12, r))).toFixed(3));
+      // measured on a separate copy, so the logo on the page is never put at risk
+      const probe = new Image(); probe.crossOrigin = "anonymous";
+      probe.onload = () => {
+        try {
+          const w = probe.naturalWidth, h = probe.naturalHeight; if (!w || !h) return;
+          const c = document.createElement("canvas"), k = Math.min(1, 600 / Math.max(w, h)); c.width = Math.round(w * k); c.height = Math.round(h * k);
+          const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(probe, 0, 0, c.width, c.height);
+          const d = x.getImageData(0, 0, c.width, c.height).data; let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+          for (let i = 3; i < d.length; i += 4) if (d[i] > 60) { const n = i >> 2, px = n % c.width, py = (n / c.width) | 0; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py; }
+          if (x1 < x0) return fit(w / h);
+          const tw = x1 - x0 + 1, th = y1 - y0 + 1;
+          if (tw < c.width - 2 || th < c.height - 2) { const t = document.createElement("canvas"); t.width = tw; t.height = th; t.getContext("2d").drawImage(c, x0, y0, tw, th, 0, 0, tw, th); img.src = t.toDataURL("image/png"); }
+          fit(tw / th);
+        } catch (e) { fit(w0()); }
+      };
+      const w0 = () => (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 3;
+      probe.onerror = () => { if (img.complete) fit(w0()); else img.addEventListener("load", () => fit(w0()), { once: true }); };
+      probe.src = img.getAttribute("src");
+    });
     document.addEventListener("click", e => {
       const a = e.target.closest("a[data-sp]"); if (!a) return;
       fetch(window.RNX_CONFIG.url + "/rest/v1/rpc/track_sponsor_click", { method: "POST", keepalive: true, headers: { apikey: window.RNX_CONFIG.key, Authorization: "Bearer " + window.RNX_CONFIG.key, "Content-Type": "application/json" }, body: JSON.stringify({ p_sponsor: a.dataset.sp }) }).catch(() => {});
@@ -178,7 +208,7 @@
     const leg = document.getElementById("rnx-legend");
     if (leg) leg.innerHTML = R.series.map(s => `<span><i style="background:${R.color[s.slug]}"></i>${esc(s.name)}</span>`).join("");
     const extra = document.createElement("style");
-    extra.textContent = `.partners img.rnx-sp{display:block;height:30px;width:auto;max-width:130px;object-fit:contain;opacity:.85}.partners a:hover img.rnx-sp{opacity:1}.partners img.to-white{filter:brightness(0) invert(1)}.ff-dot{display:block;width:12px;height:12px;border-radius:50%;margin:auto}.ev-logo-txt{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.08em;color:var(--c,#a9abb2)}`;
+    extra.textContent = `.partners.pt{display:block;padding:14px 12px}.partners.pt .pt-grid{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;row-gap:6px}.partners.pt .pt-slot{flex:0 0 calc(100% / min(var(--n),3));display:flex;align-items:center;justify-content:center;height:52px;min-width:0;padding:4px 8px;border-radius:8px;box-sizing:border-box}.partners.pt .pt-slot img.rnx-sp{display:block;width:auto;height:clamp(16px,calc(38px / var(--sr,2)),40px);max-width:100%;object-fit:contain;opacity:.88;transition:opacity .15s}.partners.pt a.pt-slot:hover img.rnx-sp{opacity:1}.partners.pt a.pt-slot:focus-visible{outline:2px solid var(--lm,#FF5A1F);outline-offset:1px}@media (min-width:700px){.partners.pt .pt-slot{flex-basis:calc(100% / min(var(--n),6));height:60px;padding:4px 14px}.partners.pt .pt-slot img.rnx-sp{height:clamp(16px,calc(40px / var(--sr,2)),46px)}}.partners img.to-white{filter:brightness(0) invert(1)}.ff-dot{display:block;width:12px;height:12px;border-radius:50%;margin:auto}.ev-logo-txt{font:700 12px 'Barlow Condensed',sans-serif;letter-spacing:.08em;color:var(--c,#a9abb2)}`;
     document.head.appendChild(extra);
   };
 })();

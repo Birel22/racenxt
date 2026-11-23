@@ -313,6 +313,7 @@
   .rx-vres{max-height:232px;overflow-y:auto}
   .rx-vres button[data-v]{padding:12px 14px;font-weight:600}
   .rx-mine{margin-top:12px}
+  .rx-pcut{font:700 11px Barlow,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;padding:10px 4px 2px;border-top:1px dashed #33363e;margin-top:4px}
   .rx-mine small{display:block;font:700 11px Barlow,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin-bottom:6px}
   .rx-mine > div{display:flex;flex-wrap:wrap;gap:6px}
   .rx-mine button{display:inline-flex;align-items:center;gap:7px;max-width:100%;height:34px;padding:0 10px 0 3px;border:1px solid #2c2f37;border-radius:999px;background:#1b1c22;color:#e8e8e6;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
@@ -667,7 +668,7 @@
     const bar = () => { const l = others.map(x => x.id === sp?.id ? "me" : spLogo(x)).filter(Boolean); if (!l.includes("me")) l.push("me"); return l.slice(0, 6); };
     const ed = o => rnxLogoEditor({ label: "Partner logo", heading: o.file ? "Add the logo" : "Adjust the logo", partners: bar(), getToken: token, ...o });
     const r = await sheet(isNew ? "Add a partner" : "Edit partner", `
-      <div class="rx-grp2">Logo</div><div id="rx-plw">${plHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find the logo and remove the background.</div>
+      <div class="rx-grp2">Logo</div><div id="rx-plw">${plHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find the logo and remove the background. Works best on a plain background.</div>
       <div><label class="rx-f" for="rx-pn">Partner name</label><input id="rx-pn" value="${esc(sp?.name || "")}" autocomplete="off"></div>
       <div><label class="rx-f" for="rx-pl">Link</label><input id="rx-pl" value="${esc(sp?.link_url || "")}" inputmode="url" autocapitalize="off" autocomplete="off"><div class="rx-help">Optional. Where fans go when they tap the logo.</div></div>`,
       { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`,
@@ -1068,8 +1069,8 @@
     // partners
     const sps = [...(R.sponsors || [])].sort((a, b) => (a.sort || 0) - (b.sort || 0));
     const spCard = document.createElement("section"); spCard.className = "rx-season rx-only"; spCard.id = "rx-partners";
-    spCard.innerHTML = `<div class="rx-season-h"><div><b>Partners</b><span>${sps.length ? `${sps.length} logo${sps.length > 1 ? "s" : ""} on your page` : "Add your partners' logos"}</span></div><button class="rx-b" id="rx-padd">${PLUS} Add</button></div>
-      ${sps.length ? `<div class="rx-rows">${sps.map((x, i) => `<div class="rx-prow"><button class="rx-prow-main" data-sp="${x.id}"><span class="rx-plogo"><img src="${esc(spLogo(x))}" alt=""></span><span class="rx-row-t"><b>${esc(x.name)}</b><small>${x.link_url ? esc(x.link_url.replace(/^https?:\/\/(www\.)?/, "")) : "No link"}</small></span></button><span class="rx-ord"><button aria-label="Move up" data-up="${x.id}"${i ? "" : " disabled"}>▲</button><button aria-label="Move down" data-dn="${x.id}"${i < sps.length - 1 ? "" : " disabled"}>▼</button></span></div>`).join("")}</div>` : ""}`;
+    spCard.innerHTML = `<div class="rx-season-h"><div><b>Partners</b><span>${sps.length ? (sps.length > 6 ? "The first 6 show at the top, all at the bottom" : `${sps.length} logo${sps.length > 1 ? "s" : ""} on your page`) : "Add your partners' logos"}</span></div><button class="rx-b" id="rx-padd">${PLUS} Add</button></div>
+      ${sps.length ? `<div class="rx-rows">${sps.map((x, i) => `${i === 6 ? `<div class="rx-pcut">Below: bottom of the page only</div>` : ""}<div class="rx-prow"><button class="rx-prow-main" data-sp="${x.id}"><span class="rx-plogo"><img src="${esc(spLogo(x))}" alt=""></span><span class="rx-row-t"><b>${esc(x.name)}</b><small>${x.link_url ? esc(x.link_url.replace(/^https?:\/\/(www\.)?/, "")) : "No link"}</small></span></button><span class="rx-ord"><button aria-label="Move up" data-up="${x.id}"${i ? "" : " disabled"}>▲</button><button aria-label="Move down" data-dn="${x.id}"${i < sps.length - 1 ? "" : " disabled"}>▼</button></span></div>`).join("")}</div>` : ""}`;
     evCard.insertAdjacentElement("afterend", spCard);
     $("#rx-padd").onclick = () => editPartner();
     spCard.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => editPartner(sps.find(x => x.id === b.dataset.sp)));

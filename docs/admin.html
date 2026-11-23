@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-124642"></script>
+<script src="config.js?v=20261123-130653"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -293,6 +293,8 @@ async function token(){
 }
 async function api(path, opt = {}){
   const t = await token();
+  // never write anonymously: the database would ignore it and the page would wrongly say "saved"
+  if (!t && opt.method && opt.method !== "GET") throw new Error("you've been signed out. Sign in again, then redo this change.");
   const r = await fetch(`${C.url}/rest/v1/${path}`, { ...opt, headers:{ apikey:C.key, Authorization:`Bearer ${t || C.key}`, "Content-Type":"application/json", Prefer:"return=representation", ...(opt.headers||{}) } });
   if (!r.ok){ let m = r.status + ""; try { const j = await r.json(); m = j.message || j.hint || m; } catch(e){} throw new Error(m); }
   if (opt.withCount){ const cr = r.headers.get("content-range") || ""; return { rows: await r.json(), total: +(cr.split("/")[1] || 0) }; }
@@ -301,7 +303,7 @@ async function api(path, opt = {}){
 }
 const rpc = (fn, args) => api(`rpc/${fn}`, { method:"POST", body: JSON.stringify(args || {}) });
 const ins = (t, row) => api(t, { method:"POST", body: JSON.stringify(row) });
-const upd = (t, id, row) => api(`${t}?id=eq.${id}`, { method:"PATCH", body: JSON.stringify(row) });
+const upd = async (t, id, row) => { const r = await api(`${t}?id=eq.${id}`, { method:"PATCH", body: JSON.stringify(row) }); if (Array.isArray(r) && !r.length) throw new Error("nothing was changed (no permission, or it no longer exists). Reload the page and try again."); return r; };
 const del = (t, id) => api(`${t}?id=eq.${id}`, { method:"DELETE" });
 async function guard(fn, okMsg){ try { await fn(); if (okMsg) toast(okMsg); return true; } catch(e){ alert("Couldn't save: " + e.message); return false; } }
 

@@ -3,6 +3,9 @@
 (function () {
   const C = window.RNX_CONFIG;
   const NAMES = { instagram: "Instagram", x: "X", tiktok: "TikTok", youtube: "YouTube", facebook: "Facebook" };
+  // platforms whose public profile page tells us reliably whether an account exists
+  const PROFILE = { instagram: u => `https://www.instagram.com/${u}`, x: u => `https://x.com/${u}`, tiktok: u => `https://www.tiktok.com/@${u}`, youtube: u => `https://www.youtube.com/@${u}`, facebook: u => `https://www.facebook.com/${u}` };
+  const LOOKUP = { x: true, tiktok: true };
   const HOSTS = { instagram: /instagram\.com/i, x: /(x|twitter)\.com/i, tiktok: /tiktok\.com/i, youtube: /youtube\.com/i, facebook: /(facebook|fb)\.com/i };
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const CSS = `.rxs{margin-top:8px;font:14px/1.35 Barlow,system-ui,sans-serif;color:#a9abb2}
@@ -36,7 +39,16 @@
     input.insertAdjacentElement("afterend", box);
     let t, seq = 0;
     const run = async () => {
-      const u = userOf(platform, input.value), my = ++seq;
+      const raw = (input.value || "").trim(), u = userOf(platform, raw), my = ++seq;
+      const isLink = /^https?:\/\//i.test(raw) || HOSTS[platform].test(raw);
+      // YouTube and Facebook can't be looked up reliably, and a pasted link needs no lookup: open it and confirm
+      if (raw && (!LOOKUP[platform] || isLink)) {
+        const open = isLink ? (/^https?:/i.test(raw) ? raw : "https://" + raw) : PROFILE[platform](u);
+        if (!/^https?:\/\/[^\s<>"]+$/.test(open)) { box.innerHTML = ""; return; }
+        box.innerHTML = `<div class="rxs-card"><span class="t"><b>${esc(open.replace(/^https?:\/\/(www\.)?/i, ""))}</b><small><a href="${esc(open)}" target="_blank" rel="noopener">Open it ↗</a> to check it's yours</small></span><button type="button" class="rxs-yes">This is me</button></div>`;
+        box.querySelector(".rxs-yes").onclick = () => { box.querySelector(".rxs-card").classList.add("ok"); box.querySelector(".rxs-yes").outerHTML = `<span class="rxs-ok">✓ Confirmed</span>`; input.dataset.confirmed = "1"; };
+        return;
+      }
       if (!/^[A-Za-z0-9._-]{1,60}$/.test(u)) { box.innerHTML = ""; return; }
       box.innerHTML = `<span class="rxs-dot"></span>Looking for @${esc(u)} on ${NAMES[platform]}…`;
       let r = null;

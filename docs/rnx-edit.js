@@ -37,12 +37,14 @@
   }
   async function api(path, opt = {}) {
     const t = await token();
+    // never write anonymously: the database would ignore it and the page would wrongly say "saved"
+    if (!t && opt.method && opt.method !== "GET") throw new Error("You've been signed out. Sign in again, then redo this change.");
     const r = await fetch(`${C.url}/rest/v1/${path}`, { ...opt, headers: { apikey: C.key, Authorization: `Bearer ${t || C.key}`, "Content-Type": "application/json", Prefer: "return=representation", ...(opt.headers || {}) } });
     if (!r.ok) { let m = r.status + ""; try { const j = await r.json(); m = j.message || j.hint || m; } catch (e) {} throw new Error(m); }
     const txt = await r.text(); return txt ? JSON.parse(txt) : null;
   }
   const ins = (t, row) => api(t, { method: "POST", body: JSON.stringify(row) });
-  const upd = (t, id, row) => api(`${t}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(row) });
+  const upd = async (t, id, row) => { const r = await api(`${t}?id=eq.${id}`, { method: "PATCH", body: JSON.stringify(row) }); if (Array.isArray(r) && !r.length) throw new Error("Nothing was changed. Reload the page and try again."); return r; };
   async function upload(blob, path) {
     const t = await token();
     const r = await fetch(`${C.url}/storage/v1/object/media/${path}`, { method: "POST", headers: { apikey: C.key, Authorization: `Bearer ${t}`, "Content-Type": blob.type || "image/jpeg" }, body: blob });
@@ -279,7 +281,8 @@
     { k: "youtube", l: "YouTube", base: "https://youtube.com/@", help: "Your channel name (the @name) or the channel link" },
     { k: "facebook", l: "Facebook", base: "https://facebook.com/", help: "The link to your page or profile: copy it from Facebook (facebook.com/…)" }
   ];
-  const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
+  // "name", "@name", "youtube.com/@name" or a full link -> a full link
+  const toUrl = (k, v) => { v = (v || "").trim(); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+\//i.test(v) || /^(www\.)?[a-z0-9-]+\.(com|be|me|tv|net|org)$/i.test(v)) return "https://" + v; const s = SOCIALS.find(x => x.k === k); return s ? s.base + v.replace(/^@/, "") : "https://" + v.replace(/^\/+/, ""); };
   const handleOf = (k, url) => { if (!url) return ""; const s = SOCIALS.find(x => x.k === k); return s && url.startsWith(s.base) ? url.slice(s.base.length) : url; };
   // one place for everything about you: photo, name, links, contact
   async function editProfile() {

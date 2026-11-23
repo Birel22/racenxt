@@ -42,7 +42,7 @@
         {
           "round": 6,
           "circuit": "Portimão",
-          "start": "2026-11-27",
+          "start": "2026-11-26",
           "end": "2026-11-29"
         }
       ],
@@ -113,13 +113,15 @@
           "day": "2026-11-26",
           "label": "Private Test 1",
           "start": "09:25",
-          "end": "10:55"
+          "end": "10:55",
+          "optional": true
         },
         {
           "day": "2026-11-26",
           "label": "Private Test 2",
           "start": "13:35",
-          "end": "15:05"
+          "end": "15:05",
+          "optional": true
         },
         {
           "day": "2026-11-26",
@@ -167,7 +169,11 @@
       ],
       "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images. The EEPC sessions are the orange lines in section '2. Timing / Team' (screenshot: eepc-portimao-2026-timing.jpg). Briefings, lunch, scrutineering etc. are not sessions. The race is 6 hours (14:55-20:55): a text-only reading wrongly guessed a 4-hour race.",
       "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c",
-      "event_id": "83159948-aa21-4316-a1d6-dc0e30c1b993"
+      "event_id": "83159948-aa21-4316-a1d6-dc0e30c1b993",
+      "ignore_extra": [
+        "briefing"
+      ],
+      "note": "Private tests are often not public: optional. Briefings are not sessions: ignored."
     },
     {
       "id": "eepc-stream",
@@ -364,104 +370,91 @@
         {
           "round": 1,
           "circuit": "Sakhir",
-          "start": null,
-          "end": null,
-          "month": "March"
+          "start": "2027-03-12",
+          "end": "2027-03-14"
         },
         {
           "round": 2,
           "circuit": "Jeddah",
-          "start": null,
-          "end": null,
-          "month": "March"
+          "start": "2027-03-19",
+          "end": "2027-03-21"
         },
         {
           "round": 3,
           "circuit": "Melbourne",
-          "start": null,
-          "end": null,
-          "month": null
+          "start": "2027-04-02",
+          "end": "2027-04-04"
         },
         {
           "round": 4,
           "circuit": "Montréal",
-          "start": null,
-          "end": null,
-          "month": null
+          "start": "2027-05-20",
+          "end": "2027-05-23"
         },
         {
           "round": 5,
           "circuit": "Monaco",
-          "start": null,
-          "end": null,
-          "month": "June"
+          "start": "2027-06-03",
+          "end": "2027-06-06"
         },
         {
           "round": 6,
           "circuit": "Silverstone",
-          "start": null,
-          "end": null,
-          "month": "July"
+          "start": "2027-07-02",
+          "end": "2027-07-04"
         },
         {
           "round": 7,
           "circuit": "Spielberg",
-          "start": null,
-          "end": null,
-          "month": "July"
+          "start": "2027-07-09",
+          "end": "2027-07-11"
         },
         {
           "round": 8,
           "circuit": "Monza",
-          "start": null,
-          "end": null,
-          "month": "September"
+          "start": "2027-09-03",
+          "end": "2027-09-05"
         },
         {
           "round": 9,
           "circuit": "Madrid",
-          "start": null,
-          "end": null,
-          "month": "September"
+          "start": "2027-09-10",
+          "end": "2027-09-12"
         },
         {
           "round": 10,
           "circuit": "Baku",
-          "start": null,
-          "end": null,
-          "month": "September"
+          "start": "2027-09-24",
+          "end": "2027-09-26"
         },
         {
           "round": 11,
           "circuit": "Istanbul",
-          "start": null,
-          "end": null,
-          "month": "October"
+          "start": "2027-10-01",
+          "end": "2027-10-03"
         },
         {
           "round": 12,
           "circuit": "Mexico City",
-          "start": null,
-          "end": null,
-          "month": "October"
+          "start": "2027-10-29",
+          "end": "2027-10-31"
         },
         {
           "round": 13,
           "circuit": "Lusail",
-          "start": null,
-          "end": null,
-          "month": "December"
+          "start": "2027-12-03",
+          "end": "2027-12-05"
         },
         {
           "round": 14,
           "circuit": "Yas Island",
-          "start": null,
-          "end": null,
-          "month": "December"
+          "start": "2027-12-10",
+          "end": "2027-12-12"
         }
       ],
       "notes": "Only the order and months are announced, no exact dates: the agent must add the 14 rounds without inventing dates (dates TBC).",
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "note": "Dates are public (confirmed by Louis, 24 Nov 2026)."
     },
     {
       "id": "f2-2026-lusail-schedule",
@@ -542,7 +535,7 @@
       ],
       "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
       "event_id": "f8b2f131-d77e-4311-8f0d-1b160388f973",
-      "note": "Updated 23 Nov 2026: the timetable is now on formula1.com (local time). Practice 11:05-11:50 checked by hand; the other three to confirm."
+      "note": "Published on formula1.com (local time); confirmed by Louis."
     },
     {
       "id": "alms-2026-27-calendar",

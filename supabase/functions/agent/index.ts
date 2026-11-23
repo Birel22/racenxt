@@ -579,7 +579,8 @@ function scoreSchedule(c: any, sessions: any[]) {
     if (!x.optional) { max++; if (ok) score++; else if (f) score += 0.5; }
     rows.push({ expect: `${x.label} ${want}${x.end ? `–${x.end}` : ""}${x.optional ? " (optional)" : ""}`, found: f ? `${f.label} ${t(f)} (${f.duration_min} min)` : "missed", ok, why });
   }
-  const extra = sessions.filter((_: any, i: number) => !used.has(i));
+  const ign = (c.ignore_extra || []).map((w: string) => w.toLowerCase());
+  const extra = sessions.filter((s: any, i: number) => !used.has(i) && !ign.some((w: string) => String(s.label).toLowerCase().includes(w)));
   for (const e of extra) rows.push({ expect: "(not in the answer key)", found: `${e.label} ${t(e)}`, ok: false, why: "extra or wrong time" });
   score = Math.max(0, score - extra.length * 0.25);
   return { score, max, rows };

@@ -476,7 +476,7 @@ const NAV = [
   // the calendar data fans see
   ["grp","Calendar"],["championships","Championships",I.champ],["circuits","Circuits",I.pin],["vehicles","Vehicles",I.car],
   // the AI that keeps it up to date
-  ["grp","AI agent"],["agent","Agent",I.bot],["usage","AI usage",I.spark],
+  ["grp","AI agent"],["agent","Agent",I.bot],["tests","Agent tests",I.review],["usage","AI usage",I.spark],
   // the athletes and their pages
   ["grp","Athletes"],["users","Users & pages",I.users]
 ];
@@ -498,7 +498,7 @@ async function route(){
     await loadRef();
     if (page === "championships" && a) await championshipPage(decodeURIComponent(a), b);
     else if (page === "review" && a) await review(decodeURIComponent(a));
-    else await ({ dashboard, championships, review, users, circuits, vehicles, usage, agent: agentPage }[page] || dashboard)();
+    else await ({ dashboard, championships, review, users, circuits, vehicles, usage, tests: () => testsPage(), agent: agentPage }[page] || dashboard)();
   } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
 }
 window.addEventListener("hashchange", route);
@@ -1268,6 +1268,69 @@ async function usage(){
     await api("app_settings", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ key:"auto_checks", value, updated_at: new Date().toISOString() }) });
     usage();
   }, "Saved");
+}
+
+// ---------- Agent tests: run the agent on known answers and see how it scores ----------
+const TEST_TASK = { calendar:"Calendar", schedule:"Schedule", watch:"Where to watch" };
+let TPOLL = null;
+async function agentFn(body){
+  const t = await token();
+  const r = await fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.error) throw new Error(j.error || "no answer");
+  return j;
+}
+async function testsPage(open){
+  clearTimeout(TPOLL);
+  let cases = await api(`agent_test_cases?select=id,sort,data&order=sort`);
+  if (!cases.length) { await agentFn({ action:"test_cases" }); cases = await api(`agent_test_cases?select=id,sort,data&order=sort`); }
+  const runs = await api(`agent_test_runs?select=id,case_id,status,score,max,details,usage,trace,error,created_at,finished_at&order=created_at.desc&limit=300`);
+  const last = {}; runs.forEach(r => { if (!last[r.case_id]) last[r.case_id] = r; });
+  const done = cases.map(c => last[c.id]).filter(r => r?.status === "done");
+  const tot = done.reduce((a, r) => a + +r.score, 0), max = done.reduce((a, r) => a + +r.max, 0);
+  const cost = done.reduce((a, r) => a + runCost(r.usage), 0);
+  const busy = cases.some(c => last[c.id]?.status === "running");
+  const pct = (r) => r.max ? Math.round(100 * r.score / r.max) : 0;
+  const cls = p => p >= 90 ? "good" : p >= 60 ? "warn" : "bad";
+  $("#main").innerHTML = `<div class="ph"><h1>Agent tests</h1><button class="btn" id="t-sync">Reload answers</button><button class="btn pri" id="t-all"${busy ? " disabled" : ""}>${busy ? "Running…" : "Run all"}</button></div>
+    <div class="kpis">
+      <div class="kpi"><b>${max ? Math.round(100 * tot / max) + "%" : "–"}</b><span>Score (${done.length}/${cases.length} tests run)</span></div>
+      <div class="kpi"><b>${done.length ? usd(cost) : "–"}</b><span>Cost of one full run</span></div>
+      <div class="kpi"><b>${done.length ? usd(cost / done.length) : "–"}</b><span>Average per test</span></div>
+    </div>
+    <p class="muted" style="font-size:13px;margin:6px 0 18px">Each test asks the agent a question we already know the answer to (agent-tests/answer_key.json) and compares. Nothing is added to the app or the Review queue.</p>
+    <div class="tbl"><table><tr><th>Test</th><th class="hide-m">Task</th><th>Last score</th><th class="hide-m">Cost</th><th></th></tr>
+    ${cases.map(c => { const r = last[c.id]; const st = !r ? `<span class="muted">Not run</span>` : r.status === "running" ? `<span class="chip">Running…</span>` : r.status === "error" ? `<span class="chip bad" title="${esc(r.error || "")}">Error</span>` : `<span class="chip ${cls(pct(r))}">${+r.score}/${+r.max} · ${pct(r)}%</span>`;
+      return `<tr class="click" data-tc="${esc(c.id)}"><td><b>${esc(c.data.label || c.id)}</b><div class="muted" style="font-size:12px">${esc(c.id)}</div></td><td class="hide-m">${TEST_TASK[c.data.task] || c.data.task}</td><td class="nowrap">${st}</td><td class="hide-m nowrap">${r?.usage ? usd(runCost(r.usage)) : "–"}</td><td style="text-align:right"><button class="btn sm" data-run="${esc(c.id)}"${r?.status === "running" ? " disabled" : ""}>Run</button></td></tr>
+      ${open === c.id ? `<tr><td colspan="5" style="background:var(--bg2,rgba(127,127,127,.06))">${testDetail(c, r, runs.filter(x => x.case_id === c.id))}</td></tr>` : ""}`; }).join("")}</table></div>`;
+  const runOne = id => agentFn({ action:"test_run", case_id:id });
+  $("#t-sync").onclick = () => guard(async () => { await agentFn({ action:"test_cases" }); testsPage(open); }, "Answers reloaded");
+  $("#t-all").onclick = () => guard(async () => {
+    $("#t-all").disabled = true; $("#t-all").textContent = "Starting…";
+    const ids = cases.map(c => c.id);
+    for (let i = 0; i < ids.length; i += 3) { await Promise.all(ids.slice(i, i + 3).map(runOne)); await new Promise(r => setTimeout(r, 1500)); }
+    testsPage(open);
+  }, "All tests started: results arrive in a few minutes");
+  $$("[data-run]").forEach(b => b.onclick = e => { e.stopPropagation(); guard(async () => { await runOne(b.dataset.run); testsPage(open); }, "Test started"); });
+  $$("[data-tc]").forEach(tr => tr.onclick = () => testsPage(open === tr.dataset.tc ? null : tr.dataset.tc));
+  if (busy && location.hash.startsWith("#/tests")) TPOLL = setTimeout(() => location.hash.startsWith("#/tests") && testsPage(open), 8000);
+}
+function testDetail(c, r, hist){
+  if (!r) return `<p class="dim">Not run yet.</p>`;
+  if (r.status === "running") return `<p class="dim">Running… (1–4 minutes)</p>`;
+  if (r.status === "error") return `<p class="dim">Error: ${esc(r.error || "")}</p>`;
+  const rows = r.details?.rows || [];
+  const tr = r.trace || {};
+  const secs = r.finished_at ? Math.round((new Date(r.finished_at) - new Date(r.created_at)) / 1000) : null;
+  return `<div style="font-size:13px;line-height:1.5">
+    <table style="width:100%;margin:4px 0 10px"><tr><th>Expected</th><th>Agent found</th><th></th></tr>
+    ${rows.map(x => `<tr><td>${esc(x.expect)}</td><td>${esc(x.found)}</td><td class="nowrap">${x.ok ? '<span class="chip good">✓</span>' : `<span class="chip bad">✗ ${esc(x.why || "")}</span>`}</td></tr>`).join("")}</table>
+    <div class="muted">${secs != null ? secs + "s · " : ""}${esc((r.usage?.model || "").replace(/claude-/g, "").replace(/-5-5/g, ""))} · ${r.usage?.searches || 0} searches · ${r.usage?.fetches || 0} pages opened</div>
+    ${(tr.searches || []).length ? `<details style="margin-top:6px"><summary>Searches</summary>${tr.searches.map(s => `<div>${esc(typeof s === "string" ? s : s.query || JSON.stringify(s))}</div>`).join("")}</details>` : ""}
+    ${(tr.opened || []).length ? `<details><summary>Pages opened</summary>${tr.opened.map(u => `<div style="word-break:break-all">${esc(typeof u === "string" ? u : u.url || JSON.stringify(u))}</div>`).join("")}</details>` : ""}
+    ${c.data.note ? `<p class="muted" style="margin-top:6px">Note: ${esc(c.data.note)}</p>` : ""}
+    ${hist.length > 1 ? `<div class="muted" style="margin-top:6px">Earlier: ${hist.slice(1, 8).filter(h => h.status === "done").map(h => `${+h.score}/${+h.max} (${new Date(h.created_at).toLocaleDateString("en-GB", { day:"numeric", month:"short" })})`).join(" · ")}</div>` : ""}
+  </div>`;
 }
 
 // ---------- Users ----------

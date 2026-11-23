@@ -46,7 +46,8 @@
           "end": "2026-11-29"
         }
       ],
-      "notes": "The site is the Ultimate Cup Series, which runs several championships; EEPC is one of them."
+      "notes": "The site is the Ultimate Cup Series, which runs several championships; EEPC is one of them.",
+      "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c"
     },
     {
       "id": "eepc-2027-calendar",
@@ -97,7 +98,8 @@
       "not_races": [
         "Test days 10-11 Feb 2027 at Paul Ricard"
       ],
-      "notes": "Published as the Ultimate Cup Series calendar (all championships), not under the EEPC name. Missed by the agent before. Round 6 has no date yet: must not invent one."
+      "notes": "Published as the Ultimate Cup Series calendar (all championships), not under the EEPC name. Missed by the agent before. Round 6 has no date yet: must not invent one.",
+      "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c"
     },
     {
       "id": "eepc-2026-portimao-schedule",
@@ -163,7 +165,9 @@
           "end": "20:55"
         }
       ],
-      "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images. The EEPC sessions are the orange lines in section '2. Timing / Team' (screenshot: eepc-portimao-2026-timing.jpg). Briefings, lunch, scrutineering etc. are not sessions. The race is 6 hours (14:55-20:55): a text-only reading wrongly guessed a 4-hour race."
+      "notes": "Grid-style PDF shared by all Ultimate Cup championships: must keep only EEPC sessions (not 'PROTOTYPES Paid practice' or other classes). Text extraction loses which time belongs to which session: the agent should read the PDF pages as images. The EEPC sessions are the orange lines in section '2. Timing / Team' (screenshot: eepc-portimao-2026-timing.jpg). Briefings, lunch, scrutineering etc. are not sessions. The race is 6 hours (14:55-20:55): a text-only reading wrongly guessed a 4-hour race.",
+      "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c",
+      "event_id": "83159948-aa21-4316-a1d6-dc0e30c1b993"
     },
     {
       "id": "eepc-stream",
@@ -171,7 +175,8 @@
       "task": "watch",
       "expect": {
         "stream_url": "https://www.youtube.com/@ultimatecuptv/streams"
-      }
+      },
+      "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c"
     },
     {
       "id": "elms-2027-calendar",
@@ -229,7 +234,8 @@
         "Official test (Prologue) Barcelona 8-9 March 2027"
       ],
       "notes": "Sources disagree in places (season bar vs article): the agent must flag the doubt, not pick silently.",
-      "source_en": "https://www.europeanlemansseries.com/en/news/six-race-calendar-and-early-start-for-exciting-2027-elms-season/13656"
+      "source_en": "https://www.europeanlemansseries.com/en/news/six-race-calendar-and-early-start-for-exciting-2027-elms-season/13656",
+      "series_id": "74a933b6-fd82-454d-9017-0dea661e6ac2"
     },
     {
       "id": "elms-2027-barcelona-schedule",
@@ -238,7 +244,9 @@
       "event": "4 Hours of Barcelona 2027",
       "source": "https://www.europeanlemansseries.com/fr/race/4-heures-de-barcelone-2027",
       "expect": "nothing yet: every session is TBC. The agent must propose nothing.",
-      "notes": "Page has a 'my time' switch; some livestream links still point to 2026."
+      "notes": "Page has a 'my time' switch; some livestream links still point to 2026.",
+      "series_id": "74a933b6-fd82-454d-9017-0dea661e6ac2",
+      "event_id": "3ae1cdd8-cec9-46a6-ba3f-a2f39dc9748c"
     },
     {
       "id": "elms-stream",
@@ -246,7 +254,8 @@
       "task": "watch",
       "expect": {
         "stream_url": "https://plus.fiawec.com/en"
-      }
+      },
+      "series_id": "74a933b6-fd82-454d-9017-0dea661e6ac2"
     },
     {
       "id": "f2-2026-calendar",
@@ -342,7 +351,8 @@
       ],
       "not_races": [
         "Pre-season test Barcelona 17-19 Feb 2026"
-      ]
+      ],
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
     },
     {
       "id": "f2-2027-calendar",
@@ -450,7 +460,8 @@
           "month": "December"
         }
       ],
-      "notes": "Only the order and months are announced, no exact dates: the agent must add the 14 rounds without inventing dates (dates TBC)."
+      "notes": "Only the order and months are announced, no exact dates: the agent must add the 14 rounds without inventing dates (dates TBC).",
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
     },
     {
       "id": "f2-2026-lusail-schedule",
@@ -493,7 +504,9 @@
         }
       ],
       "notes": "Louis's screenshot in CET ('My time' selected): f2-lusail-2026-cet.png. The raw page (what the agent reads, no browser) shows the times in UTC (11:00, 15:00, 16:15, 12:00), neither track time nor the viewer's time, and doesn't say so. This is the earlier time-zone mistake: the agent must treat fiaformula2.com raw times as UTC and convert to track time (Qatar UTC+3).",
-      "timezone": "local track time = Qatar (UTC+3). Stored as local time."
+      "timezone": "local track time = Qatar (UTC+3). Stored as local time.",
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "event_id": "5d2a1d6f-0d80-4676-95c6-fc2b1277bc92"
     },
     {
       "id": "f2-2026-abudhabi-schedule",
@@ -501,7 +514,9 @@
       "task": "schedule",
       "event": "Yas Marina 2026",
       "source": "https://www.fiaformula2.com/en/racing/2026/yas-marina",
-      "expect": "nothing yet: all sessions TBC (4-6 Dec)."
+      "expect": "nothing yet: all sessions TBC (4-6 Dec).",
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "event_id": "f8b2f131-d77e-4311-8f0d-1b160388f973"
     },
     {
       "id": "alms-2026-27-calendar",
@@ -525,7 +540,8 @@
           "end": "2027-02-21"
         }
       ],
-      "notes": "A winter season named across two years; each event is a double-header (two 4-hour races)."
+      "notes": "A winter season named across two years; each event is a double-header (two 4-hour races).",
+      "series_id": "842f1713-227e-4a08-bf01-c555c65642c3"
     },
     {
       "id": "alms-jerez-2027-schedule",
@@ -577,7 +593,9 @@
           "start": "13:45",
           "end": "17:45"
         }
-      ]
+      ],
+      "series_id": "842f1713-227e-4a08-bf01-c555c65642c3",
+      "event_id": "81029be8-ef13-404b-8536-8d28bc1e727e"
     },
     {
       "id": "alms-portimao-2027-schedule",
@@ -629,7 +647,9 @@
           "start": "13:15",
           "end": "17:15"
         }
-      ]
+      ],
+      "series_id": "842f1713-227e-4a08-bf01-c555c65642c3",
+      "event_id": "2355fb71-887b-4dc1-a73f-190e9fa04322"
     },
     {
       "id": "aci-karting-2027-calendar",
@@ -675,7 +695,8 @@
         "Coppa dei Campioni ACI Sport (9-10 Oct 2027)",
         "Campionato Italiano KZN & Trofeo Nazionale MINI Gr.3 (5-7 Nov 2027, Lonato)",
         "Campionato Italiano Legend 100/125 (dates TBA)"
-      ]
+      ],
+      "series_id": "f8b38e8a-e7fe-46f0-93f6-7a5b73f2ce6a"
     },
     {
       "id": "aci-karting-stream",
@@ -683,7 +704,8 @@
       "task": "watch",
       "expect": {
         "stream_url": "https://www.youtube.com/@ACISportTVofficial"
-      }
+      },
+      "series_id": "f8b38e8a-e7fe-46f0-93f6-7a5b73f2ce6a"
     },
     {
       "id": "f2-watch",
@@ -693,7 +715,8 @@
         "broadcasters_url": "https://www.fiaformula2.com/en/information/where-to-watch-us-f2.5KKoOKrH2MbJlUgtRMYDQy",
         "stream_url": "F1 TV (https://f1tv.formula1.com)"
       },
-      "notes": "The broadcasters page is on the official F2 site, under Information."
+      "notes": "The broadcasters page is on the official F2 site, under Information.",
+      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
     }
   ]
 }

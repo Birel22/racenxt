@@ -4,6 +4,8 @@
 // POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
 // POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
 // POST { action: "prompts" }               -> the instructions for each task, for the admin Agent page
+// POST { action: "test_cases" }            -> loads the answer key (agent-tests/answer_key.json) into the database
+// POST { action: "test_run", case_id }     -> runs one test case without filing anything, and scores it
 // POST { action: "tick" } + x-cron-secret      -> called by pg_cron every 15 min: starts the checks that are due
 // Scheduled checks (monthly / daily) first compare the official pages with last time and skip the AI if unchanged.
 // Callers: signed-in admins (from the admin page) or the service role (scheduled checks).
@@ -357,15 +359,29 @@ async function links(series: any, runId: string) {
 }
 
 // ---------- discover: official site, logo, calendar ----------
+// the calendar the AI finds, cleaned up (names, dates, times converted to circuit time). Nothing is filed here.
+async function computeCalendar(series: any, src: any) {
+  const year = new Date().getUTCFullYear();
+  const user = discoverPrompt(series, src, year);
+  const { out, usage, trace } = await ask(SYS(), user, 10);
+  const found = (out.seasons || []).flatMap((s: any) => (s.events || []).map((e: any) => ({ ...e, year: s.year || +String(e.start_date).slice(0, 4) })))
+    .map((e: any) => ({ ...e, name: cleanName(e.name, series) })).filter((e: any) => e.name && okDate(e.start_date) && okDate(e.end_date || e.start_date))
+    .map((e: any) => {
+      const tz = e.circuit?.timezone || "";
+      const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
+      const conv = tz && zone && zone !== tz;
+      return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
+        sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
+    });
+  return { out, usage, trace, found };
+}
 async function discover(series: any, src: any, runId: string, kind = "discover") {
   if (kind === "monthly") {
     const same = await unchanged(`series_id=eq.${series.id}&event_id=is.null`, 90);
     if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
   }
-  const year = new Date().getUTCFullYear();
   const known = await db(`events?series_id=eq.${series.id}&select=id,year,round,name,start_date,end_date,duration_label,venues(name)`);
-  const user = discoverPrompt(series, src, year);
-  const { out, usage, trace } = await ask(SYS(), user, 10);
+  const { out, usage, trace, found } = await computeCalendar(series, src);
   const site = out.website_url || series.website_url;
   const domain = host(site || "");
   const props: string[] = [];
@@ -391,15 +407,6 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   if (await proposeLinks(series, out, runId, site || "")) props.push("where to watch");
 
   // calendar: new races in one proposal, changed dates as separate proposals
-  const found = (out.seasons || []).flatMap((s: any) => (s.events || []).map((e: any) => ({ ...e, year: s.year || +String(e.start_date).slice(0, 4) })))
-    .map((e: any) => ({ ...e, name: cleanName(e.name, series) })).filter((e: any) => e.name && okDate(e.start_date) && okDate(e.end_date || e.start_date))
-    .map((e: any) => {
-      const tz = e.circuit?.timezone || "";
-      const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
-      const conv = tz && zone && zone !== tz;
-      return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
-        sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
-    });
   const fresh: any[] = [];
   let ttFound = 0;
   for (const e of found) {
@@ -433,13 +440,8 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
 }
 
 // ---------- check_event: timetable + where to watch ----------
-async function checkEvent(ev: any, series: any, src: any, runId: string, kind = "manual") {
-  if (kind === "daily") {
-    // race week: skip the AI while the pages stay the same, but ask it at least every other day
-    const same = await unchanged(`event_id=eq.${ev.id}`, 2);
-    if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
-  }
-  const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min&order=local_start`);
+// the timetable the AI finds for one race, cleaned up and in circuit time. Nothing is filed here.
+async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
   const v = ev.venues || {};
   // the race's own broadcast page is only published in the days before the race
   const raceWeek = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5) <= 7;
@@ -450,7 +452,6 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
   if (!(out.timetable_found && (out.sessions || []).length) && daysToStart <= 10 && daysToStart >= -1) {
     try { const deep = await ask(SYS(), user + DEEP, 10, [STRONG]); addUsage(usage, deep.usage); addTrace(trace, deep.trace); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; else if (!out.watch_url && deep.out.watch_url) out.watch_url = deep.out.watch_url; } catch (_) { /* keep the first answer */ }
   }
-  const props: string[] = [];
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
   const zone = ctz ? pageZone(out.times_zone, ctz) : "";
   const conv = !!ctz && zone !== ctz;
@@ -464,7 +465,19 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
     const starts = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
     if (starts(asUtc) === starts(current)) { sessions = asUtc; zoneFix = ` (times were shown in UTC: converted to local ${ctz})`; }
   }
-  if (out.timetable_found && sessions.length) {
+  if (!(out.timetable_found && sessions.length)) sessions = [];
+  return { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek };
+}
+async function checkEvent(ev: any, series: any, src: any, runId: string, kind = "manual") {
+  if (kind === "daily") {
+    // race week: skip the AI while the pages stay the same, but ask it at least every other day
+    const same = await unchanged(`event_id=eq.${ev.id}`, 2);
+    if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
+  }
+  const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min&order=local_start`);
+  const { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek } = await computeSchedule(ev, series, src, current);
+  const props: string[] = [];
+  if (sessions.length) {
     // only real changes count: start times and lengths, not how the sessions are named
     // (an estimated length never replaces a known one)
     const key = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
@@ -483,6 +496,120 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
   }
   const summary = props.length ? `Found: ${props.join(", ")}.` : out.timetable_found ? "Nothing new: timetable unchanged." : "Timetable not published yet.";
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.source_url, out.race_page_url, ...(src?.urls || []).map((u: any) => u.url)]), trace: { ...trace, answer: out } };
+}
+
+
+// ---------- agent tests: run a task on a case of the answer key, without filing anything, and score it ----------
+const KEY_URL = "https://raw.githubusercontent.com/Birel22/racenxt/main/agent-tests/answer_key.json";
+async function syncCases() {
+  const r = await fetch(KEY_URL + "?t=" + Date.now(), { headers: { "Cache-Control": "no-cache" } });
+  if (!r.ok) throw new Error("answer key not reachable");
+  const key = await r.json();
+  const rows = (key.cases || []).map((c: any, i: number) => ({ id: c.id, sort: i, data: c, updated_at: new Date().toISOString() }));
+  if (rows.length) await db("agent_test_cases", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(rows) });
+  return rows.length;
+}
+// circuits are written many ways: compare on meaningful words, with a few known aliases
+const ALIAS: [RegExp, string][] = [[/algarve/, "portimao"], [/catalunya|catalonia|montmelo/, "barcelona"], [/castellet|paul ricard/, "ricard"], [/yas/, "yas abu dhabi"], [/abu dhabi/, "yas abu dhabi"],
+  [/lusail|losail/, "lusail qatar"], [/red bull ring|spielberg/, "spielberg"], [/hungaroring|budapest|mogyorod/, "budapest"], [/enzo e dino|imola/, "imola"], [/gilles villeneuve|montreal/, "montreal"],
+  [/albert park|melbourne/, "melbourne"], [/sakhir|bahrain/, "sakhir"], [/jeddah|corniche/, "jeddah"], [/marina bay|singapore/, "singapore"], [/autodromo nazionale|monza/, "monza"],
+  [/nevers|magny/, "magny"], [/francorchamps|spa\b/, "spa"], [/navarra|los arcos/, "navarra"], [/misano|marco simoncelli/, "misano"], [/istanbul|intercity|park/, "istanbul"],
+  [/hermanos rodriguez|mexico/, "mexico"], [/baku/, "baku"], [/madrid|madring|ifema/, "madrid"], [/jerez|angel nieto/, "jerez"]];
+const STOP = new Set(["circuit", "circuito", "de", "do", "of", "the", "international", "internacional", "internazionale", "autodromo", "world", "grand", "prix", "track", "karting", "kart", "raceway", "speedway", "park", "and", "la", "le", "del", "di"]);
+const words = (s: string) => { let n = norm(s); for (const [re, w] of ALIAS) if (re.test(n)) n += " " + w; return new Set(n.split(" ").filter(w => w.length > 2 && !STOP.has(w))); };
+const sameCircuit = (a: string, b: string) => { const A = words(a), B = words(b); for (const w of A) if (B.has(w)) return true; return false; };
+const firstUrl = (s: unknown) => (String(s || "").match(/https?:\/\/[^\s)]+/) || [""])[0];
+const looseUrl = (found: unknown, exp: unknown) => {
+  const e = firstUrl(exp), f = String(found || "");
+  if (!e || !f) return false;
+  if (sameUrl(f, e)) return true;
+  const clean = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/[/#?]+$/, "").toLowerCase();
+  const fe = clean(f), ee = clean(e);
+  // same host and one path is the start of the other (youtube.com/@channel vs youtube.com/@channel/streams, f1tv.formula1.com vs f1tv.formula1.com/...)
+  return fe.startsWith(ee) || ee.startsWith(fe) || (host(f) === host(e) && host(e).length > 0 && ee.split("/").length <= 1);
+};
+
+function scoreCalendar(c: any, found: any[]) {
+  const yr = String(c.year).match(/^\d{4}$/) ? +c.year : null;
+  // a winter season (2026-27): only what starts from about a month before its first expected round
+  const first = (c.expect || []).map((x: any) => x.start).filter(Boolean).sort()[0] || "";
+  const from = first ? new Date(new Date(first).getTime() - 40 * 864e5).toISOString().slice(0, 10) : "";
+  const pool = found.filter((e: any) => yr ? String(e.start_date).startsWith(String(yr)) : (!from || e.start_date >= from));
+  const rows: any[] = []; const used = new Set<number>();
+  let score = 0, max = 0;
+  for (const x of c.expect || []) {
+    max++;
+    const idx = pool.findIndex((e: any, i: number) => !used.has(i) && sameCircuit(`${e.circuit?.name || ""} ${e.circuit?.city || ""} ${e.name || ""}`, `${x.circuit} ${x.name || ""}`));
+    const f = idx >= 0 ? pool[idx] : null; if (idx >= 0) used.add(idx);
+    if (!x.start) { // no date announced yet: right if the agent didn't invent one
+      const ok = !f;
+      if (ok) score++;
+      rows.push({ expect: `${x.circuit} · date not announced`, found: f ? `${f.name} ${f.start_date}→${f.end_date}` : "not added", ok, why: ok ? "" : "invented a date" });
+      continue;
+    }
+    const ok = !!f && f.start_date === x.start && f.end_date === x.end;
+    if (ok) score++;
+    rows.push({ expect: `${x.circuit} ${x.start}→${x.end}`, found: f ? `${f.name} ${f.start_date}→${f.end_date}` : "missed", ok, why: ok ? "" : f ? "wrong dates" : "missed" });
+  }
+  const extra = pool.filter((_: any, i: number) => !used.has(i));
+  for (const e of extra) rows.push({ expect: "(not in the answer key)", found: `${e.name} ${e.start_date}→${e.end_date}`, ok: false, why: "extra" });
+  score = Math.max(0, score - extra.length * 0.5);
+  return { score, max, rows };
+}
+function scoreSchedule(c: any, sessions: any[]) {
+  const t = (s: any) => String(s.local_start).replace("T", " ").slice(0, 16);
+  if (typeof c.expect === "string") { // nothing published yet
+    const ok = !sessions.length;
+    return { score: ok ? 1 : 0, max: 1, rows: [{ expect: "nothing yet (TBC)", found: sessions.length ? `${sessions.length} sessions proposed` : "nothing proposed", ok, why: ok ? "" : "invented a timetable" }] };
+  }
+  const rows: any[] = []; const used = new Set<number>(); let score = 0, max = 0;
+  for (const x of c.expect) {
+    const want = `${x.day} ${x.start}`;
+    const idx = sessions.findIndex((s: any, i: number) => !used.has(i) && t(s) === want);
+    if (idx >= 0) used.add(idx);
+    const f = idx >= 0 ? sessions[idx] : null;
+    let ok = !!f, why = f ? "" : "missed";
+    if (f && x.end) { const end = new Date(new Date(want.replace(" ", "T") + ":00Z").getTime() + f.duration_min * 60000).toISOString().slice(11, 16); if (end !== x.end && !f.end_estimated) { ok = false; why = `ends ${end}, not ${x.end}`; } }
+    if (!x.optional) { max++; if (ok) score++; else if (f) score += 0.5; }
+    rows.push({ expect: `${x.label} ${want}${x.end ? `–${x.end}` : ""}${x.optional ? " (optional)" : ""}`, found: f ? `${f.label} ${t(f)} (${f.duration_min} min)` : "missed", ok, why });
+  }
+  const extra = sessions.filter((_: any, i: number) => !used.has(i));
+  for (const e of extra) rows.push({ expect: "(not in the answer key)", found: `${e.label} ${t(e)}`, ok: false, why: "extra or wrong time" });
+  score = Math.max(0, score - extra.length * 0.25);
+  return { score, max, rows };
+}
+function scoreWatch(c: any, out: any) {
+  const rows: any[] = []; let score = 0, max = 0;
+  for (const k of ["stream_url", "broadcasters_url"]) {
+    if (!c.expect?.[k]) continue;
+    max++;
+    const ok = looseUrl(out?.[k], c.expect[k]);
+    if (ok) score++;
+    rows.push({ expect: `${k === "stream_url" ? "Official stream" : "TV broadcasters"}: ${firstUrl(c.expect[k]) || c.expect[k]}`, found: out?.[k] || "nothing", ok, why: ok ? "" : out?.[k] ? "different link" : "missed" });
+  }
+  return { score, max, rows };
+}
+async function runTest(caseId: string, runId: string) {
+  const [row] = await db(`agent_test_cases?id=eq.${encodeURIComponent(caseId)}&select=data`);
+  if (!row) throw new Error("unknown case");
+  const c = row.data;
+  const [series] = await db(`series?id=eq.${c.series_id}&select=*`);
+  if (!series) throw new Error("championship not found");
+  const [src] = await db(`series_sources?series_id=eq.${series.id}&select=*`);
+  let res: any, usage: any, trace: any;
+  if (c.task === "calendar") {
+    const r = await computeCalendar(series, src); usage = r.usage; trace = { ...r.trace, answer: r.out };
+    res = scoreCalendar(c, r.found);
+  } else if (c.task === "schedule") {
+    const [ev] = await db(`events?id=eq.${c.event_id}&select=*,venues(name,city,country,timezone)`);
+    if (!ev) throw new Error("race not found");
+    const r = await computeSchedule(ev, series, src, []); usage = r.usage; trace = { ...r.trace, answer: r.out };
+    res = scoreSchedule(c, r.sessions);
+  } else if (c.task === "watch") {
+    const r = await ask(SYS(), linksPrompt(series), 5); usage = r.usage; trace = { ...r.trace, answer: r.out };
+    res = scoreWatch(c, r.out);
+  } else throw new Error("unknown task");
+  await patch("agent_test_runs", `id=eq.${runId}`, { status: "done", score: Math.round(res.score * 100) / 100, max: res.max, details: { rows: res.rows }, usage, trace, finished_at: new Date().toISOString() });
 }
 
 // ---------- tick: start what's due (called by pg_cron) ----------
@@ -525,6 +652,18 @@ Deno.serve(async (req) => {
       { key: "deeper", title: "Deeper look", when: "Added to the race check when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
       { key: "links", title: "Where to watch for the championship", when: "When you click Find with AI in Edit championship (also part of the monthly calendar check).", text: linksPrompt(S) },
     ] });
+  }
+  if (body.action === "test_cases") {
+    const n = await syncCases();
+    return json({ synced: n });
+  }
+  if (body.action === "test_run") {
+    if (!/^[a-z0-9-]{3,80}$/.test(body.case_id || "")) return json({ error: "bad case" }, 400);
+    const [run] = await ins("agent_test_runs", { case_id: body.case_id, status: "running" });
+    const job = (async () => { try { await runTest(body.case_id, run.id); } catch (e) { await patch("agent_test_runs", `id=eq.${run.id}`, { status: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); } })();
+    // @ts-ignore EdgeRuntime is provided by Supabase
+    if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
+    return json({ run_id: run.id });
   }
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID.test(body.series_id || body.event_id || "")) return json({ error: "bad id" }, 400);

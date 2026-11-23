@@ -325,6 +325,14 @@ async function onboarding(another){
   if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url&order=name"); } catch(e){}
   try { const ds = await api("disciplines?select=key,name,icon_svg&order=sort,name"); if (ds.length) SPORT = Object.fromEntries(ds.map(d => [d.key, { l:d.name, i:d.icon_svg }])); } catch(e){}
   OB.another = another;
+  // new pages can be closed for now (admin setting); the database refuses them anyway
+  let open = true; try { open = await rpc("new_pages_open"); } catch(e){}
+  if (open === false) {
+    shell(`<div class="card" style="max-width:520px;margin:40px auto;text-align:center;padding:28px"><h2 style="margin:0 0 8px">New pages are closed for now</h2><p class="dim" style="margin:0 0 18px">Racenxt is in private testing. You'll be able to create your page soon.</p>${ST.members?.length ? `<button class="btn pri" id="ob-back">Back to my page</button>` : `<button class="btn" id="ob-out">Sign out</button>`}</div>`);
+    if ($("#ob-back")) $("#ob-back").onclick = () => location.reload();
+    if ($("#ob-out")) $("#ob-out").onclick = () => { S.set(null); localStorage.removeItem(CUR); location.reload(); };
+    return;
+  }
   obStep();
 }
 function obStep(){

@@ -806,27 +806,23 @@
           };
           drawLoc();
           // links: Where to watch, Live timing, Tickets... or anything
-          const PRE = [["Where to watch", "tv"], ["Live timing", "timing"], ["Tickets", "ticket"], ["Results", "flag"]];
           const linkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|live stream|broadcast/.test(t) ? LI.tv : /timing|live tim|tracker/.test(t) ? LI.timing : /ticket/.test(t) ? LI.ticket : /result|standing/.test(t) ? LI.flag : LI.link; };
           const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
           function drawLinks() {
             $("#rx-ljson").value = JSON.stringify(LK);
             let h = LK.map((l, i) => i === lcomp ? "" : `<button type="button" class="rx-srow2 rx-lrow" data-l="${i}"><span class="lic">${linkIcon(l.label)}</span><span class="lb">${esc(l.label)}<small>${esc(host(l.url))}</small></span>${CHEV}</button>`).join("");
             if (lcomp !== null) {
-              const l = lcomp >= 0 ? LK[lcomp] : { label: LK.some(x => /watch/i.test(x.label)) ? "" : "Where to watch", url: "" };
+              const l = lcomp >= 0 ? LK[lcomp] : { label: "", url: "" };
               h += `<div class="rx-comp" id="rx-lcomp"><b class="rx-comp-t">${lcomp >= 0 ? "Change link" : "New link"}</b>
-                <div class="rx-chips rx-chips-t" role="radiogroup" aria-label="Kind of link">${PRE.map(([t]) => `<button type="button" role="radio" data-pre="${t}" aria-checked="${t === l.label}">${t}</button>`).join("")}<button type="button" role="radio" data-pre="" aria-checked="${!!l.label && !PRE.some(([t]) => t === l.label)}">Other</button></div>
-                <label class="rx-cl">Name on the button<input id="rx-lname" value="${esc(l.label)}" maxlength="30" placeholder="e.g. Live stream" autocomplete="off"></label>
+                <label class="rx-cl">Name on the button<input id="rx-lname" value="${esc(l.label)}" maxlength="30" placeholder="e.g. Watch live, Live timing, Tickets" autocomplete="off"></label>
                 <label class="rx-cl">Link<input id="rx-lurl" value="${esc(l.url)}" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
                 <div class="rx-comp-f">${lcomp >= 0 ? `<button type="button" class="rx-link bad" id="rx-lrm">Remove</button>` : ""}<span style="flex:1"></span><button type="button" class="rx-b" id="rx-lcx">Cancel</button><button type="button" class="rx-b pri" id="rx-lok">${lcomp >= 0 ? "Save link" : "Add link"}</button></div></div>`;
             } else if (LK.length < 8) h += `<button type="button" class="rx-b rx-add-s" id="rx-lon">${PLUS.replace("<svg", '<svg width="16" height="16"')} ${LK.length ? "Add another link" : "Add a link"}</button>`;
-            h += `<div class="rx-help">${LK.length ? "Shown as buttons on the event card. Tap one to change it." : "Optional. Where to watch, live timing, tickets… shown as buttons on the card."}</div>`;
+            h += `<div class="rx-help">${LK.length ? "Shown as buttons on the event card. Tap one to change it." : "Optional. Any link you want, shown as a button on the event card."}</div>`;
             $("#rx-lkw").innerHTML = h;
-            if ($("#rx-lon")) $("#rx-lon").onclick = () => { lcomp = -1; drawLinks(); const n = $("#rx-lname"); (n.value ? $("#rx-lurl") : n).focus(); window.rnxReveal?.($("#rx-lcomp")); };
+            if ($("#rx-lon")) $("#rx-lon").onclick = () => { lcomp = -1; drawLinks(); $("#rx-lname").focus(); window.rnxReveal?.($("#rx-lcomp")); };
             $$("#rx-lkw [data-l]").forEach(b => b.onclick = () => { lcomp = +b.dataset.l; drawLinks(); window.rnxReveal?.($("#rx-lcomp")); });
             if (lcomp === null) return;
-            $$("#rx-lcomp [data-pre]").forEach(b => b.onclick = () => { $$("#rx-lcomp [data-pre]").forEach(o => o.setAttribute("aria-checked", o === b)); $("#rx-lname").value = b.dataset.pre; (b.dataset.pre ? $("#rx-lurl") : $("#rx-lname")).focus(); });
-            $("#rx-lname").oninput = () => { const v = $("#rx-lname").value.trim(); $$("#rx-lcomp [data-pre]").forEach(o => o.setAttribute("aria-checked", o.dataset.pre ? o.dataset.pre === v : !!v && !PRE.some(([t]) => t === v))); };
             $("#rx-lcx").onclick = () => { lcomp = null; drawLinks(); };
             if ($("#rx-lrm")) $("#rx-lrm").onclick = () => { LK.splice(lcomp, 1); lcomp = null; drawLinks(); };
             $("#rx-lok").onclick = () => {

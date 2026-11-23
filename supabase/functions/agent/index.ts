@@ -534,10 +534,13 @@ function scoreCalendar(c: any, found: any[]) {
   // a winter season (2026-27): only what starts from about a month before its first expected round
   const first = (c.expect || []).map((x: any) => x.start).filter(Boolean).sort()[0] || "";
   const from = first ? new Date(new Date(first).getTime() - 40 * 864e5).toISOString().slice(0, 10) : "";
-  const pool = found.filter((e: any) => yr ? String(e.start_date).startsWith(String(yr)) : (!from || e.start_date >= from));
+  const now = new Date().toISOString().slice(0, 10);
+  const pool = found.filter((e: any) => (e.end_date || e.start_date) >= now && (yr ? String(e.start_date).startsWith(String(yr)) : (!from || e.start_date >= from)));
   const rows: any[] = []; const used = new Set<number>();
   let score = 0, max = 0;
+  const today = new Date().toISOString().slice(0, 10);
   for (const x of c.expect || []) {
+    if (x.end && x.end < today) continue; // rounds already over: the agent is told to skip them
     max++;
     const idx = pool.findIndex((e: any, i: number) => !used.has(i) && sameCircuit(`${e.circuit?.name || ""} ${e.circuit?.city || ""} ${e.name || ""}`, `${x.circuit} ${x.name || ""}`));
     const f = idx >= 0 ? pool[idx] : null; if (idx >= 0) used.add(idx);

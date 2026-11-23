@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-020150"></script>
+<script src="config.js?v=20261123-023931"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -57,6 +57,22 @@
   .sp-tile[aria-checked="true"]{border-color:var(--acc);color:var(--text);background:rgba(255,90,31,.08)}
   .sp-tile[aria-checked="true"]::after{content:"✓";position:absolute;top:6px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;line-height:18px;text-align:center}
   .sp-find{margin-bottom:8px}
+  .dp-q{width:100%;margin-bottom:8px}
+  .dp-q input{width:100%}
+  .dp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));grid-auto-rows:max-content;gap:6px;max-height:212px;overflow-y:auto;overscroll-behavior:contain;padding:2px}
+  .dp-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 10px;border:1.5px solid var(--line2);border-radius:10px;background:#202128;color:var(--dim);cursor:pointer;font:600 14px/1.2 inherit;text-align:left}
+  .dp-row:hover{border-color:var(--mute);color:var(--text)}
+  .dp-row .sp-ic{flex:none;width:34px;max-height:18px}
+  .dp-row[aria-selected="true"]{border-color:var(--acc);color:var(--text);background:rgba(255,90,31,.08)}
+  .dp-new{border-style:dashed}
+  .dp-new b{flex:none;width:34px;text-align:center;font-size:18px;color:var(--acc)}
+  .nd-box{width:min(620px,100%);text-align:left}
+  .nd-grid{display:grid;grid-template-columns:220px 1fr;gap:16px;margin:14px 0 18px}
+  .nd-pv{display:grid;place-items:center;gap:12px;min-height:200px;border:1px solid var(--line2);border-radius:12px;background:#17181d;padding:14px;text-align:center}
+  .nd-big .sp-ic{width:170px;max-height:90px;color:var(--text)}
+  .nd-sm{display:flex;gap:10px;align-items:center}
+  .nd-sm .sp-tile{padding:10px 12px}
+  @media (max-width:640px){ .nd-grid{grid-template-columns:1fr} }
   /* sport filter menu */
   .menu-wrap{position:relative}
   .menu-pop{position:absolute;top:calc(100% + 6px);left:0;min-width:220px;max-height:320px;overflow-y:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:6px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -218,7 +234,7 @@ const TZS = Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : ["Euro
 const fmtD = d => d ? new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { day:"numeric", month:"short", timeZone:"UTC" }) : "";
 const fmtRange = (a, b) => { if (!a) return ""; const A = new Date(a+"T12:00:00Z"), B = new Date(b+"T12:00:00Z"); const m = x => x.toLocaleDateString("en-GB",{month:"short",timeZone:"UTC"}); return A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
 const ago = t => { if (!t) return "never"; const s = (Date.now() - new Date(t)) / 1000; if (s < 3600) return Math.max(1, Math.round(s/60)) + " min ago"; if (s < 86400) return Math.round(s/3600) + " h ago"; return Math.round(s/86400) + " d ago"; };
-const SPORT = {
+let SPORT = {
   sportscars:{ l:"Sportscars", i:'<svg class="sp-ic" viewBox="-0.6 0.1 23.4 6.8" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><path stroke-width="0.7" d="M11.6 0.8 L20.4 1.05 M20.2 1.05 L22.3 0.95 M21.9 1 L21.9 2.8"/><circle stroke-width="0.95" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.95" cx="18.45" cy="5.15" r="1.4"/></svg>' },
   formula:{ l:"Formula", i:'<svg class="sp-ic" viewBox="-0.6 0.1 23.6 7.3" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.2 5.4 L2.6 5.4 M2.4 4.6 L6.4 4 L8.8 3.5 L10 2.9 L12.6 2.5 Q15.4 2.3 17.2 3.1 L19.8 4 L19.8 5.1"/><path stroke-width="0.95" d="M6.2 5.3 L16.4 5.3"/><path stroke-width="0.8" d="M9.7 3.1 Q10.8 1.7 12.4 2.5"/><path stroke-width="0.8" d="M19.9 1.2 L22.6 1.2 M22.3 1.2 L22.3 4.7 M20.8 1.2 L21.1 4"/><circle stroke-width="0.95" cx="4.4" cy="5" r="1.65"/><circle stroke-width="0.95" cx="18.1" cy="5" r="1.65"/></svg>' },
   motorbikes:{ l:"Motorbikes", i:'<svg class="sp-ic" viewBox="-0.4 -0.2 14 8.2" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><circle stroke-width="0.85" cx="2.5" cy="5.2" r="2"/><circle stroke-width="0.85" cx="11" cy="5.2" r="2"/><path stroke-width="0.85" d="M2.5 5.2 L4.3 1.4 M3.6 1.4 L5.2 1.4"/><path stroke-width="0.85" d="M4.6 2.3 Q6 1.4 7.6 1.8 L9.2 2.1 L11.6 1.3 M4.9 3.6 L8.6 3.3 L11 5.2 M6 5.2 L8.6 3.3"/></svg>' }
@@ -311,7 +327,7 @@ async function pollRun(id){
   try { [run] = await api(`check_runs?id=eq.${id}&select=result,summary,error,usage`); } catch(e){}
   if ((!run || run.result === "running") && Date.now() - meta.t0 < 6 * 60e3) return pollRun(id);
   delete RUNS[id]; showRuns();
-  if (meta.discover && run && run.result !== "error") await whitenLogo(meta.key);
+  if (meta.discover && run && run.result !== "error") await finalizeLogo(meta.key);
   if (meta.hooks.done && meta.hooks.done(run)) return;
   if (!run || run.result === "running") aiNotice(`${meta.label}: no answer after 6 minutes. Try again in a moment.`);
   else if (run.result === "error") aiNotice(`${meta.label} didn't work: ${run.error || "unknown error"}`);
@@ -395,10 +411,13 @@ function drawer(title, layout, values = {}, opts = {}){
 
 // ---------- reference data ----------
 const D = { series: [], venues: [], vehicles: [] };
+async function loadDisciplines(){
+  try { const rows = await api("disciplines?select=key,name,icon_svg,sort&order=sort,name"); if (rows.length) SPORT = Object.fromEntries(rows.map(r => [r.key, { l:r.name, i:r.icon_svg }])); } catch(e){}
+}
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
     api("series?select=id,slug,name,short_name,sport,watch_url,website_url,logo_url&order=name"),
-    api("venues?select=*&order=name"), api("vehicles?select=*&order=name")
+    api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
 const seriesOpts = () => D.series.map(s => ({ v:s.id, l:`${s.short_name} – ${s.name}` }));
@@ -473,7 +492,7 @@ const PAGE = 25;
 async function championships(){
   $("#main").innerHTML = `<div class="ph"><h1>Championships</h1><button class="btn pri" id="c-add">+ Add championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="c-q" placeholder="Search championships" value="${esc(CQ.q)}" aria-label="Search championships"></label>
-      <div class="menu-wrap"><button class="btn" id="c-sport" aria-haspopup="true" aria-expanded="false">${CQ.sport ? SPORT[CQ.sport].i + SPORT[CQ.sport].l : "All sports"} ${I.chev}</button>
+      <div class="menu-wrap"><button class="btn" id="c-sport" aria-haspopup="true" aria-expanded="false">${CQ.sport ? SPORT[CQ.sport].i + SPORT[CQ.sport].l : "All disciplines"} ${I.chev}</button>
         <div class="menu-pop" id="c-sport-pop" hidden role="menu"><button role="menuitemradio" data-sp="" class="${CQ.sport ? "" : "on"}">All sports</button>${Object.entries(SPORT).map(([k, v]) => `<button role="menuitemradio" data-sp="${k}" class="${CQ.sport === k ? "on" : ""}">${v.i}${v.l}</button>`).join("")}</div></div>
       <label class="sw" style="font-size:14px"><input type="checkbox" id="c-attn"${CQ.attn ? " checked" : ""}> Needs attention</label></div>
     <div id="c-list"><p class="muted">Loading…</p></div>`;
@@ -497,7 +516,7 @@ async function loadList(){
   const { rows, total } = await api(`series_overview?select=*&order=name&${f.join("&")}`, { headers:{ Prefer:"count=exact", Range:`${from}-${from + PAGE - 1}` }, withCount:true });
   const status = s => s.last_check_result === "error" ? ["bad","Agent error"] : s.pending_proposals > 0 ? ["warn", `${s.pending_proposals} to review`] : s.missing_soon > 0 ? ["warn","Schedule missing"] : s.last_check_at ? ["good","Up to date"] : ["","Not checked yet"];
   const col = { good:"var(--good)", warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" };
-  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:60px">Sport</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th>Status</th></tr>
+  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:80px">Discipline</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th>Status</th></tr>
     ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.name)}</b>${s.short_name && s.short_name !== s.name ? ` <span class="dim">(${esc(s.short_name)})</span>` : ""}</td><td>${sportIcon(s.sport)}</td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
     <div class="pager">${from + 1}–${Math.min(from + PAGE, total)} of ${total} <button class="btn sm" id="pg-prev"${CQ.page ? "" : " disabled"}>‹</button><button class="btn sm" id="pg-next"${from + PAGE < total ? "" : " disabled"}>›</button></div>`
     : `<div class="card empty">No championship found.</div>`;
@@ -512,7 +531,7 @@ let SEASON = {};
 async function championshipPage(slug, openId){
   const s = D.series.find(x => x.slug === slug);
   if (!s){ $("#main").innerHTML = `<p class="dim">Championship not found.</p>`; return; }
-  if (s.logo_url && s.logo_url.includes("-agent-") && !aiBusy(s.id)) whitenLogo(s.id).then(ok => { if (ok){ const im = $(".head-card img"); const n = D.series.find(x => x.id === s.id); if (im && n) im.src = n.logo_url; } });
+  if (s.logo_url && s.logo_url.includes("-agent-") && !aiBusy(s.id)) finalizeLogo(s.id).then(ok => { if (ok){ const im = $(".head-card img"); const n = D.series.find(x => x.id === s.id); if (im && n) im.src = n.logo_url; } });
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
   const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
   const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
@@ -699,38 +718,92 @@ async function importCalendar(s, yr, existing){
   }, `${rows.length} races imported`);
 }
 
-// Logo: drop / paste / pick any image (even a screenshot); background removed, made white for the dark pages
-async function processLogo(file, mode){
-  const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
+// Logos: every championship logo ends up the same way: the logo alone (AI finds it), background cut out,
+// pure white, trimmed tight and saved at one standard size (transparent PNG)
+const LOGO_H = 240, LOGO_W = 800;
+function loadImg(src){ return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = () => rej(new Error("image")); im.src = src; }); }
+async function imgOf(file){ return loadImg(typeof file === "string" ? file : URL.createObjectURL(file)); }
+// a small JPEG on grey (so white and dark logos both show) for the AI to look at
+function aiThumb(img, max = 640){
+  const iw = img.naturalWidth || img.width || 600, ih = img.naturalHeight || img.height || 300;
+  const sc = Math.min(max / Math.max(iw, ih), /svg/i.test(img.src) ? 4 : 1);
+  const cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(iw * sc)); cv.height = Math.max(1, Math.round(ih * sc));
+  const cx = cv.getContext("2d"); cx.fillStyle = "#8a8f98"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", 0.85).split(",")[1];
+}
+async function logoAI(body){
+  const t = await token();
+  const r = await fetch(`${C.url}/functions/v1/logo-detect`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  return r.ok ? r.json() : {};
+}
+async function processLogo(file, opt = {}){
+  const img = await imgOf(file);
   const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
-  const scale = /svg/.test(file.type || "") ? 900 / Math.max(iw, ih) : Math.min(1, 900 / Math.max(iw, ih));
-  const w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
+  const scale = /svg/i.test(img.src) || (file && /svg/.test(file.type || "")) ? 1400 / Math.max(iw, ih) : Math.min(1, 1600 / Math.max(iw, ih));
+  let w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-  const cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
+  let cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
+  // keep only the logo the AI pointed at (with a little margin)
+  const b = opt.box;
+  if (b && (b[2] - b[0] < 0.97 || b[3] - b[1] < 0.97)){
+    const m = 0.015, x0 = Math.max(0, Math.floor((b[0] - m) * w)), y0 = Math.max(0, Math.floor((b[1] - m) * h)), x1 = Math.min(w, Math.ceil((b[2] + m) * w)), y1 = Math.min(h, Math.ceil((b[3] + m) * h));
+    const c2 = document.createElement("canvas"); c2.width = x1 - x0; c2.height = y1 - y0;
+    c2.getContext("2d").drawImage(cv, x0, y0, x1 - x0, y1 - y0, 0, 0, x1 - x0, y1 - y0);
+    cv.width = w = c2.width; cv.height = h = c2.height; cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(c2, 0, 0);
+  }
   const d = cx.getImageData(0, 0, w, h), px = d.data;
-  // background = most common colour around the border
-  const border = []; const pick = (x, y) => { const k = (y * w + x) * 4; border.push([px[k], px[k+1], px[k+2], px[k+3]]); };
-  for (let x = 0; x < w; x += Math.max(1, w >> 6)){ pick(x, 0); pick(x, h - 1); }
-  for (let y = 0; y < h; y += Math.max(1, h >> 6)){ pick(0, y); pick(w - 1, y); }
-  const transparentBg = border.filter(b => b[3] < 40).length > border.length * 0.5;
-  const med = i => border.map(b => b[i]).sort((a, b) => a - b)[border.length >> 1];
+  // background = most common colour around the border (or transparent)
+  const border = []; const at = (x, y) => { const k = (y * w + x) * 4; border.push([px[k], px[k+1], px[k+2], px[k+3]]); };
+  for (let x = 0; x < w; x += Math.max(1, w >> 7)){ at(x, 0); at(x, h - 1); }
+  for (let y = 0; y < h; y += Math.max(1, h >> 7)){ at(0, y); at(w - 1, y); }
+  const transparentBg = border.filter(q => q[3] < 40).length > border.length * 0.5;
+  const solid = border.filter(q => q[3] >= 40);
+  const med = i => solid.map(q => q[i]).sort((a, c) => a - c)[solid.length >> 1] || 0;
   const bg = [med(0), med(1), med(2)];
-  let minX = w, minY = h, maxX = 0, maxY = 0;
-  for (let k = 0; k < px.length; k += 4){
-    let a;
-    if (transparentBg) a = px[k+3];
-    else { const dist = Math.hypot(px[k] - bg[0], px[k+1] - bg[1], px[k+2] - bg[2]); a = Math.max(0, Math.min(255, (dist - 18) * 4)) * (px[k+3] / 255); }
-    if (mode === "white"){ px[k] = px[k+1] = px[k+2] = 255; }
-    px[k+3] = a;
-    if (a > 24){ const i = k >> 2, x = i % w, y = (i / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+  const A = new Float32Array(w * h);
+  for (let i = 0, k = 0; i < A.length; i++, k += 4){
+    A[i] = transparentBg ? px[k+3] : Math.max(0, Math.min(255, (Math.hypot(px[k] - bg[0], px[k+1] - bg[1], px[k+2] - bg[2]) - 22) * 3.2)) * (px[k+3] / 255);
+  }
+  // badge logos (name cut out of a filled shape): the shape becomes white and the name is cut out, like official white versions
+  if (opt.badge){
+    const hist = new Map();
+    for (let i = 0, k = 0; i < A.length; i++, k += 4) if (A[i] > 230){ const q = (px[k] >> 4) << 8 | (px[k+1] >> 4) << 4 | (px[k+2] >> 4); hist.set(q, (hist.get(q) || 0) + 1); }
+    const tot = [...hist.values()].reduce((a, c) => a + c, 0), top = [...hist.entries()].sort((a, c) => c[1] - a[1]);
+    const col = q => [((q >> 8) & 15) * 16 + 8, ((q >> 4) & 15) * 16 + 8, (q & 15) * 16 + 8];
+    if (top.length > 1 && top[0][1] > tot * 0.35){
+      const P = col(top[0][0]);
+      const sec = top.slice(1).find(e => { const c = col(e[0]); return Math.hypot(c[0] - P[0], c[1] - P[1], c[2] - P[2]) > 90; });
+      if (sec && sec[1] > tot * 0.02){
+        const S = col(sec[0]);
+        for (let i = 0, k = 0; i < A.length; i++, k += 4){
+          const dp = Math.hypot(px[k] - P[0], px[k+1] - P[1], px[k+2] - P[2]), ds = Math.hypot(px[k] - S[0], px[k+1] - S[1], px[k+2] - S[2]);
+          A[i] *= Math.max(0, Math.min(1, (ds / (dp + ds + 1e-6) - 0.3) * 2.5));
+        }
+      }
+    }
+  }
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let i = 0, k = 0; i < A.length; i++, k += 4){
+    px[k] = px[k+1] = px[k+2] = 255; px[k+3] = A[i];
+    if (A[i] > 28){ const x = i % w, y = (i / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
   }
   cx.putImageData(d, 0, 0);
-  if (maxX < minX){ minX = 0; minY = 0; maxX = w - 1; maxY = h - 1; }
-  const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.04);
-  const ox = Math.max(0, minX - pad), oy = Math.max(0, minY - pad), ow = Math.min(w, maxX + pad + 1) - ox, oh = Math.min(h, maxY + pad + 1) - oy;
+  if (maxX < minX) throw new Error("No logo found in this image");
+  // standard size: trimmed tight, fitted in LOGO_W × LOGO_H, small even margin
+  const cw = maxX - minX + 1, ch = maxY - minY + 1;
+  const k = Math.min(LOGO_W / cw, LOGO_H / ch), pad = Math.round(LOGO_H * 0.03);
+  const ow = Math.round(cw * k) + pad * 2, oh = Math.round(ch * k) + pad * 2;
   const out = document.createElement("canvas"); out.width = ow; out.height = oh;
-  out.getContext("2d").drawImage(cv, ox, oy, ow, oh, 0, 0, ow, oh);
-  return await new Promise(res => out.toBlob(b => res(b), "image/png"));
+  const ox = out.getContext("2d"); ox.imageSmoothingQuality = "high";
+  ox.drawImage(cv, minX, minY, cw, ch, pad, pad, ow - pad * 2, oh - pad * 2);
+  return await new Promise(res => out.toBlob(res, "image/png"));
+}
+window.rnxLogo = { processLogo, loadImg }; // for checks in the browser console
+// a picture the admin added (file, drop or screenshot): the AI finds the logo in it first
+async function logoFromPicture(file){
+  let box = null, badge = false;
+  try { const im = await imgOf(file); const r = await logoAI({ image: aiThumb(im, 1024) }); if (r.found){ box = r.box; badge = r.badge; } } catch(e){}
+  return processLogo(file, { box, badge });
 }
 async function uploadMedia(blob, path){
   const t = await token();
@@ -738,34 +811,89 @@ async function uploadMedia(blob, path){
   if (!r.ok){ let m = ""; try { m = (await r.json()).message || ""; } catch(e){} throw new Error(`upload failed (${r.status}${m ? ": " + m : ""})`); }
   return `${C.url}/storage/v1/object/public/media/${path}`;
 }
-function logoPicker(current){
-  const st = { file:null, blob:null, mode:"white" };
+function logoPicker(current, series, onFound){
+  const st = { file:null, blob:null };
   const html = `<div><div class="drop" id="lg-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="pv" id="lg-pv">${current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"}</div><div style="font-size:14px"><b>Drop a logo here</b><div class="dim">or paste a screenshot (Cmd/Ctrl+V), or <u>choose a file</u></div></div><input type="file" id="lg-file" accept="image/*" hidden></div>
-    <div class="bar" style="margin:8px 0 0"><div class="seg" id="lg-mode"><button type="button" data-m="white" class="on">White</button><button type="button" data-m="original">Original colours</button></div><span class="help" style="margin:0">Background is removed automatically.</span></div></div>`;
-  const run = async () => { if (!st.file) return; $("#lg-pv").innerHTML = "<span>Processing…</span>"; try { st.blob = await processLogo(st.file, st.mode); $("#lg-pv").innerHTML = `<img src="${URL.createObjectURL(st.blob)}" alt="">`; } catch(e){ $("#lg-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; } };
+    <div class="bar" style="margin:8px 0 0">${series ? `<button type="button" class="btn sm ai" id="lg-ai">Find logo with AI</button>` : ""}<span class="help" style="margin:0">The logo is found in the picture, cut out, made white and sized like every other logo.</span></div></div>`;
+  const run = async () => { if (!st.file) return; $("#lg-pv").innerHTML = "<span>Processing…</span>"; try { st.blob = await logoFromPicture(st.file); $("#lg-pv").innerHTML = `<img src="${URL.createObjectURL(st.blob)}" alt="">`; } catch(e){ $("#lg-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; } };
   const take = f => { if (f && f.type.startsWith("image/")){ st.file = f; run(); } };
   const onPaste = e => { if (!$("#lg-drop") || (document.body.classList.contains("drawer-on") && !$("#dr-b #lg-drop"))) return; const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it){ e.preventDefault(); take(it.getAsFile()); } };
   return { html, st, after(){
     const dz = $("#lg-drop"), fi = $("#lg-file");
     dz.onclick = () => fi.click(); dz.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fi.click(); } };
     fi.onchange = () => take(fi.files[0]);
+    if ($("#lg-ai")) $("#lg-ai").onclick = async () => {
+      const bt = $("#lg-ai"); bt.disabled = true; bt.textContent = "Looking…"; $("#lg-pv").innerHTML = "<span>Searching the official site…</span>";
+      try { await refindLogo(series); const n = D.series.find(x => x.id === series.id); st.file = st.blob = null; $("#lg-pv").innerHTML = `<img src="${esc(n.logo_url)}" alt="">`; toast("Logo found and saved"); onFound && onFound(n); }
+      catch(e){ $("#lg-pv").innerHTML = current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"; alert(e.message); }
+      bt.disabled = false; bt.textContent = "Find logo with AI";
+    };
     dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
     dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
     document.removeEventListener("paste", window.__rnxPaste || (() => {})); window.__rnxPaste = onPaste; document.addEventListener("paste", onPaste);
-    $$("#lg-mode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#lg-mode button").forEach(x => x.classList.toggle("on", x === b)); run(); });
   } };
 }
+// Discipline picker: compact searchable list, scales to many disciplines; "+ New discipline" draws an icon with AI
 function sportPicker(cur){
-  const many = Object.keys(SPORT).length > 8;
-  const html = `<div style="grid-column:1/-1"><label class="f" id="sp-lab">Choose one *</label>${many ? `<input class="sp-find" id="sp-find" placeholder="Search sports" aria-label="Search sports">` : ""}
-    <div class="sp-grid" id="sp-pick" role="radiogroup" aria-labelledby="sp-lab">${Object.entries(SPORT).map(([k, v]) => `<button type="button" class="sp-tile" role="radio" data-sp="${k}" aria-checked="${cur === k}" tabindex="${cur === k || (!cur && k === Object.keys(SPORT)[0]) ? 0 : -1}">${v.i}<span>${v.l}</span></button>`).join("")}</div></div>`;
   const st = { v: cur || "" };
-  return { html, st, after(){
-    const tiles = $$("#sp-pick .sp-tile");
-    const pick = b => { st.v = b.dataset.sp; tiles.forEach(x => { x.setAttribute("aria-checked", x === b); x.tabIndex = x === b ? 0 : -1; }); };
-    tiles.forEach((b, i) => { b.onclick = () => pick(b); b.onkeydown = e => { const d = { ArrowRight:1, ArrowDown:1, ArrowLeft:-1, ArrowUp:-1 }[e.key]; if (d){ e.preventDefault(); const vis = tiles.filter(t => !t.hidden); const n = vis[(vis.indexOf(b) + d + vis.length) % vis.length]; n.focus(); pick(n); } }; });
-    if ($("#sp-find")) $("#sp-find").oninput = e => { const q = e.target.value.toLowerCase(); tiles.forEach(t => t.hidden = !t.textContent.toLowerCase().includes(q)); };
-  } };
+  const html = `<div style="grid-column:1/-1" class="dp"><label class="f" id="sp-lab">Choose one *</label>
+    <label class="search dp-q">${I.search}<input id="sp-find" placeholder="Search disciplines" aria-label="Search disciplines" autocomplete="off"></label>
+    <div class="dp-list" id="sp-pick" role="listbox" aria-labelledby="sp-lab"></div></div>`;
+  const draw = () => {
+    const q = ($("#sp-find")?.value || "").trim().toLowerCase();
+    const list = Object.entries(SPORT).filter(([k, v]) => !q || v.l.toLowerCase().includes(q));
+    $("#sp-pick").innerHTML = list.map(([k, v]) => `<button type="button" class="dp-row" role="option" data-sp="${esc(k)}" aria-selected="${st.v === k}">${v.i}<span>${esc(v.l)}</span></button>`).join("")
+      + (list.length ? "" : `<div class="dim" style="padding:10px 4px;font-size:14px">No discipline called “${esc(q)}”.</div>`)
+      + `<button type="button" class="dp-row dp-new" id="sp-new"><b>+</b><span>${q && !list.length ? `Create “${esc(q)}”` : "New discipline"}</span></button>`;
+    $$("#sp-pick [data-sp]").forEach(b => b.onclick = () => { st.v = b.dataset.sp; $$("#sp-pick [data-sp]").forEach(x => x.setAttribute("aria-selected", x === b)); });
+    $("#sp-new").onclick = async () => { const k = await newDiscipline(q && !list.length ? $("#sp-find").value.trim() : ""); if (k){ st.v = k; $("#sp-find").value = ""; draw(); } };
+  };
+  return { html, st, after(){ draw(); $("#sp-find").oninput = draw; $("#sp-find").onkeydown = e => { if (e.key === "Enter"){ e.preventDefault(); $("#sp-pick .dp-row")?.click(); } }; } };
+}
+// "+ New discipline": name + description, the AI draws an icon in the same style, try again until it's right
+function newDiscipline(name0){
+  return new Promise(resolve => {
+    const m = document.createElement("div");
+    m.className = "ai-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "nd-h");
+    m.innerHTML = `<div class="ai-box nd-box"><h2 id="nd-h">New discipline</h2>
+      <div class="nd-grid"><div class="nd-pv" id="nd-pv"><span class="dim">The icon appears here</span></div>
+      <div style="display:grid;gap:12px;align-content:start">
+        <div><label class="f" for="nd-name">Name *</label><input id="nd-name" value="${esc(name0 || "")}" maxlength="40"></div>
+        <div><label class="f" for="nd-p">What should the icon show?</label><textarea id="nd-p" rows="3" maxlength="400"></textarea><div class="help">For example: a kart seen from the side, with the driver.</div></div>
+        <button type="button" class="btn ai" id="nd-gen">Draw icon with AI</button></div></div>
+      <div class="bar" style="justify-content:flex-end;margin:0"><button type="button" class="btn" id="nd-x">Cancel</button><button type="button" class="btn pri" id="nd-ok" disabled>Save discipline</button></div></div>`;
+    document.body.appendChild(m);
+    let svg = "";
+    const back = document.activeElement;
+    const close = v => { m.remove(); document.removeEventListener("keydown", esc_, true); back?.focus?.(); resolve(v); };
+    const esc_ = e => { if (e.key === "Escape"){ e.stopImmediatePropagation(); close(null); } };
+    document.addEventListener("keydown", esc_, true);
+    $("#nd-x").onclick = () => close(null);
+    (name0 ? $("#nd-p") : $("#nd-name")).focus();
+    $("#nd-gen").onclick = async () => {
+      const name = $("#nd-name").value.trim(), prompt = $("#nd-p").value.trim();
+      if (!name && !prompt) return $("#nd-name").focus();
+      const b = $("#nd-gen"); b.disabled = true; b.textContent = "Drawing…"; $("#nd-pv").innerHTML = `<div class="spin"></div>`;
+      try {
+        const t = await token();
+        const r = await fetch(`${C.url}/functions/v1/icon`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify({ name, prompt }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.svg) throw new Error(j.error || "no answer");
+        svg = j.svg;
+        $("#nd-pv").innerHTML = `<div class="nd-big">${svg}</div><div class="nd-sm"><span class="sp-tile" style="min-height:0;cursor:default">${svg}<span>${esc(name || "Preview")}</span></span><span class="sp">${svg}</span></div><div class="dim" style="font-size:12px">${usd(j.cost_usd || 0)}</div>`;
+        $("#nd-ok").disabled = !name;
+      } catch(e){ $("#nd-pv").innerHTML = `<span class="dim">Couldn't draw it: ${esc(e.message)}</span>`; }
+      b.disabled = false; b.textContent = svg ? "Try again" : "Draw icon with AI";
+    };
+    $("#nd-name").oninput = () => { $("#nd-ok").disabled = !svg || !$("#nd-name").value.trim(); };
+    $("#nd-ok").onclick = async () => {
+      const name = $("#nd-name").value.trim();
+      let key = slugify(name).slice(0, 36) || "discipline";
+      if (SPORT[key]) key = (key + "-" + Date.now().toString(36).slice(-3)).slice(0, 40);
+      try { await ins("disciplines", { key, name, icon_svg: svg, sort: 100 }); await loadDisciplines(); toast(`${name} added`); close(key); }
+      catch(e){ alert("Couldn't save it: " + e.message); }
+    };
+  });
 }
 async function addSeries(){
   const sp = sportPicker("");
@@ -773,10 +901,10 @@ async function addSeries(){
     { section:"Championship", sub:"The AI finds the rest", items:[
       { k:"name", l:"Full championship name", req:true },
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
-    { section:"Sport", items:[{ html: sp.html }] }
+    { section:"Discipline", items:[{ html: sp.html }] }
   ], {}, { ok:"Add and find with AI", after: sp.after });
   if (!r) return;
-  if (!sp.st.v){ alert("Choose a sport."); return addSeries(); }
+  if (!sp.st.v){ alert("Choose a discipline."); return addSeries(); }
   const row = { name:r.name, short_name:r.short_name || r.name, sport:sp.st.v, slug: slugify(r.short_name && r.short_name !== r.name ? r.short_name : r.name).slice(0, 40) };
   if (D.series.some(x => x.slug === row.slug)) row.slug = (row.slug + "-" + Date.now().toString(36).slice(-3)).slice(0, 44);
   let n;
@@ -814,29 +942,47 @@ function aiSetup(n){
     }
   });
 }
-// The AI copies the official logo as-is; turn it white with the background removed, like hand-added logos
-async function whitenLogo(sid){
-  const [x] = await api(`series?id=eq.${sid}&select=id,slug,logo_url`);
-  if (!x?.logo_url || !x.logo_url.includes("-agent-")) return false;
+// The agent saves the logo candidates it found; here the AI picks the championship's own logo,
+// then it is cut out, made white and saved at the standard size
+async function finalizeLogo(sid){
+  const [x] = await api(`series?id=eq.${sid}&select=id,slug,name,short_name,logo_url,logo_candidates`);
+  if (!x) return false;
+  const cands = (x.logo_candidates || []).length ? x.logo_candidates : (x.logo_url?.includes("-agent-") ? [x.logo_url] : []);
+  if (!cands.length || (x.logo_url && !x.logo_url.includes("-agent-"))) return false;
   try {
-    const blob = await (await fetch(x.logo_url)).blob();
-    const white = await processLogo(blob, "white");
+    const imgs = (await Promise.all(cands.map(u => loadImg(u).catch(() => null))));
+    const ok = imgs.map((im, i) => im ? i : -1).filter(i => i >= 0);
+    if (!ok.length) throw new Error("no image");
+    const r = await logoAI({ images: ok.map(i => aiThumb(imgs[i])), name: x.name, short: x.short_name });
+    if (!(r.index >= 0)){ await upd("series", x.id, { logo_url: null, logo_candidates: null }); await loadRef(); return true; }
+    const white = await processLogo(cands[ok[r.index]], { box: r.box, badge: r.badge });
     const url = await uploadMedia(white, `series/${x.slug}-${Date.now()}.png`);
-    await upd("series", x.id, { logo_url: url });
+    await upd("series", x.id, { logo_url: url, logo_candidates: null });
     await loadRef();
     return true;
   } catch(e){ return false; }
 }
+// "Find logo with AI": fresh candidates from the official site, then the same pick-and-clean
+async function refindLogo(s){
+  const t = await token();
+  const r = await fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify({ action:"logo", series_id:s.id }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "no answer");
+  if (!(j.candidates || []).length) throw new Error("No logo found on the official site. Add one by hand.");
+  await upd("series", s.id, { logo_url: j.candidates[0], logo_candidates: j.candidates });
+  if (!(await finalizeLogo(s.id))) throw new Error("Couldn't prepare the logo. Add one by hand.");
+  if (!D.series.find(x => x.id === s.id)?.logo_url) throw new Error("None of the pictures on the official site is this championship's logo. Add one by hand.");
+}
 async function editSeries(s, src){
   if (!s) return addSeries();
-  const lp = logoPicker(s.logo_url);
+  const lp = logoPicker(s.logo_url, s);
   const sp = sportPicker(s.sport || "");
   const r = await drawer(`Edit ${s.short_name || s.name}`, [
     { section:"Championship", items:[
       { k:"name", l:"Full championship name", req:true },
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
     { section:"Logo", items:[{ html: lp.html }] },
-    { section:"Sport", items:[{ html: sp.html }] },
+    { section:"Discipline", items:[{ html: sp.html }] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"watch_hint", l:"Usual live-stream page", type:"url", help:"Only a starting point for the AI. Fans see the link set on each race." }, s.watch_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], s, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
     after(){ lp.after(); sp.after(); },
@@ -844,7 +990,7 @@ async function editSeries(s, src){
   });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("series", s.id); location.hash = "#/championships"; route(); }, "Championship deleted");
-  if (!sp.st.v){ alert("Choose a sport."); return editSeries(s, src); }
+  if (!sp.st.v){ alert("Choose a discipline."); return editSeries(s, src); }
   const { urls, instr, ...row } = r;
   row.sport = sp.st.v;
   row.short_name = row.short_name || row.name;
@@ -862,7 +1008,7 @@ async function editSeries(s, src){
 // ---------- Review queue ----------
 async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
-  if (only?.logo_url?.includes("-agent-") && await whitenLogo(only.id)) only = D.series.find(x => x.slug === slug);
+  if (only?.logo_url?.includes("-agent-") && await finalizeLogo(only.id)) only = D.series.find(x => x.slug === slug);
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
   const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Where to watch", new_season:"New season" };
@@ -923,8 +1069,8 @@ const LOGO_OK = new Set();
 function logoCard(s){
   const box = $("#logo-card"); if (!box) return;
   if (s.logo_url && LOGO_OK.has(s.id)){ box.innerHTML = `<div class="card head-card" style="margin-bottom:12px"><img src="${esc(s.logo_url)}" alt=""><span class="chip good">Logo confirmed</span><span class="grow"></span><button class="btn sm" id="lg-change">Change</button></div>`; $("#lg-change").onclick = () => { LOGO_OK.delete(s.id); logoCard(s); }; return; }
-  const lp = logoPicker(s.logo_url);
-  box.innerHTML = `<section class="fs" style="margin-bottom:14px"><h4><i></i>Logo <small>${s.logo_url ? "Found by the AI and turned white. Is it right?" : "The AI couldn't find a logo. Add one: drop a file, choose one, or paste a screenshot."}</small></h4>${lp.html}
+  const lp = logoPicker(s.logo_url, s, n => { LOGO_OK.add(s.id); logoCard(n); });
+  box.innerHTML = `<section class="fs" style="margin-bottom:14px"><h4><i></i>Logo <small>${s.logo_url ? "Found by the AI, cut out and made white. Is it the right one?" : "The AI couldn't find a logo. Add one: drop a file, choose one, or paste a screenshot."}</small></h4>${lp.html}
     <div class="bar" style="justify-content:flex-end;margin:0">${s.logo_url ? `<button class="btn good" id="lg-ok">Keep this logo</button>` : ""}<button class="btn pri" id="lg-save" disabled>Save new logo</button></div></section>`;
   lp.after();
   const save = $("#lg-save"), watch = setInterval(() => { if (!document.body.contains(save)) return clearInterval(watch); save.disabled = !lp.st.blob; }, 300);
@@ -953,7 +1099,7 @@ async function usage(){
   const mCost = mRuns.reduce((a, r) => a + runCost(r.usage), 0);
   const done = runs.filter(r => r.usage);
   const avg = done.length ? done.reduce((a, r) => a + runCost(r.usage), 0) / done.length : 0;
-  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)" };
+  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)" };
   const RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","No change · free"] };
   $("#main").innerHTML = `<div class="ph"><h1>AI usage</h1></div>
     <div class="kpis">

@@ -317,12 +317,13 @@
       await upd("profiles", p.id, { ...r, updated_at: new Date().toISOString() });
     }, "Profile saved");
   }
+  let DISC = [];
   async function loadLists() {
-    if (!SERIES.length) [SERIES, VEH] = await Promise.all([api("series?select=id,slug,name,short_name,sport,logo_url&order=name"), api("vehicles?select=*&order=name")]);
+    if (!SERIES.length) [SERIES, VEH, DISC] = await Promise.all([api("series?select=id,slug,name,short_name,sport,logo_url&order=name"), api("vehicles?select=*&order=name"), api("disciplines?select=key,name&order=sort,name").catch(() => [])]);
   }
   async function addChampionship() {
     await loadLists();
-    const SP = { sportscars: "Sportscars", formula: "Formula", motorbikes: "Motorbikes" };
+    const SP = DISC.length ? Object.fromEntries(DISC.map(d => [d.key, d.name])) : { sportscars: "Sportscars", formula: "Formula", motorbikes: "Motorbikes" };
     const lg = s => s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s.short_name.slice(0, 5))}</span>`;
     const groups = Object.keys(SP).map(k => [k, SERIES.filter(s => s.sport === k)]).filter(g => g[1].length);
     const r = await sheet("Add a championship", `<div><label class="rx-f" for="rx-q">Search</label><input id="rx-q" type="search" autocomplete="off"></div>

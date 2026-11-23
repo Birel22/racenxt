@@ -1,6 +1,7 @@
 // Racenxt research agent.
 // POST { action: "discover", series_id }  -> finds official site, logo, calendar (+ timetables already out); files proposals
 // POST { action: "check_event", event_id } -> finds the race timetable and where-to-watch; files proposals
+// POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
 // POST { action: "tick" } + x-cron-secret      -> called by pg_cron every 15 min: starts the checks that are due
 // Scheduled checks (monthly / daily) first compare the official pages with last time and skip the AI if unchanged.
 // Callers: signed-in admins (from the admin page) or the service role (scheduled checks).
@@ -127,6 +128,18 @@ function toCircuitTime(list: any[], zone: string, circuitTz: string) {
   return (list || []).map((x: any) => x && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") ? { ...x, local_start: utcToWall(wallToUtc(x.local_start, zone), circuitTz) } : x);
 }
 
+// race names: no championship name, year, round number ("4 Hours of Jerez", not "4 Hours of Jerez by ALMS 2027")
+const reEsc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function cleanName(name: string, series: any) {
+  const orig = String(name || "").trim();
+  let n = orig;
+  const names = [series.name, series.short_name, String(series.name || "").replace(/^FIA\s+/i, "")].filter((x: string) => x && x.length > 1).sort((a: string, b: string) => b.length - a.length);
+  for (const x of names) n = n.replace(new RegExp(`\\s*\\(?\\s*(?:by\\s+)?\\b${reEsc(x)}\\b(?:\\s+round\\s+\\d+)?\\s*\\)?\\s*[-–—:]?\\s*`, "ig"), " ");
+  n = n.replace(/\(\s*round\s*\d+\s*\)/ig, " ").replace(/\b(19|20)\d{2}\b/g, " ").replace(/^\s*(?:R|Rd|Round)\s*\d+\s*[-–—:]\s*/i, "")
+    .replace(/\(\s*\)/g, " ").replace(/^\s*[-–—:]\s*|\s*[-–—:]\s*$/g, "").replace(/\s{2,}/g, " ").trim();
+  return n.length >= 3 ? n : orig;
+}
+
 const TYPES = ["practice", "qualifying", "race", "warmup", "other"];
 function cleanSessions(list: any[], start: string, end: string) {
   const lo = new Date(start + "T00:00:00Z").getTime() - 2 * 864e5, hi = new Date(end + "T23:59:00Z").getTime() + 864e5;
@@ -156,11 +169,16 @@ async function logoCandidatesFromHtml(site: string) {
       for (const m of chunk.matchAll(/<(a|div|span)\b[^>]*logo[^>]*>\s*(<svg[\s\S]*?<\/svg>)/gi)) out.push({ svg: m[2] });
       for (const m of chunk.matchAll(/<svg\b[^>]*logo[^>]*>[\s\S]*?<\/svg>/gi)) out.push({ svg: m[0] });
     }
+    for (const m of html.matchAll(/<link\b[^>]*rel=["'](?:apple-touch-icon|icon)["'][^>]*>/gi)) { const h = (m[0].match(/href=["']([^"']+)["']/i) || [])[1]; if (h && /\.(svg|png)/i.test(h)) out.push({ url: abs(h, base) }); }
+    const og = (html.match(/<meta\b[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) || [])[1]; if (og) out.push({ url: abs(og, base) });
   } catch (_) { /* site unreachable */ }
-  return out.slice(0, 8);
+  return out.slice(0, 10);
 }
-async function storeLogo(slug: string, cands: { url?: string; svg?: string }[]) {
+async function storeLogos(slug: string, cands: { url?: string; svg?: string }[], max = 5) {
+  const out: string[] = [], seen = new Set<string>();
   for (const c of cands) {
+    if (out.length >= max) break;
+    if (c.url) { if (seen.has(c.url)) continue; seen.add(c.url); }
     try {
       let body: ArrayBuffer | string, type: string;
       if (c.svg) {
@@ -177,12 +195,12 @@ async function storeLogo(slug: string, cands: { url?: string; svg?: string }[]) 
         if (body.byteLength < 300) continue;
       }
       const ext = type.includes("svg") ? "svg" : type.includes("png") ? "png" : type.includes("webp") ? "webp" : "jpg";
-      const path = `series/${slug}-agent-${Date.now()}.${ext}`;
+      const path = `series/${slug}-agent-${Date.now()}-${out.length}.${ext}`;
       const up = await fetch(`${SB}/storage/v1/object/media/${path}`, { method: "POST", headers: { apikey: SRK, Authorization: `Bearer ${SRK}`, "Content-Type": type, "x-upsert": "true" }, body });
-      if (up.ok) return `${SB}/storage/v1/object/public/media/${path}`;
+      if (up.ok) out.push(`${SB}/storage/v1/object/public/media/${path}`);
     } catch (_) { /* next candidate */ }
   }
-  return null;
+  return out;
 }
 
 // ---------- page fingerprints: skip the AI when the official pages haven't changed ----------
@@ -241,7 +259,7 @@ Task:
 1. Find the official website of this championship.
 2. Find the championship's official logo: up to 3 direct, absolute image URLs (SVG or PNG preferred), e.g. the logo image in the official site's header. If the official site doesn't expose one, a Wikimedia Commons file of the official logo (upload.wikimedia.org) is acceptable as the last candidate.
 3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
-4. For each race weekend: round number, official race name, first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
+4. For each race weekend: round number, the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
 5. Timetables: for the next upcoming race weekends, check the race page on the official site. If the official timetable (HTML or PDF) is already published, list every on-track session of THIS championship (practice, qualifying, hyperpole, warm-up, races) in local circuit time. If it is not published yet, set "sessions": null. Don't spend more than a few page reads on this; stop at the first race whose timetable is not published.
 6. Find the championship's usual official place to watch (streaming service, YouTube channel or TV page), if published.
 JSON schema:
@@ -270,14 +288,15 @@ JSON schema:
     const aiC = [...(out.logo_urls || []), out.logo_url].filter((u: any) => typeof u === "string" && /^https?:/.test(u)).map((url: string) => ({ url }));
     const wiki = aiC.filter(c => /wikimedia|wikipedia/.test(c.url)), own = aiC.filter(c => !/wikimedia|wikipedia/.test(c.url));
     const fromHtml = site ? await logoCandidatesFromHtml(site) : [];
-    const logo = await storeLogo(series.slug, [...own, ...fromHtml, ...wiki]);
-    if (logo) upd.logo_url = logo; else logoNote = " No logo found: add one on the review page.";
+    const logos = await storeLogos(series.slug, [...own, ...fromHtml, ...wiki]);
+    // the admin page picks the right one with AI, then makes it white and standard size
+    if (logos.length) { upd.logo_url = logos[0]; upd.logo_candidates = logos; } else logoNote = " No logo found: add one on the review page.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
 
   // calendar: new races in one proposal, changed dates as separate proposals
   const found = (out.seasons || []).flatMap((s: any) => (s.events || []).map((e: any) => ({ ...e, year: s.year || +String(e.start_date).slice(0, 4) })))
-    .filter((e: any) => e.name && okDate(e.start_date) && okDate(e.end_date || e.start_date))
+    .map((e: any) => ({ ...e, name: cleanName(e.name, series) })).filter((e: any) => e.name && okDate(e.start_date) && okDate(e.end_date || e.start_date))
     .map((e: any) => {
       const tz = e.circuit?.timezone || "";
       const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
@@ -402,6 +421,16 @@ Deno.serve(async (req) => {
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID.test(body.series_id || body.event_id || "")) return json({ error: "bad id" }, 400);
   let series: any, ev: any = null;
+  if (body.action === "logo") {
+    // free: logo candidates from the official homepage (+ earlier ones); the admin page picks with AI
+    const [s] = await db(`series?id=eq.${body.series_id}&select=id,slug,website_url,logo_candidates`);
+    if (!s) return json({ error: "not found" }, 404);
+    if (!s.website_url) return json({ candidates: s.logo_candidates || [] });
+    const logos = await storeLogos(s.slug, await logoCandidatesFromHtml(s.website_url), 6);
+    const all = [...logos, ...(s.logo_candidates || [])].slice(0, 8);
+    await patch("series", `id=eq.${s.id}`, { logo_candidates: all });
+    return json({ candidates: all });
+  }
   if (body.action === "discover") {
     [series] = await db(`series?id=eq.${body.series_id}&select=*`);
   } else if (body.action === "check_event") {
@@ -411,7 +440,7 @@ Deno.serve(async (req) => {
   if (!series) return json({ error: "not found" }, 404);
   const [src] = await db(`series_sources?series_id=eq.${series.id}&select=*`);
 
-  const kind = ["monthly", "weekly", "daily", "final"].includes(body.kind) ? body.kind : (body.action === "discover" ? "discover" : "manual");
+  const kind = ["monthly", "weekly", "daily", "final", "initial"].includes(body.kind) ? body.kind : (body.action === "discover" ? "discover" : "manual");
   const [run] = await ins("check_runs", { series_id: series.id, event_id: ev?.id || null, kind, result: "running", pages: [] });
   const job = (async () => {
     try {

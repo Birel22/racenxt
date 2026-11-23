@@ -3,6 +3,10 @@
   const C = window.RNX_CONFIG;
   const CSS = `
   .rxf{display:grid;gap:12px;font:14px Barlow,system-ui,sans-serif;color:#a9abb2}
+  .rxf-views{display:flex;justify-self:center;gap:4px;margin:0 auto;padding:4px;border-radius:999px;background:#0d0e11;border:1px solid #3b3e47}
+  .rxf-views button{height:32px;padding:0 14px;border:0;border-radius:999px;background:none;color:#a9abb2;font:600 13.5px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rxf-views button[aria-checked="true"]{background:#f4f4f2;color:#0b0c0f}
+  .rxf-main.desk{aspect-ratio:16/8.6;max-width:100%}
   .rxf-main{position:relative;width:100%;max-width:340px;margin:0 auto;aspect-ratio:9/10;border-radius:16px;overflow:hidden;background:#000;touch-action:none;cursor:grab;border:1px solid #3b3e47}
   .rxf-main:active{cursor:grabbing}
   .rxf img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
@@ -12,8 +16,6 @@
   .rxf-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;pointer-events:none;white-space:nowrap}
   .rxf-row{display:flex;align-items:center;gap:12px}
   .rxf-row input[type=range]{flex:1;accent-color:#FF5A1F;min-height:0;padding:0;border:0;background:none}
-  .rxf-desk{position:relative;width:100%;max-width:340px;margin:0 auto;aspect-ratio:16/8.6;border-radius:12px;overflow:hidden;background:#000;border:1px solid #3b3e47}
-  .rxf-lbl{text-align:center;font-size:12.5px;color:#7d808a}
   .rxc{display:grid;gap:10px;font:14px Barlow,system-ui,sans-serif;color:#a9abb2}
   .rxc-stage{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0b0c0f;touch-action:none;user-select:none}
   .rxc-stage img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
@@ -33,9 +35,10 @@
   window.rnxPhotoFramer = function (box, src, pos, title) {
     style();
     const st = { x: pos?.x ?? 50, y: pos?.y ?? 35, z: pos?.z ?? 1 };
-    box.innerHTML = `<div class="rxf"><div class="rxf-main" id="rxf-main"><img src="${esc(src)}" alt=""><div class="rxf-shade"></div><div class="rxf-name">${title || ""}</div><div class="rxf-hint">Drag to position</div></div>
-      <div class="rxf-row"><span>Zoom</span><input type="range" min="1" max="2.5" step="0.01" value="${st.z}" aria-label="Zoom"></div>
-      <div class="rxf-desk"><img src="${esc(src)}" alt=""><div class="rxf-shade"></div></div><div class="rxf-lbl">On a computer</div></div>`;
+    box.innerHTML = `<div class="rxf"><div class="rxf-views" role="radiogroup" aria-label="Preview on"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div>
+      <div class="rxf-main" id="rxf-main"><img src="${esc(src)}" alt=""><div class="rxf-shade"></div><div class="rxf-name">${title || ""}</div><div class="rxf-hint">Drag to position</div></div>
+      <div class="rxf-row"><span>Zoom</span><input type="range" min="1" max="2.5" step="0.01" value="${st.z}" aria-label="Zoom"></div></div>`;
+    box.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { box.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); box.querySelector(".rxf-main").classList.toggle("desk", b.dataset.v === "desk"); });
     const imgs = box.querySelectorAll("img"), main = box.querySelector(".rxf-main"), range = box.querySelector("input[type=range]");
     const apply = () => imgs.forEach(im => { im.style.objectPosition = `${st.x}% ${st.y}%`; im.style.transform = `scale(${st.z})`; im.style.transformOrigin = `${st.x}% ${st.y}%`; });
     apply();

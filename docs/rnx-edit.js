@@ -190,15 +190,17 @@
   .rx-photo-ph{width:100%;border-radius:inherit;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;border:2px dashed #3b3e47;color:#a9abb2;font:600 14px Barlow,system-ui,sans-serif;background:#15161b;cursor:pointer}
   .rx-photo-ph svg{width:26px;height:26px}
   .rx-scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:950;opacity:0;pointer-events:none;transition:opacity .2s}
-  .rx-sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;z-index:951;background:#111216;color:#f4f4f2;border-top:1px solid #3b3e47;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .24s cubic-bezier(.2,.8,.2,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
+  .rx-sheet{position:fixed;left:0;right:0;bottom:0;max-height:92vh;max-height:92dvh;z-index:951;background:#111216;color:#f4f4f2;border-top:1px solid #3b3e47;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translateY(105%);transition:transform .24s cubic-bezier(.2,.8,.2,1);font:16px/1.45 Barlow,system-ui,sans-serif;box-shadow:0 -20px 50px rgba(0,0,0,.5)}
   body.rx-on .rx-scrim{opacity:1;pointer-events:auto}
   body.rx-on .rx-sheet{transform:none}
   @media (min-width:760px){.rx-sheet{left:auto;top:0;width:520px;max-height:none;border-radius:0;border-top:0;border-left:1px solid #3b3e47;transform:translateX(105%)}}
   @media (prefers-reduced-motion:reduce){.rx-sheet,.rx-scrim{transition:none}}
+  .rx-sh-h,.rx-sh-f{flex:none}
   .rx-sh-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #2a2c33}
   .rx-sh-h b{flex:1;font:700 22px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.02em}
   .rx-x{width:38px;height:38px;border-radius:50%;border:1px solid #3b3e47;background:#1b1c22;color:#f4f4f2;cursor:pointer;font-size:18px}
-  .rx-sh-b{flex:1;overflow:auto;padding:18px;display:grid;gap:16px;align-content:start}
+  body.rx-on{overflow:hidden}
+  .rx-sh-b{grid-auto-rows:max-content;flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:18px;display:grid;gap:16px;align-content:start}
   .rx-sh-f{display:flex;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #2a2c33}
   .rx-sh-f .rx-b{flex:1;justify-content:center;height:46px;border-radius:12px}
   .rx-sh-f .rx-b.bad{flex:none}

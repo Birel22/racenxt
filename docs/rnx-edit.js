@@ -818,6 +818,7 @@
     link: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'
   };
   const CARI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15l1.6-4.2A2 2 0 0 1 6.5 9.5h8.3a2 2 0 0 1 1.5.7L19 13l1.6.5A1.5 1.5 0 0 1 21.7 15v1.5H3z"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/></svg>';
+  const KEY = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M14 9l2 2"/></svg>';
   const PIN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const CALI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   // custom events: anything that isn't in an official championship calendar (tests, media, autograph sessions...)
@@ -1103,7 +1104,8 @@
         <button role="menuitem" data-a="copy">${LINK}Copy page link</button>
         <hr>${others.length ? `<div class="rx-menu-l">Your other pages</div>${others.map(x => `<button role="menuitem" data-slug="${esc(x.profiles.slug)}" data-id="${x.profiles.id}">${USER}${esc(x.profiles.display_name)}</button>`).join("")}` : ""}
         <button role="menuitem" data-a="new">${PLUS}Create another page</button>
-        <hr><button role="menuitem" data-a="out" class="rx-out">${OUT}Log out</button>`;
+        <hr><button role="menuitem" data-a="pw">${KEY}Password</button>
+        <button role="menuitem" data-a="out" class="rx-out">${OUT}Log out</button>`;
       document.body.appendChild(m); $("#rx-me").setAttribute("aria-expanded", "true");
       m.querySelector("button")?.focus();
       m.onclick = async e2 => {
@@ -1115,6 +1117,7 @@
         if (a === "preview") preview(true);
         if (a === "copy") { try { await navigator.clipboard.writeText(url); busy(true); busy(false, "Link copied"); } catch (er) { prompt("Your page link:", url); } }
         if (a === "new") location.href = (window.RNX_BASE || "/") + "app.html?new=1";
+        if (a === "pw") { if (!window.rnxSetPassword) await new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = (window.RNX_BASE || "/") + "rnx-auth.js"; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); }); const done = await window.rnxSetPassword({ token: await token(), first: false }); if (done) { busy(true); busy(false, "Password saved"); } }
         if (a === "out") { S.set(null); localStorage.removeItem("rnx_profile"); location.reload(); }
       };
       setTimeout(() => document.addEventListener("click", function off(e3) { if (!m.contains(e3.target)) { closeMenu(); document.removeEventListener("click", off); } }), 0);

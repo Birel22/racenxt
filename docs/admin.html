@@ -7,7 +7,8 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-211951"></script>
+<script src="config.js?v=20261123-212817"></script>
+<script src="rnx-auth.js?v=20261123-212817"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -1409,13 +1410,8 @@ async function editVehicle(v){
 // ---------- start ----------
 function login(msg){
   $("#app").innerHTML = `<div class="login"><div class="brand" style="font-size:40px">RACEN<span class="x">X</span>T</div><div class="muted" style="letter-spacing:.16em;text-transform:uppercase;font-size:12px;margin-top:4px">Admin</div>
-    <form class="card" id="lf"><label class="f" for="em">Email</label><input id="em" type="email" required autocomplete="email" placeholder="you@example.com"><button class="btn pri" style="height:42px;justify-content:center">Send me a sign-in link</button><div class="muted" style="font-size:13px" id="lmsg">${esc(msg || "We'll email you a link. No password needed.")}</div></form></div>`;
-  $("#lf").onsubmit = async e => {
-    e.preventDefault();
-    const email = $("#em").value.trim();
-    const r = await fetch(`${C.url}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ email, create_user:true }) });
-    $("#lmsg").textContent = r.ok ? `Check your inbox: we sent a link to ${email}.` : "Couldn't send the link. Try again in a minute.";
-  };
+    <div class="card" id="lbox" style="margin-top:20px"></div></div>`;
+  rnxAuth($("#lbox"), { title: "Sign in", note: msg, onSession: s => { S.set(s); start(); } });
 }
 async function start(){
   readHash();

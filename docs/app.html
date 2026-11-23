@@ -7,9 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-211951"></script>
-<script src="rnx-social.js?v=20261123-211951"></script>
-<script src="rnx-ui.js?v=20261123-211951"></script>
+<script src="config.js?v=20261123-212817"></script>
+<script src="rnx-social.js?v=20261123-212817"></script>
+<script src="rnx-auth.js?v=20261123-212817"></script>
+<script src="rnx-ui.js?v=20261123-212817"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -293,17 +294,8 @@ function openMenu(e){
 
 function login(msg){
   $("#app").innerHTML = `<div class="center"><div class="auth"><div class="brand" style="font-size:46px">RACEN<span class="x">X</span>T</div><div class="dim">Everything in one place</div>
-    <form class="card" id="lf"><h2 style="font-size:24px">Your Race Hub</h2><div class="dim" style="font-size:15px">One page for your season: calendar, schedules, where to watch, your car and partners. Kept up to date for you.</div>
-    <div class="field"><label class="f" for="em">Email</label><input id="em" type="email" required autocomplete="email" inputmode="email"></div>
-    <button class="btn pri block">Send me a sign-in link</button><div class="muted" style="font-size:14px" id="lmsg">${esc(msg || "No password: we email you a link.")}</div></form></div></div>`;
-  $("#lf").onsubmit = async e => {
-    e.preventDefault();
-    const email = $("#em").value.trim();
-    const r = await fetch(`${C.url}/auth/v1/otp?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { method:"POST", headers:{ apikey:C.key, "Content-Type":"application/json" }, body: JSON.stringify({ email, create_user:true }) });
-    $("#lmsg").innerHTML = r.ok ? `<span class="ok">Check your inbox:</span> we sent a link to ${esc(email)}.`
-      : r.status === 429 ? `<span class="no">Too many sign-in emails were sent in the last hour.</span> Use the last link you received, or try again later.`
-      : "Couldn't send the link. Try again in a minute.";
-  };
+    <div class="card" id="lbox"></div></div></div>`;
+  rnxAuth($("#lbox"), { title: "Your Race Hub", sub: "One page for your season: calendar, schedules, where to watch, your car and partners. Kept up to date for you.", note: msg, onSession: s => { S.set(s); boot(); } });
 }
 
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -424,7 +416,7 @@ async function boot(){
   readHash();
   if (!(await token())) return login();
   ST.me = await fetch(`${C.url}/auth/v1/user`, { headers:{ apikey:C.key, Authorization:`Bearer ${await token()}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
-  if (!ST.me){ S.set(null); return login("Your link expired. Send yourself a new one."); }
+  if (!ST.me){ S.set(null); return login("You were signed out. Sign in again."); }
   try {
     await loadMembers();
     if (!ST.profile) return onboarding(false);

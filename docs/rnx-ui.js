@@ -16,17 +16,48 @@
   .rxf-hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;border-radius:999px;padding:6px 12px;font-size:13px;pointer-events:none;white-space:nowrap}
   .rxf-row{display:flex;align-items:center;gap:12px}
   .rxf-row input[type=range]{flex:1;accent-color:#FF5A1F;min-height:0;padding:0;border:0;background:none}
-  .rxe{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
-  @media (min-width:760px){.rxe{align-items:center}}
-  .rxe-box{width:100%;max-width:520px;max-height:100dvh;background:#111216;border:1px solid #3b3e47;border-radius:22px 22px 0 0;display:flex;flex-direction:column;color:#f4f4f2;font:16px Barlow,system-ui,sans-serif}
-  @media (min-width:760px){.rxe-box{border-radius:20px}}
-  .rxe-h{flex:none;padding:16px 18px;border-bottom:1px solid #2a2c33;font:700 22px 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.02em}
-  .rxe-b{flex:1 1 auto;min-height:0;overflow-y:auto;padding:16px 18px}
-  .rxe-f{flex:none;display:flex;gap:10px;padding:14px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #2a2c33}
-  .rxe-f button{flex:1;height:46px;border-radius:12px;border:1px solid #3b3e47;background:#1b1c22;color:#f4f4f2;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer}
+  /* editors (photo, logo): the house style, see DESIGN.md */
+  .rxe{position:fixed;inset:0;z-index:1200;display:flex;align-items:flex-end;justify-content:center}
+  .rxe-back{position:absolute;inset:0;background:rgba(5,6,8,.7);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;transition:opacity .28s ease}
+  .rxe-box{position:relative;width:100%;max-width:540px;max-height:96dvh;background:#16181d;border:1px solid #2c2f37;border-bottom:0;border-radius:22px 22px 0 0;display:flex;flex-direction:column;color:#f2f2ef;font:16px Barlow,system-ui,sans-serif;box-shadow:0 -18px 50px rgba(0,0,0,.5);transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
+  .rxe.on .rxe-back{opacity:1}.rxe.on .rxe-box{transform:none}
+  @media (min-width:700px){.rxe{align-items:center}.rxe-box{border-bottom:1px solid #2c2f37;border-radius:22px;max-height:92dvh;transform:translateY(12px) scale(.97);opacity:0;transition:transform .24s cubic-bezier(.2,.85,.25,1),opacity .2s ease;box-shadow:0 24px 70px rgba(0,0,0,.55)}.rxe.on .rxe-box{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.rxe-box,.rxe-back{transition:opacity .15s ease !important}.rxe-box{transform:none !important}}
+  .rxe-h{flex:none;display:flex;align-items:flex-start;gap:12px;padding:16px 20px 14px;border-bottom:1px solid #24262d}
+  .rxe-h > div{flex:1;min-width:0}
+  .rxe-h small{display:block;font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#FF5A1F}
+  .rxe-h b{display:block;margin-top:6px;font:700 24px/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.01em}
+  .rxe-x{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:#9a9ca3;cursor:pointer;display:grid;place-items:center}
+  .rxe-x svg{width:16px;height:16px}
+  .rxe-b{flex:1 1 auto;min-height:0;overflow-y:auto;padding:16px 20px;display:grid;gap:16px;align-content:start}
+  .rxe-f{flex:none;display:flex;gap:10px;padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #24262d}
+  .rxe-f button{flex:1;height:48px;border-radius:14px;border:1px solid #2f323a;background:#1d2026;color:#f2f2ef;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer}
   .rxe-f button.pri{background:#FF5A1F;border-color:#FF5A1F;color:#fff}
+  .rxe-f button:disabled{opacity:.5;cursor:default}
+  .rxe-lbl{font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#9a9ca3;margin-bottom:8px}
   .rxt{width:132px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;position:relative;background:#15161b;border:1px solid #3b3e47;flex:none}
   .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .rxt .rxt-logo{position:absolute;z-index:1;inset:auto;top:8%;left:7%;width:auto;height:auto;max-width:42%;max-height:30%;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
+  .rxt-empty{position:absolute;inset:0;display:grid;place-items:center;border:1.5px dashed #3b3e47;border-radius:inherit;color:#8e919b;font:600 13px Barlow,system-ui,sans-serif;background:#15161b}
+  .rxt.has-photo .rxt-empty{background:rgba(13,14,17,.45);color:#f2f2ef;border-color:rgba(255,255,255,.35)}
+  .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
+  .rxl-seg button{min-height:44px;border:0;border-radius:10px;background:transparent;color:#9a9ca3;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
+  .rxl-seg button i{width:16px;height:16px;border-radius:50%;border:1px solid #4a4d56;flex:none}
+  .rxl-seg button[aria-checked="true"]{background:#23262d;color:#f2f2ef}
+  .rxl-seg button:focus-visible,.rxf-views button:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
+  .rxl-stage{position:relative;width:100%;max-width:300px;margin:0 auto;aspect-ratio:9/12;border-radius:18px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2c2f37;transition:max-width .25s ease,aspect-ratio .25s ease}
+  .rxl-stage.desk{max-width:100%;aspect-ratio:16/8.6}
+  .rxl-stage > img.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .rxl-stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),transparent 30%,transparent 60%,rgba(0,0,0,.7))}
+  .rxl-stage .lg{position:absolute;z-index:1;top:4.5%;left:6%;width:24%;max-height:16%;object-fit:contain;object-position:left top;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:width .25s ease}
+  .rxl-stage.desk .lg{width:16%;top:6%;left:3.5%;max-height:22%}
+  .rxl-stage .nm{position:absolute;z-index:1;left:6%;bottom:5%;font:700 26px/1 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase}
+  .rxl-stage.desk .nm{left:3.5%;font-size:30px}
+  .rxl-stage .nm em{font-style:normal;color:#FF5A1F}
+  .rxl-stage .busy{position:absolute;z-index:2;inset:0;display:grid;place-items:center;background:rgba(13,14,17,.55);color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif;text-align:center;padding:16px}
+  .rxl-steps{display:flex;gap:8px;align-items:center;font:600 13.5px Barlow,system-ui,sans-serif;color:#8e919b}
+  .rxl-steps b{color:#f2f2ef}
+  .rxl-link{background:none;border:0;padding:0;color:#FF5A1F;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   .rxc{display:grid;gap:10px;font:14px Barlow,system-ui,sans-serif;color:#a9abb2}
   .rxc-stage{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0b0c0f;touch-action:none;user-select:none}
   .rxc-stage img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none}
@@ -41,6 +72,9 @@
   const style = () => { if (styled) return; const s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); styled = true; };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const XSVG = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  const edHead = (label, title) => `<div class="rxe-h"><div><small>${label}</small><b>${title}</b></div><button type="button" class="rxe-x" aria-label="Close">${XSVG}</button></div>`;
 
   // ---------- photo framing: drag to place your face, zoom, see phone and computer ----------
   window.rnxPhotoFramer = function (box, src, pos, title) {
@@ -72,12 +106,13 @@
     style();
     return new Promise(res => {
       const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", "Position your photo");
-      ov.innerHTML = `<div class="rxe-box"><div class="rxe-h">Position your photo</div><div class="rxe-b"><div id="rxe-fr"></div></div><div class="rxe-f"><button type="button" id="rxe-no">Cancel</button><button type="button" class="pri" id="rxe-ok">Done</button></div></div>`;
-      document.body.appendChild(ov);
+      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead("Your photo", "Position your photo")}<div class="rxe-b"><div id="rxe-fr"></div></div><div class="rxe-f"><button type="button" id="rxe-no">Cancel</button><button type="button" class="pri" id="rxe-ok">Done</button></div></div>`;
+      document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
       const fr = window.rnxPhotoFramer(ov.querySelector("#rxe-fr"), src, pos, title);
-      const close = v => { ov.remove(); document.removeEventListener("keydown", key); res(v); };
-      const key = e => { if (e.key === "Escape") close(null); };
-      document.addEventListener("keydown", key);
+      ov.querySelector(".rxe-x").onclick = () => close(null);
+      const close = v => { ov.classList.remove("on"); document.removeEventListener("keydown", key, true); setTimeout(() => ov.remove(), 300); res(v); };
+      const key = e => { if (e.key === "Escape") { e.stopPropagation(); close(null); } };
+      document.addEventListener("keydown", key, true);
       ov.querySelector("#rxe-no").onclick = () => close(null);
       ov.querySelector("#rxe-ok").onclick = () => close(fr.get());
       ov.querySelector("#rxe-ok").focus();
@@ -171,77 +206,59 @@
     return await new Promise(r => out.toBlob(r, "image/png"));
   };
 
-  // A personal logo field: add a file / photo / screenshot -> the AI finds the logo -> cut out -> Original / White / Black,
-  // previewed on top of the athlete's photo. result() -> { changed, removed, src (cut-out original), out (chosen colour), mode }
-  const LCSS = `.rxl{display:grid;gap:12px}
-  .rxl-pv{position:relative;height:150px;border-radius:16px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2a2d35}
-  .rxl-pv::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0) 55%)}
-  .rxl-pv img{position:absolute;z-index:1;top:14px;left:16px;max-width:42%;max-height:60px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
-  .rxl-pv .rxl-empty{position:absolute;z-index:1;inset:0;display:grid;place-items:center;color:#9a9ca3;font:600 14px Barlow,system-ui,sans-serif}
-  .rxl-pv .rxl-busy{position:absolute;z-index:2;inset:0;display:grid;place-items:center;background:rgba(13,14,17,.55);color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif}
-  .rxl-row{display:flex;gap:8px;flex-wrap:wrap}
-  .rxl-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:14px;border:1px solid #2f323a;background:#1d2026;color:#f2f2ef;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s}
-  .rxl-btn:hover{background:#23262d;border-color:#3a3d46}
-  .rxl-btn.ghost{background:transparent;color:#9a9ca3}
-  .rxl-btn svg{width:18px;height:18px;color:var(--rx-acc,#FF5A1F)}
-  .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
-  .rxl-seg button{min-height:40px;border:0;border-radius:10px;background:transparent;color:#9a9ca3;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
-  .rxl-seg button i{width:14px;height:14px;border-radius:50%;border:1px solid #4a4d56}
-  .rxl-seg button[aria-checked="true"]{background:#23262d;color:#f2f2ef}
-  .rxl-seg button:focus-visible,.rxl-btn:focus-visible{outline:2px solid var(--rx-acc,#FF5A1F);outline-offset:2px}
-  .rxl-hint{font-size:13px;color:#8e919b;line-height:1.4}`;
-  let lstyled = false;
-  const PIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-  window.rnxLogoPicker = function (box, opt) {
-    if (!lstyled) { const st = document.createElement("style"); st.textContent = LCSS; document.head.appendChild(st); lstyled = true; }
-    const S = { file: null, cropper: null, src: null, out: null, mode: opt.mode || "original", current: opt.current || "", currentSrc: opt.currentSrc || "", removed: false, busy: false, seq: 0 };
-    const has = () => !S.removed && (S.file || S.current || S.currentSrc);
-    const draw = () => {
-      box.innerHTML = `<div class="rxl">
-        <div class="rxl-pv" id="rxl-pv" style="${opt.photo ? `background-image:url('${String(opt.photo).replace(/'/g, "%27")}')` : ""}">${has() ? "" : `<span class="rxl-empty">Your logo appears here, over your photo</span>`}</div>
-        <div id="rxl-crop"></div>
-        ${has() ? `<div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "linear-gradient(135deg,#FF5A1F,#2f7bff)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${S.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>` : ""}
-        <div class="rxl-row"><button type="button" class="rxl-btn" id="rxl-add">${PIC}${has() ? "Change logo" : "Add your logo"}</button>${has() ? `<button type="button" class="rxl-btn ghost" id="rxl-rm">Remove</button>` : ""}</div>
-        <div class="rxl-hint">A logo file, a photo or a screenshot: we find the logo, cut it out and remove the background.</div></div>`;
-      box.querySelector("#rxl-add").onclick = async () => { const f = await opt.pickFile(); if (f) take(f); };
-      const rm = box.querySelector("#rxl-rm"); if (rm) rm.onclick = () => { Object.assign(S, { removed: true, file: null, cropper: null, src: null, out: null }); draw(); };
-      box.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { S.mode = b.dataset.m; box.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
-      if (S.cropper) box.querySelector("#rxl-crop").appendChild(S.cropEl);
-      render();
-    };
-    const render = async () => {
-      const pv = box.querySelector("#rxl-pv"); if (!pv || !has()) return;
-      const my = ++S.seq; S.busy = true;
-      pv.querySelector("img")?.remove(); pv.insertAdjacentHTML("beforeend", `<span class="rxl-busy">Cleaning up the logo…</span>`);
-      try {
-        if (S.file) { const cut = S.cropper ? await S.cropper.crop() : S.file; S.src = await rnxProcessLogo(cut, "original"); }
-        const base = S.src || S.currentSrc || S.current;
-        S.out = await rnxProcessLogo(base, S.mode);
-        if (my !== S.seq) return;
-        const url = S.out ? URL.createObjectURL(S.out) : S.current;
-        pv.querySelector(".rxl-busy")?.remove(); pv.insertAdjacentHTML("beforeend", `<img src="${url}" alt="Logo preview">`);
-      } catch (e) { if (my === S.seq) { pv.querySelector(".rxl-busy")?.remove(); pv.insertAdjacentHTML("beforeend", `<span class="rxl-busy">${e.message === "No logo found in this picture" ? "No logo found: move the box around it" : "Couldn't read this picture"}</span>`); } }
-      finally { if (my === S.seq) S.busy = false; }
-    };
-    const take = async f => {
-      if (!f || !/^image\//.test(f.type)) return;
-      Object.assign(S, { file: f, removed: false, src: null, out: null });
-      S.cropEl = document.createElement("div");
-      S.cropper = window.rnxLogoCropper ? await rnxLogoCropper(S.cropEl, f, opt.getToken) : null;
-      if (S.cropper) S.cropper.onChange(render);
-      draw();
-    };
-    const onPaste = e => { if (!document.body.contains(box)) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
-    document.addEventListener("paste", onPaste);
-    draw();
-    return {
-      busy: () => S.busy,
-      async result() {
-        while (S.busy) await new Promise(r => setTimeout(r, 120));
-        if (S.removed) return { changed: true, removed: true };
-        const changed = !!S.file || S.mode !== (opt.mode || "original");
-        return { changed, removed: false, src: S.file ? S.src : null, out: S.out, mode: S.mode };
-      }
-    };
+  // ---------- personal logo: small box like the photo, and a full editor (frame it, colour, phone / computer preview) ----------
+  // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
+  window.rnxLogoThumb = function (logo, photo, pos) {
+    style();
+    const p = pos || { x: 50, y: 35, z: 1 };
+    return `<div class="rxt${photo ? " has-photo" : ""}">${photo ? `<img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}${logo ? `<img class="rxt-logo" src="${esc(logo)}" alt="Your logo">` : `<span class="rxt-empty">Your logo</span>`}</div>`;
+  };
+  // opts: { file (new picture) | src (cut-out original already saved) | current (what fans see now), mode, photo, pos, title, getToken }
+  // resolves with { src: Blob|null (new cut-out original), out: Blob, mode } or null if cancelled
+  window.rnxLogoEditor = function (opts) {
+    style();
+    return new Promise(res => {
+      const st = { mode: opts.mode || "original", src: null, out: null, cropper: null, seq: 0, busy: false, view: "phone" };
+      const p = opts.pos || { x: 50, y: 35, z: 1 };
+      const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rxl-h");
+      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead("Your logo", opts.file ? "Add your logo" : "Logo colours").replace("<b>", '<b id="rxl-h">')}
+        <div class="rxe-b">
+          ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame your logo</div><div id="rxl-crop"></div></div>` : ""}
+          <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
+          <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
+            <div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div></div>
+        </div>
+        <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
+      document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
+      const stage = ov.querySelector("#rxl-stage"), lg = stage.querySelector(".lg"), ok = ov.querySelector("#rxl-ok");
+      const busy = msg => { stage.querySelector(".busy")?.remove(); if (msg) stage.insertAdjacentHTML("beforeend", `<div class="busy">${msg}</div>`); };
+      const render = async () => {
+        const my = ++st.seq; st.busy = true; ok.disabled = true; busy("Cleaning up your logo…");
+        try {
+          if (opts.file) { const cut = st.cropper ? await st.cropper.crop() : opts.file; st.src = await rnxProcessLogo(cut, "original"); }
+          const base = st.src || opts.src || opts.current;
+          const out = await rnxProcessLogo(base, st.mode);
+          if (my !== st.seq) return;
+          st.out = out; lg.src = URL.createObjectURL(out); lg.hidden = false; busy(""); ok.disabled = false;
+        } catch (e) { if (my === st.seq) busy(e.message === "No logo found in this picture" ? "No logo found here: move the box around your logo" : "Couldn't read this picture. Try another one."); }
+        finally { if (my === st.seq) st.busy = false; }
+      };
+      const close = v => { ov.classList.remove("on"); document.removeEventListener("keydown", key, true); setTimeout(() => ov.remove(), 300); res(v); };
+      const key = e => {
+        if (e.key === "Escape") { e.stopPropagation(); close(null); }
+        if (e.key === "Tab") { const f = [...ov.querySelectorAll("button:not([disabled]),[tabindex='0']")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } }
+      };
+      document.addEventListener("keydown", key, true);
+      ov.querySelector(".rxe-x").onclick = () => close(null);
+      ov.querySelector("#rxl-no").onclick = () => close(null);
+      ok.onclick = () => { if (!st.busy && st.out) close({ src: opts.file ? st.src : null, out: st.out, mode: st.mode }); };
+      ov.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; ov.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
+      ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); stage.classList.toggle("desk", b.dataset.v === "desk"); });
+      ov.querySelector(".rxe-x").focus({ preventScroll: true });
+      (async () => {
+        if (opts.file && window.rnxLogoCropper) { st.cropper = await rnxLogoCropper(ov.querySelector("#rxl-crop"), opts.file, opts.getToken); st.cropper.onChange(render); }
+        render();
+      })();
+    });
   };
 })();

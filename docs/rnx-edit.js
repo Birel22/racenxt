@@ -319,12 +319,18 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false, lp = null;
+    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false;
+    // logo: what's saved, plus what the athlete prepared in the editor (saved with the profile)
+    const LG = { url: p.logo_url || "", src: p.logo_src_url || "", mode: p.logo_style || "original", pending: null, removed: false };
+    const lgUrl = () => LG.removed ? "" : LG.pending ? (LG.pending.url || (LG.pending.url = URL.createObjectURL(LG.pending.out))) : LG.url;
+    const PAL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></svg>';
+    const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+    const lgHtml = () => `<div class="rx-phrow">${rnxLogoThumb(lgUrl(), prev, pos)}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PAL} Colours</button><button type="button" class="rx-link" id="rx-lgx">Remove logo</button>` : ""}</div></div>`;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
     const phHtml = () => `<div class="rx-phrow">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt rx-noph">${CAM}</div>`}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
-      <div class="rx-grp2">Logo</div><div id="rx-logo"></div>
+      <div class="rx-grp2">Logo</div><div id="rx-lgw">${lgHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find your logo and remove the background.</div>
       <div class="rx-grp2">Name</div>
       <div class="rx-two"><div><label class="rx-f" for="rx-first">First name</label><input id="rx-first" value="${esc(p.first_name || "")}" autocomplete="given-name"></div>
       <div><label class="rx-f" for="rx-last">Last name</label><input id="rx-last" value="${esc(last)}" autocomplete="family-name"></div></div>
@@ -335,9 +341,15 @@
       { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => {
           $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
           if ($("#rx-adj")) $("#rx-adj").onclick = async () => { const n = await rnxPhotoEditor(prev, pos, title); if (n) { pos = n; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); } };
-        }; bind();
-          lp = rnxLogoPicker($("#rx-logo"), { current: p.logo_url || "", currentSrc: p.logo_src_url || "", mode: p.logo_style || "original", photo: prev, getToken: token, pickFile });
-        },
+          $("#rx-lgw").innerHTML = lgHtml(); bindLg();
+        };
+        const bindLg = () => {
+          const ed = o => rnxLogoEditor({ photo: prev, pos, title, getToken: token, ...o });
+          $("#rx-lg").onclick = async () => { const f = await pickFile(); if (!f) return; const r = await ed({ file: f, mode: LG.pending?.mode || LG.mode }); if (r) { LG.pending = r; LG.removed = false; } $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
+          if ($("#rx-lgc")) $("#rx-lgc").onclick = async () => { const r = await ed({ src: LG.pending?.src || LG.src || "", current: lgUrl(), mode: LG.pending?.mode || LG.mode }); if (r) LG.pending = { src: LG.pending?.src || null, out: r.out, mode: r.mode }; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
+          if ($("#rx-lgx")) $("#rx-lgx").onclick = () => { LG.removed = true; LG.pending = null; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
+        };
+        bind(); },
         collect() {
           if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
           const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
@@ -352,10 +364,9 @@
     save(async () => {
       if (file) { r.photo_url = await upload(await safePicture(file, false, 1800), `profiles/${p.id}-${Date.now()}.jpg`); r.hero_url = null; }
       // logo: the cut-out original is kept, so the colour can change later without uploading again
-      const L = lp ? await lp.result() : { changed: false };
-      if (L.changed && L.removed) Object.assign(r, { logo_url: null, logo_src_url: null, logo_style: "original" });
-      else if (L.changed && L.out) {
-        const stamp = Date.now();
+      if (LG.removed) Object.assign(r, { logo_url: null, logo_src_url: null, logo_style: "original" });
+      else if (LG.pending) {
+        const stamp = Date.now(), L = LG.pending;
         if (L.src) r.logo_src_url = await upload(L.src, `profiles/${p.id}-logo-${stamp}-src.png`);
         else if (!p.logo_src_url && p.logo_url) r.logo_src_url = p.logo_url;
         r.logo_url = await upload(L.out, `profiles/${p.id}-logo-${stamp}-${L.mode}.png`);

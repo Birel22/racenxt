@@ -630,6 +630,21 @@
           "end": "17:15"
         }
       ]
+    },
+    {
+      "id": "aci-karting-2027-calendar",
+      "series": "Italian ACI Karting Championship",
+      "task": "calendar",
+      "year": 2027,
+      "source": "https://www.acisport.it/it/CIK/notizie/2026/128670/le-date-e-i-circuiti-del-campionato-italiano-aci-karting-2027-e-gare-titolate-aci/mixed",
+      "expect": "TO CONFIRM with Louis. Currently in the app (found by the agent): La Conca 16-18 Apr, Triscina 21-23 May, Viterbo 18-20 Jun, Cremona 16-18 Jul, Franciacorta 17-19 Sep 2027.",
+      "notes": "The page also lists other ACI titled races that are not championship rounds. The site refused our page reader: the agent needs another way in (search result, cached copy, or a screenshot)."
+    },
+    {
+      "id": "aci-karting-stream",
+      "series": "Italian ACI Karting Championship",
+      "task": "watch",
+      "expect": "TO CONFIRM: ACI championship YouTube channel (exact link from Louis)"
     }
   ]
 }

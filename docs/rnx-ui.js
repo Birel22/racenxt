@@ -37,16 +37,18 @@
   .rxe-lbl{font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#9a9ca3;margin-bottom:8px}
   .rxt{width:132px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;position:relative;background:#15161b;border:1px solid #3b3e47;flex:none}
   .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .rxt .rxt-logo{position:absolute;z-index:1;inset:auto;top:8%;left:7%;width:auto;height:auto;max-width:42%;max-height:30%;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
-  .rxt-empty{position:absolute;inset:0;display:grid;place-items:center;border:1.5px dashed #3b3e47;border-radius:inherit;color:#8e919b;font:600 13px Barlow,system-ui,sans-serif;background:#15161b}
-  .rxt.has-photo .rxt-empty{background:rgba(13,14,17,.45);color:#f2f2ef;border-color:rgba(255,255,255,.35)}
+  .rxt.rxt-lg{background:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
+  .rxt .rxt-logo{position:absolute;inset:14% 12%;width:76%;height:72%;object-fit:contain}
+  .rxt-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed #3b3e47;border-radius:inherit;color:#8e919b;font:600 13px Barlow,system-ui,sans-serif;background:#15161b}
+  .rxt-empty svg{width:22px;height:22px}
   .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
   .rxl-seg button{min-height:44px;border:0;border-radius:10px;background:transparent;color:#9a9ca3;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
   .rxl-seg button i{width:16px;height:16px;border-radius:50%;border:1px solid #4a4d56;flex:none}
   .rxl-seg button[aria-checked="true"]{background:#23262d;color:#f2f2ef}
   .rxl-seg button:focus-visible,.rxf-views button:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
-  .rxl-stage{position:relative;width:100%;max-width:300px;margin:0 auto;aspect-ratio:9/12;border-radius:18px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2c2f37;transition:max-width .25s ease,aspect-ratio .25s ease}
-  .rxl-stage.desk{max-width:100%;aspect-ratio:16/8.6}
+  .rxl-stage{position:relative;height:min(36dvh,330px);width:auto;max-width:100%;margin:0 auto;aspect-ratio:3/4;border-radius:18px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2c2f37}
+  .rxl-stage.desk{height:auto;width:100%;max-height:min(36dvh,330px);aspect-ratio:16/8.6}
+  .rxe-b.rxl-b{gap:14px;padding-top:14px;padding-bottom:14px}
   .rxl-stage > img.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .rxl-stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),transparent 30%,transparent 60%,rgba(0,0,0,.7))}
   .rxl-stage .lg{position:absolute;z-index:1;top:4.5%;left:6%;width:24%;max-height:16%;object-fit:contain;object-position:left top;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:width .25s ease}
@@ -208,10 +210,10 @@
 
   // ---------- personal logo: small box like the photo, and a full editor (frame it, colour, phone / computer preview) ----------
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
-  window.rnxLogoThumb = function (logo, photo, pos) {
+  window.rnxLogoThumb = function (logo) {
     style();
-    const p = pos || { x: 50, y: 35, z: 1 };
-    return `<div class="rxt${photo ? " has-photo" : ""}">${photo ? `<img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}${logo ? `<img class="rxt-logo" src="${esc(logo)}" alt="Your logo">` : `<span class="rxt-empty">Your logo</span>`}</div>`;
+    return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="Your logo"></div>`
+      : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>Your logo</span></div>`;
   };
   // opts: { file (new picture) | src (cut-out original already saved) | current (what fans see now), mode, photo, pos, title, getToken }
   // resolves with { src: Blob|null (new cut-out original), out: Blob, mode } or null if cancelled
@@ -221,8 +223,8 @@
       const st = { mode: opts.mode || "original", src: null, out: null, cropper: null, seq: 0, busy: false, view: "phone" };
       const p = opts.pos || { x: 50, y: 35, z: 1 };
       const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rxl-h");
-      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead("Your logo", opts.file ? "Add your logo" : "Logo colours").replace("<b>", '<b id="rxl-h">')}
-        <div class="rxe-b">
+      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead("Your logo", opts.file ? "Add your logo" : "Adjust your logo").replace("<b>", '<b id="rxl-h">')}
+        <div class="rxe-b rxl-b">
           ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame your logo</div><div id="rxl-crop"></div></div>` : ""}
           <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
           <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>

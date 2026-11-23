@@ -763,7 +763,11 @@
       "task": "logo",
       "series_id": "7fe5666b-6b8f-43b1-b70c-8dc36aed058c",
       "reference": "agent-tests/logos/eepc.png",
-      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. Published under Ultimate Cup Series."
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. Published under Ultimate Cup Series. Louis: the Endurance Proto logo is the right one; the Ultimate Cup Series logo is also OK (their site isn't clear).",
+      "also_ok": [
+        "ucs_endurance-proto",
+        "logo-header.png"
+      ]
     },
     {
       "id": "logo-imsa",
@@ -776,7 +780,10 @@
         "sport": "endurance"
       },
       "reference": "agent-tests/logos/imsa.png",
-      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. IMSA is not in the app yet."
+      "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match. IMSA is not in the app yet. Louis: the WeatherTech Championship logo is also correct (the most correct).",
+      "also_ok": [
+        "weathertech_championship"
+      ]
     }
   ]
 }

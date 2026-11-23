@@ -619,17 +619,40 @@ const LOGO_PROMPT = (s: any) => `Championship: ${s.name}${s.short_name && s.shor
 Official website: ${s.website_url || "unknown"}
 Task: find this championship's own official logo. Give up to 4 direct, absolute image URLs (SVG or PNG preferred): the logo in the official site's header, its media / press kit, or a Wikimedia Commons file of the official logo (upload.wikimedia.org). Not the organiser's, a sponsor's or an older logo.
 JSON schema: {"logo_urls": [string]}`;
+// sorts logo candidates before the AI sees them: pages show many partner logos, so the championship's own come first
+const GENERIC = new Set(["series", "championship", "cup", "the", "fia", "international", "racing", "trophy", "official"]);
+function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
+  const toks = norm(`${series.name || ""} ${series.short_name || ""}`).split(" ").filter((w: string) => w.length >= 4 && !GENERIC.has(w));
+  const short = norm(series.short_name || "");
+  const score = (u: string) => {
+    const file = norm(decodeURIComponent(u.split("?")[0].split("/").slice(-2).join(" ")));
+    const fw = file.split(" ");
+    let n = 0;
+    if (toks.some((t: string) => fw.some(w => w.length >= 4 && (w.startsWith(t.slice(0, 5)) || t.startsWith(w.slice(0, 5)))))) n += 4;
+    if (short && fw.includes(short)) n += 3;
+    if (/\blogo\b/.test(file)) n += 1;
+    if (fromAi.has(u)) n += 2;
+    if (/partner|sponsor|supplier|fournisseur|team|teams|equipe/.test(file)) n -= 4;
+    return n;
+  };
+  return urls.map((u, i) => ({ u, i, n: score(u) })).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.u);
+}
+let stage = "";
 async function runLogoTest(c: any, series: any) {
+  stage = "reading the official homepage";
   const usage = newUsage(); const trace: Trace = { searches: [], opened: [] };
   // 1. candidates: the homepage's HTML (free), then an AI web search
   const fromHtml = series.website_url ? await logoCandidatesFromHtml(series.website_url) : [];
   let aiUrls: string[] = [];
+  stage = "searching the web";
   try { const r = await ask(SYS(), LOGO_PROMPT(series), 4); addUsage(usage, r.usage); addTrace(trace, r.trace); aiUrls = (r.out.logo_urls || []).filter((u: any) => typeof u === "string" && /^https?:/.test(u)); } catch (_) { /* homepage candidates only */ }
   const svgText = fromHtml.filter(x => x.svg);
   const hosted = svgText.length ? await storeLogos(`test-${series.slug || "x"}`, svgText, 3) : [];
-  const urls = [...new Set([...fromHtml.filter(x => x.url).map(x => x.url!), ...hosted, ...aiUrls.filter(u => !/wiki/.test(u)), ...aiUrls.filter(u => /wiki/.test(u))])];
+  const all = [...new Set([...fromHtml.filter(x => x.url).map(x => x.url!), ...hosted, ...aiUrls.filter(u => !/wiki/.test(u)), ...aiUrls.filter(u => /wiki/.test(u))])];
+  const urls = rankLogos(all, series, new Set(aiUrls));
   const cands: { url: string; data: string }[] = [];
-  for (const url of urls) { if (cands.length >= 8) break; const data = await asJpeg(url); if (data) cands.push({ url, data }); }
+  stage = "reading the logo pictures";
+  for (const url of urls) { if (cands.length >= 10) break; const data = await asJpeg(url); if (data) cands.push({ url, data }); }
   if (!cands.length) return { score: 0, max: 1, rows: [{ expect: "the official logo", found: "no logo picture found", ok: false, why: "missed" }], usage, trace: { ...trace, candidates: urls } };
   // 2. the AI picks the championship's logo, as in the app (same instructions as logo-detect)
   const content: any[] = [];
@@ -637,9 +660,11 @@ async function runLogoTest(c: any, series: any) {
   content.push({ type: "text", text: `These images were found for the motorsport championship "${series.name}"${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}. They are shown on a grey background.
 Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one.
 Answer with JSON only: {"index": <image number, or 0 if none of them is the championship's logo>}` });
+  stage = "picking the logo";
   const p = await vision(FAST, content); addUsage(usage, p.usage);
   const picked = Math.round(Number(p.out.index)) - 1;
   // 3. judge against the reference picture (the stronger model, so the score is reliable)
+  stage = "comparing with the reference";
   const ref = await fetch(RAW + c.reference + "?t=" + Date.now());
   if (!ref.ok) throw new Error("reference picture not reachable");
   const refData = b64(new Uint8Array(await ref.arrayBuffer()));
@@ -649,12 +674,15 @@ Answer with JSON only: {"index": <image number, or 0 if none of them is the cham
 Answer with JSON only: {"matches": [candidate numbers]}` });
   const jd = await vision(STRONG, jc); addUsage(usage, jd.usage);
   const matches: number[] = (jd.out.matches || []).map((n: any) => Math.round(Number(n)) - 1).filter((n: number) => n >= 0 && n < cands.length);
+  const alsoOk = (c.also_ok || []).map((x: string) => String(x).toLowerCase());
+  cands.forEach((x, i) => { if (alsoOk.some((a: string) => x.url.toLowerCase().includes(a)) && !matches.includes(i)) matches.push(i); });
   const ok = picked >= 0 && matches.includes(picked);
   const rows = [{ expect: "the official logo (reference picture)", found: picked >= 0 ? `picked #${picked + 1}: ${cands[picked].url}` : "picked none", ok, why: ok ? "" : matches.length ? `the right logo was found (#${matches.map(m => m + 1).join(", #")}) but not picked` : "the right logo was never found" },
     ...cands.map((x, i) => ({ expect: `candidate #${i + 1}`, found: x.url, ok: matches.includes(i), why: matches.includes(i) ? "" : "not this logo" }))];
   return { score: ok ? 1 : 0, max: 1, rows, usage, trace: { ...trace, candidates: urls } };
 }
 async function runTest(caseId: string, runId: string) {
+  stage = "loading the test";
   const [row] = await db(`agent_test_cases?id=eq.${encodeURIComponent(caseId)}&select=data`);
   if (!row) throw new Error("unknown case");
   const c = row.data;
@@ -662,6 +690,7 @@ async function runTest(caseId: string, runId: string) {
   if (!series) throw new Error("championship not found");
   const [src] = series.id ? await db(`series_sources?series_id=eq.${series.id}&select=*`) : [null];
   let res: any, usage: any, trace: any;
+  stage = "running the agent";
   if (c.task === "calendar") {
     const r = await computeCalendar(series, src); usage = r.usage; trace = { ...r.trace, answer: r.out };
     res = scoreCalendar(c, r.found);
@@ -677,6 +706,7 @@ async function runTest(caseId: string, runId: string) {
     const r = await runLogoTest(c, series); usage = r.usage; trace = r.trace;
     res = r;
   } else throw new Error("unknown task");
+  stage = "saving the result";
   await patch("agent_test_runs", `id=eq.${runId}`, { status: "done", score: Math.round(res.score * 100) / 100, max: res.max, details: { rows: res.rows }, usage, trace, finished_at: new Date().toISOString() });
 }
 
@@ -710,7 +740,7 @@ Deno.serve(async (req) => {
     await loadGuidance();
     if (b.action === "test_one") {
       // one test per call, so each has the function's full time limit
-      const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }));
+      const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: ((stage ? stage + ": " : "") + String((e as Error).message || e)).slice(0, 500), finished_at: new Date().toISOString() }));
       // @ts-ignore EdgeRuntime is provided by Supabase
       if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
       return json({ ok: true });
@@ -751,7 +781,7 @@ Deno.serve(async (req) => {
   if (body.action === "test_run") {
     if (!/^[a-z0-9-]{3,80}$/.test(body.case_id || "")) return json({ error: "bad case" }, 400);
     const [run] = await ins("agent_test_runs", { case_id: body.case_id, status: "running" });
-    const job = (async () => { try { await runTest(body.case_id, run.id); } catch (e) { await patch("agent_test_runs", `id=eq.${run.id}`, { status: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); } })();
+    const job = (async () => { try { await runTest(body.case_id, run.id); } catch (e) { await patch("agent_test_runs", `id=eq.${run.id}`, { status: "error", error: ((stage ? stage + ": " : "") + String((e as Error).message || e)).slice(0, 500), finished_at: new Date().toISOString() }); } })();
     // @ts-ignore EdgeRuntime is provided by Supabase
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
     return json({ run_id: run.id });

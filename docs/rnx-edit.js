@@ -167,16 +167,6 @@
   .rx-ord{display:grid;gap:2px;padding:0 12px 0 4px}
   .rx-ord button{width:30px;height:22px;border:1px solid #33363d;border-radius:6px;background:#17181d;color:#a9abb2;font-size:9px;cursor:pointer}
   .rx-ord button:disabled{opacity:.3;cursor:default}
-  .rx-drop{display:flex;align-items:center;gap:14px;padding:14px;border:1.5px dashed #3b3e47;border-radius:14px;background:#0d0e11;cursor:pointer}
-  .rx-drop.over,.rx-drop:hover{border-color:#FF5A1F}
-  .rx-drop > div:last-child{display:grid;gap:2px} .rx-drop b{font-size:15px} .rx-drop small{font-size:13px;color:#8e919b}
-  .rx-drop-pv{width:120px;height:64px;flex:none;border-radius:10px;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6px}
-  .rx-drop-pv img{max-width:100%;max-height:52px;object-fit:contain}
-  .rx-drop-pv span{font-size:12px;color:#7d808a;text-align:center}
-  .rx-lres-pv{height:84px;border-radius:12px;background:#000;border:1px solid #2a2c33;display:flex;align-items:center;justify-content:center;padding:12px}
-  .rx-lres-pv img{max-width:80%;max-height:60px;object-fit:contain}
-  .rx-lres-pv span{font-size:13px;color:#7d808a}
-  #rx-lmode{margin-top:10px}
   .rx-seg.rx-seg-wrap{flex-wrap:wrap} .rx-seg.rx-seg-wrap button{flex:1 1 30%}
   .rx-srow{display:grid;grid-template-columns:118px 104px 1fr 40px;gap:8px;align-items:center}
   .rx-srow select{min-height:48px;padding:0 10px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:15px Barlow,system-ui,sans-serif}
@@ -270,8 +260,13 @@
   .rx-carph{display:flex;align-items:center;gap:12px}
   .rx-carph img{width:120px;height:68px;object-fit:cover;border-radius:10px;border:1px solid #3b3e47}
   .rx-carph .rx-none{width:120px;height:68px;border-radius:10px;border:1.5px dashed #3b3e47;display:flex;align-items:center;justify-content:center;color:#7d808a;font-size:13px}
+  @keyframes rxNudge{0%,100%{translate:0}20%{translate:-7px 0}40%{translate:6px 0}60%{translate:-4px 0}80%{translate:2px 0}}
+  .rx-sheet.rx-nudge{animation:rxNudge .36s ease}
+  @keyframes rxHint{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 3px rgba(255,90,31,.45)}}
+  .rx-sh-f.rx-hint .rx-b.pri,.rx-sh-f.rx-hint #rx-cancel{animation:rxHint .9s ease}
+  @media (prefers-reduced-motion:reduce){.rx-sheet.rx-nudge,.rx-sh-f.rx-hint .rx-b{animation:none}}
   .rx-link{color:#FF5A1F;background:none;border:0;padding:0;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
-  .rx-toast{position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%);z-index:999;background:#f4f4f2;color:#0b0c0f;padding:10px 16px;border-radius:12px;font:600 14px Barlow,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .rx-toast{pointer-events:none;white-space:nowrap;position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%);z-index:999;background:#f4f4f2;color:#0b0c0f;padding:10px 16px;border-radius:12px;font:600 14px Barlow,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4)}
   body.rx-edit:not(.rx-view) #scroll-cue,body.rx-edit:not(.rx-view) #page-cue{display:none!important}`;
 
   let toastEl;
@@ -282,7 +277,20 @@
 
   // ---------- sheet ----------
   let sheetResolve = null;
-  let sheetOpener = null;
+  let sheetOpener = null, sheetSnap = null, sheetDirty = null;
+  // what the form looks like right now: typed values, choices, pictures
+  const formPrint = () => { const b = $("#rx-b"); if (!b) return ""; return JSON.stringify([
+    [...b.querySelectorAll("input,textarea,select")].map(i => [i.id, i.type === "checkbox" || i.type === "radio" ? i.checked : i.value]),
+    [...b.querySelectorAll("[aria-checked]")].map(x => x.getAttribute("aria-checked")),
+    [...b.querySelectorAll("img")].map(i => i.getAttribute("src") + "|" + (i.getAttribute("style") || ""))]); };
+  const isDirty = () => !!sheetResolve && ((sheetDirty && sheetDirty()) || (sheetSnap != null && formPrint() !== sheetSnap));
+  // tap outside, Esc or swipe down: only closes when nothing was changed. Otherwise Cancel or Save.
+  function softClose() {
+    if (!isDirty()) return closeSheet(null);
+    const sh = $("#rx-sheet"); sh.classList.remove("rx-nudge"); void sh.offsetWidth; sh.classList.add("rx-nudge");
+    const f = $("#rx-f"); f.classList.remove("rx-hint"); void f.offsetWidth; f.classList.add("rx-hint");
+    busy(true); toastEl.textContent = "Save or cancel your changes"; setTimeout(() => toastEl.hidden = true, 1800);
+  }
   function closeSheet(v) { document.body.classList.remove("rx-on"); if (sheetResolve) { const r = sheetResolve; sheetResolve = null; r(v); } if (sheetOpener && document.body.contains(sheetOpener)) setTimeout(() => sheetOpener.focus({ preventScroll: true }), 50); }
   function sheet(title, html, opts = {}) {
     return new Promise(resolve => {
@@ -300,7 +308,9 @@
       document.body.classList.add("rx-on");
       $("#rx-b").scrollTop = 0;
       setTimeout(() => $("#rx-x").focus({ preventScroll: true }), 60);
+      sheetSnap = null; sheetDirty = opts.dirty || null;
       if (opts.after) opts.after();
+      if (opts.footer !== false) sheetSnap = formPrint();
     });
   }
   const need = (sel, msg) => { const el = $(sel); if (el && !el.value.trim()) { el.focus(); alert(msg); return false; } return true; };
@@ -323,7 +333,7 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false;
+    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false, phRemoved = false;
     // logo: what's saved, plus what the athlete prepared in the editor (saved with the profile)
     const LG = { url: p.logo_url || "", src: p.logo_src_url || "", mode: p.logo_style || "original", pending: null, removed: false };
     const lgUrl = () => LG.removed ? "" : LG.pending ? (LG.pending.url || (LG.pending.url = URL.createObjectURL(LG.pending.out))) : LG.url;
@@ -331,7 +341,7 @@
     const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
     const lgHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxLogoThumb(lgUrl())}</div>${lgUrl() ? `<button type="button" class="rx-link rx-lgx" id="rx-lgx">Remove logo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
-    const phHtml = () => `<div class="rx-phrow">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt rx-noph">${CAM}</div>`}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    const phHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Your photo</span></div>`}</div>${prev ? `<button type="button" class="rx-link rx-lgx" id="rx-phx">Remove photo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
       <div class="rx-grp2">Logo</div><div id="rx-lgw">${lgHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find your logo and remove the background.</div>
@@ -343,8 +353,9 @@
       <div><label class="rx-f" for="rx-web">Website</label><input id="rx-web" value="${esc(so.website || "")}" inputmode="url" autocapitalize="off"></div>
       <div><label class="rx-f" for="rx-mail">Contact email</label><input id="rx-mail" type="email" value="${esc(p.contact_email || "")}" inputmode="email"><div class="rx-help">Shown on your page for teams, media and partners.</div></div>`,
       { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => {
-          $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
+          $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; phRemoved = false; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
           if ($("#rx-adj")) $("#rx-adj").onclick = async () => { const n = await rnxPhotoEditor(prev, pos, title); if (n) { pos = n; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); } };
+          if ($("#rx-phx")) $("#rx-phx").onclick = () => { file = null; prev = ""; pos = null; phRemoved = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
           $("#rx-lgw").innerHTML = lgHtml(); bindLg();
         };
         const bindLg = () => {
@@ -362,7 +373,7 @@
           if (webRaw && /@/.test(webRaw) && !/\//.test(webRaw.replace(/^https?:\/\//, ""))) { alert("That looks like an email address. Put it in Contact email, and your website address (like louisdeletraz.com) here."); $("#rx-web").focus(); return null; }
           const web = toUrl("website", webRaw); if (web) socials.website = web;
           const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
-          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(posChanged ? { photo_pos: pos } : {}) };
+          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(posChanged ? { photo_pos: pos } : {}), ...(phRemoved && !file ? { photo_url: null, hero_url: null, photo_pos: null } : {}) };
         } });
     if (!r) return;
     save(async () => {
@@ -497,90 +508,38 @@
   }
 
   // ---------- partners ----------
-  async function processLogo(file, mode){
-    const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file); const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = u; });
-    const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
-    const scale = /svg/.test(file.type || "") ? 900 / Math.max(iw, ih) : Math.min(1, 900 / Math.max(iw, ih));
-    const w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
-    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-    const cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
-    const d = cx.getImageData(0, 0, w, h), px = d.data;
-    // background = most common colour around the border
-    const border = []; const pick = (x, y) => { const k = (y * w + x) * 4; border.push([px[k], px[k+1], px[k+2], px[k+3]]); };
-    for (let x = 0; x < w; x += Math.max(1, w >> 6)){ pick(x, 0); pick(x, h - 1); }
-    for (let y = 0; y < h; y += Math.max(1, h >> 6)){ pick(0, y); pick(w - 1, y); }
-    const transparentBg = border.filter(b => b[3] < 40).length > border.length * 0.5;
-    const med = i => border.map(b => b[i]).sort((a, b) => a - b)[border.length >> 1];
-    const bg = [med(0), med(1), med(2)];
-    let minX = w, minY = h, maxX = 0, maxY = 0;
-    for (let k = 0; k < px.length; k += 4){
-      let a;
-      if (transparentBg) a = px[k+3];
-      else { const dist = Math.hypot(px[k] - bg[0], px[k+1] - bg[1], px[k+2] - bg[2]); a = Math.max(0, Math.min(255, (dist - 18) * 4)) * (px[k+3] / 255); }
-      if (mode === "white"){ px[k] = px[k+1] = px[k+2] = 255; }
-      px[k+3] = a;
-      if (a > 24){ const i = k >> 2, x = i % w, y = (i / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
-    }
-    cx.putImageData(d, 0, 0);
-    if (maxX < minX){ minX = 0; minY = 0; maxX = w - 1; maxY = h - 1; }
-    const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.04);
-    const ox = Math.max(0, minX - pad), oy = Math.max(0, minY - pad), ow = Math.min(w, maxX + pad + 1) - ox, oh = Math.min(h, maxY + pad + 1) - oy;
-    const out = document.createElement("canvas"); out.width = ow; out.height = oh;
-    out.getContext("2d").drawImage(cv, ox, oy, ow, oh, 0, 0, ow, oh);
-    return await new Promise(res => out.toBlob(b => res(b), "image/png"));
-  }
-  
-  // logo picker: tap to choose, drop a file, or paste a screenshot
-  function logoDrop(current, mode) {
-    const st = { file: null, mode: mode || "white", preview: current || "", cropper: null, blob: null };
-    const html = `<div id="rx-lwrap"><div class="rx-drop" id="rx-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="rx-drop-pv" id="rx-drop-pv">${st.preview ? `<img src="${esc(st.preview)}" alt="">` : `<span>No logo yet</span>`}</div><div><b>${st.preview ? "Change the logo" : "Add the logo"}</b><small>A file, a photo or a screenshot. We find the logo, cut it out and clean it up.</small></div></div></div>
-      <div id="rx-lres" hidden><div class="rx-f" style="margin-top:4px">Result</div><div class="rx-lres-pv" id="rx-lres-pv"></div></div>
-      <div class="rx-seg" role="radiogroup" aria-label="Logo colours" id="rx-lmode"><button type="button" role="radio" data-m="white" aria-checked="${st.mode === "white"}">White</button><button type="button" role="radio" data-m="original" aria-checked="${st.mode === "original"}">Original colours</button></div>`;
-    let seq = 0;
-    const render = async () => {
-      const my = ++seq;
-      if (!st.cropper) { const pv = $("#rx-drop-pv"); if (pv && st.preview) pv.innerHTML = `<img src="${esc(st.preview)}" alt="" style="${st.mode === "white" ? "filter:brightness(0) invert(1)" : ""}">`; return; }
-      $("#rx-lres").hidden = false; $("#rx-lres-pv").innerHTML = "<span>Cleaning up…</span>";
-      try { const cut = await st.cropper.crop(); const b = await processLogo(cut, st.mode); if (my !== seq) return; st.blob = b; $("#rx-lres-pv").innerHTML = `<img src="${URL.createObjectURL(b)}" alt="">`; }
-      catch (e) { $("#rx-lres-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; }
-    };
-    const take = async f => {
-      if (!f || !f.type.startsWith("image/")) return;
-      st.file = f; st.blob = null;
-      $("#rx-lwrap").innerHTML = `<div id="rx-crop"></div><div style="text-align:right;margin-top:6px"><button type="button" class="rx-link" id="rx-lother">Choose another picture</button></div>`;
-      $("#rx-lother").onclick = async () => take(await pickFile());
-      st.cropper = window.rnxLogoCropper ? await rnxLogoCropper($("#rx-crop"), f, token) : null;
-      if (st.cropper) st.cropper.onChange(render);
-      render();
-    };
-    const onPaste = e => { if (!$("#rx-lmode")) return document.removeEventListener("paste", onPaste); const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it) { e.preventDefault(); take(it.getAsFile()); } };
-    return { html, st, after() {
-      const dz = $("#rx-drop");
-      dz.onclick = async () => take(await pickFile());
-      dz.onkeydown = async e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); take(await pickFile()); } };
-      dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
-      dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
-      document.addEventListener("paste", onPaste);
-      $$("#rx-lmode button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; $$("#rx-lmode button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
-      render();
-    } };
-  }
+  // what fans see for a partner (new logos have logo_url; older ones a white or original version)
+  const spLogo = x => x.logo_url || (x.display === "white" ? (x.logo_white_url || x.logo_original_url) : (x.logo_original_url || x.logo_white_url)) || "";
+  // partner: same logo box + editor as the athlete's own logo
   async function editPartner(sp) {
     const isNew = !sp;
-    const ld = logoDrop(sp ? (sp.logo_original_url || sp.logo_white_url) : "", sp?.display || "white");
+    const PL = { url: sp ? spLogo(sp) : "", src: sp?.logo_original_url || "", mode: sp?.display || "white", pending: null };
+    const plUrl = () => PL.pending ? (PL.pending.url || (PL.pending.url = URL.createObjectURL(PL.pending.out))) : PL.url;
+    const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+    const plHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxLogoThumb(plUrl(), "Partner logo")}</div><div class="rx-phbtns"><button type="button" class="rx-b" id="rx-plg">${IMG} ${plUrl() ? "Change logo" : "Add logo"}</button>${plUrl() ? `<button type="button" class="rx-b" id="rx-plc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    // the partners bar as fans see it, with this logo in its place
+    const others = [...R.sponsors].sort((a, b) => (a.sort || 0) - (b.sort || 0));
+    const bar = () => { const l = others.map(x => x.id === sp?.id ? "me" : spLogo(x)).filter(Boolean); if (!l.includes("me")) l.push("me"); return l.slice(0, 6); };
+    const ed = o => rnxLogoEditor({ label: "Partner logo", heading: o.file ? "Add the logo" : "Adjust the logo", partners: bar(), getToken: token, ...o });
     const r = await sheet(isNew ? "Add a partner" : "Edit partner", `
-      <div><label class="rx-f">Logo</label>${ld.html}</div>
+      <div class="rx-grp2">Logo</div><div id="rx-plw">${plHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find the logo and remove the background.</div>
       <div><label class="rx-f" for="rx-pn">Partner name</label><input id="rx-pn" value="${esc(sp?.name || "")}" autocomplete="off"></div>
       <div><label class="rx-f" for="rx-pl">Link</label><input id="rx-pl" value="${esc(sp?.link_url || "")}" inputmode="url" autocapitalize="off" autocomplete="off"><div class="rx-help">Optional. Where fans go when they tap the logo.</div></div>`,
-      { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`, after: ld.after,
-        collect() { if (isNew && !ld.st.file) { alert("Add the partner's logo."); return null; } if (ld.st.file && !ld.st.blob) { alert("One moment: the logo is still being cleaned up."); return null; } if (!need("#rx-pn", "Add the partner's name.")) return null; return { name: $("#rx-pn").value.trim(), link_url: toUrl("website", $("#rx-pl").value) || null, display: ld.st.mode }; } });
+      { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`,
+        after() { const bind = () => {
+          $("#rx-plg").onclick = async () => { const f = await pickFile(); if (!f) return; const x = await ed({ file: f, mode: PL.pending?.mode || PL.mode }); if (x) PL.pending = x; $("#rx-plw").innerHTML = plHtml(); bind(); };
+          if ($("#rx-plc")) $("#rx-plc").onclick = async () => { const x = await ed({ src: PL.pending?.src || PL.src || "", current: plUrl(), mode: PL.pending?.mode || PL.mode }); if (x) PL.pending = { src: PL.pending?.src || null, out: x.out, mode: x.mode }; $("#rx-plw").innerHTML = plHtml(); bind(); };
+        }; bind(); },
+        collect() { if (!plUrl()) { alert("Add the partner's logo."); return null; } if (!need("#rx-pn", "Add the partner's name.")) return null; return { name: $("#rx-pn").value.trim(), link_url: toUrl("website", $("#rx-pl").value) || null }; } });
     if (!r) return;
     if (r.__delete) return save(() => api(`sponsors?id=eq.${sp.id}`, { method: "DELETE" }), "Partner removed");
     save(async () => {
-      if (ld.st.file) {
-        const stamp = Date.now(), cut = ld.st.cropper ? await ld.st.cropper.crop() : ld.st.file;
-        r.logo_white_url = await upload(await processLogo(cut, "white"), `sponsors/${R.profile.id}-${stamp}-w.png`);
-        r.logo_original_url = await upload(await processLogo(cut, "original"), `sponsors/${R.profile.id}-${stamp}-o.png`);
+      if (PL.pending) {
+        const stamp = Date.now(), L = PL.pending;
+        if (L.src) r.logo_original_url = await upload(L.src, `sponsors/${R.profile.id}-${stamp}-src.png`);
+        r.logo_url = await upload(L.out, `sponsors/${R.profile.id}-${stamp}-${L.mode}.png`);
+        r.logo_white_url = L.mode === "white" ? r.logo_url : null;
+        r.display = L.mode;
       }
       if (isNew) await ins("sponsors", { ...r, profile_id: R.profile.id, sort: (R.sponsors.reduce((m, x) => Math.max(m, x.sort || 0), 0) + 1) });
       else await upd("sponsors", sp.id, r);
@@ -658,15 +617,15 @@
   function mount() {
     const st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
     document.body.insertAdjacentHTML("beforeend", `<div class="rx-scrim" id="rx-scrim"></div><div class="rx-sheet" id="rx-sheet" role="dialog" aria-modal="true" aria-labelledby="rx-t"><span class="rx-grab" aria-hidden="true"></span><div class="rx-sh-h"><div><small id="rx-l">Your page</small><b id="rx-t"></b></div><button class="rx-x" id="rx-x" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="rx-sh-b" id="rx-b"></div><div class="rx-sh-f" id="rx-f"></div></div>`);
-    $("#rx-x").onclick = () => closeSheet(null); $("#rx-scrim").onclick = () => closeSheet(null);
+    $("#rx-x").onclick = () => closeSheet(null); $("#rx-scrim").onclick = () => softClose();
     // phones: pull the sheet down by its header to close it
     { const sh = $("#rx-sheet"); let y0 = null, dy = 0;
       sh.addEventListener("touchstart", e => { if (!e.target.closest(".rx-sh-h,.rx-grab") || e.target.closest("button")) return; y0 = e.touches[0].clientY; dy = 0; sh.style.transition = "none"; }, { passive: true });
       sh.addEventListener("touchmove", e => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); sh.style.transform = `translateY(${dy}px)`; }, { passive: true });
-      sh.addEventListener("touchend", () => { if (y0 == null) return; sh.style.transition = ""; sh.style.transform = ""; if (dy > 90) closeSheet(null); y0 = null; }); }
+      sh.addEventListener("touchend", () => { if (y0 == null) return; sh.style.transition = ""; sh.style.transform = ""; if (dy > 90) softClose(); y0 = null; }); }
     // keep Tab inside an open sheet
     document.addEventListener("keydown", e => { if (e.key !== "Tab" || !document.body.classList.contains("rx-on")) return; const f = [...$("#rx-sheet").querySelectorAll("a[href],button:not([disabled]),input,select,textarea,[tabindex='0']")].filter(x => x.offsetParent); if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } });
-    document.addEventListener("keydown", e => { if (e.key === "Escape") { if (document.body.classList.contains("rx-on")) closeSheet(null); else closeMenu(); } });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") { if (document.body.classList.contains("rx-on")) softClose(); else closeMenu(); } });
     document.body.classList.add("rx-edit");
     document.getElementById("rnx-preview")?.remove();
     const p = R.profile, photo = p.hero_url || p.photo_url;
@@ -718,7 +677,7 @@
     const sps = [...(R.sponsors || [])].sort((a, b) => (a.sort || 0) - (b.sort || 0));
     const spCard = document.createElement("section"); spCard.className = "rx-season rx-only"; spCard.id = "rx-partners";
     spCard.innerHTML = `<div class="rx-season-h"><div><b>Partners</b><span>${sps.length ? `${sps.length} logo${sps.length > 1 ? "s" : ""} on your page` : "Add your partners' logos"}</span></div><button class="rx-b" id="rx-padd">${PLUS} Add</button></div>
-      ${sps.length ? `<div class="rx-rows">${sps.map((x, i) => `<div class="rx-prow"><button class="rx-prow-main" data-sp="${x.id}"><span class="rx-plogo"><img src="${esc(x.display === "white" ? (x.logo_white_url || x.logo_original_url) : (x.logo_original_url || x.logo_white_url))}" alt=""></span><span class="rx-row-t"><b>${esc(x.name)}</b><small>${x.link_url ? esc(x.link_url.replace(/^https?:\/\/(www\.)?/, "")) : "No link"}</small></span></button><span class="rx-ord"><button aria-label="Move up" data-up="${x.id}"${i ? "" : " disabled"}>▲</button><button aria-label="Move down" data-dn="${x.id}"${i < sps.length - 1 ? "" : " disabled"}>▼</button></span></div>`).join("")}</div>` : ""}`;
+      ${sps.length ? `<div class="rx-rows">${sps.map((x, i) => `<div class="rx-prow"><button class="rx-prow-main" data-sp="${x.id}"><span class="rx-plogo"><img src="${esc(spLogo(x))}" alt=""></span><span class="rx-row-t"><b>${esc(x.name)}</b><small>${x.link_url ? esc(x.link_url.replace(/^https?:\/\/(www\.)?/, "")) : "No link"}</small></span></button><span class="rx-ord"><button aria-label="Move up" data-up="${x.id}"${i ? "" : " disabled"}>▲</button><button aria-label="Move down" data-dn="${x.id}"${i < sps.length - 1 ? "" : " disabled"}>▼</button></span></div>`).join("")}</div>` : ""}`;
     evCard.insertAdjacentElement("afterend", spCard);
     $("#rx-padd").onclick = () => editPartner();
     spCard.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => editPartner(sps.find(x => x.id === b.dataset.sp)));

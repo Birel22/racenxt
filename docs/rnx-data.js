@@ -84,7 +84,7 @@
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     return {
       profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, tv, carOf, cars, team, color, square,
-      sponsors, pageUrl: location.origin + location.pathname, entries,
+      sponsors, pageUrl: location.origin + (window.RNX_BASE || "/") + encodeURIComponent(prof.slug) + "/", /* the public address, with its link preview */ entries,
       customEvents: events.filter(e => !e.series_id)
     };
   }
@@ -161,8 +161,8 @@
       if (!soc.length) n.hidden = true;
     });
     const sp = R.sponsors.map(s => {
-      const src = s.display === "white" ? (s.logo_white_url || s.logo_original_url) : (s.logo_original_url || s.logo_white_url);
-      const img = `<img class="rnx-sp${s.display === "white" && !s.logo_white_url ? " to-white" : ""}" src="${esc(src || "")}" alt="${esc(s.name)}">`;
+      const src = s.logo_url || (s.display === "white" ? (s.logo_white_url || s.logo_original_url) : (s.logo_original_url || s.logo_white_url));
+      const img = `<img class="rnx-sp${!s.logo_url && s.display === "white" && !s.logo_white_url ? " to-white" : ""}" src="${esc(src || "")}" alt="${esc(s.name)}">`;
       return s.link_url ? `<a href="${esc(s.link_url)}" target="_blank" rel="noopener" data-sp="${s.id}">${img}</a>` : `<span class="rnx-sp-wrap">${img}</span>`;
     }).join("");
     document.querySelectorAll(".partners").forEach(n => { n.innerHTML = sp; if (!R.sponsors.length) n.style.display = "none"; });

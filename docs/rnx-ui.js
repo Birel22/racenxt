@@ -56,6 +56,18 @@
   .rxl-stage .nm{position:absolute;z-index:1;left:6%;bottom:5%;font:700 26px/1 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase}
   .rxl-stage.desk .nm{left:3.5%;font-size:30px}
   .rxl-stage .nm em{font-style:normal;color:#FF5A1F}
+  /* partner logos: preview in the partners bar of the page */
+  .rxl-stage.pt{background:#0b0c0f;display:flex;align-items:center;justify-content:center;padding:0 6%;aspect-ratio:auto;height:min(24dvh,210px);width:72%}
+  .rxl-stage.pt.desk{width:100%;max-height:none;height:min(24dvh,210px)}
+  .rxl-b.fr .rxl-stage:not(.pt){height:min(26dvh,250px)}
+  .rxl-stage.pt::after{display:none}
+  .rxl-stage .pt-bar{width:100%;display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:16px;padding:14px 12px;border:1px solid #23262d;border-radius:12px;background:#121419}
+  .rxl-stage .pt-bar span{display:none;font:600 9px 'Barlow Condensed',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#7d808a}
+  .rxl-stage.desk .pt-bar span{display:block}
+  .rxl-stage .pt-bar img{position:static;display:block;flex:0 1 auto;min-width:0;height:20px;width:auto;max-width:84px;max-height:none;object-fit:contain;opacity:.85;filter:none}
+  .rxl-stage .pt-bar img.lg{opacity:1;outline:1.5px dashed rgba(255,90,31,.7);outline-offset:5px;border-radius:2px}
+  .rxl-stage.desk .pt-bar{gap:22px;padding:12px 14px}
+  .rxl-stage.desk .pt-bar img{height:18px;max-width:72px}
   .rxl-stage .busy{position:absolute;z-index:2;inset:0;display:grid;place-items:center;background:rgba(13,14,17,.55);color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif;text-align:center;padding:16px}
   .rxl-steps{display:flex;gap:8px;align-items:center;font:600 13.5px Barlow,system-ui,sans-serif;color:#8e919b}
   .rxl-steps b{color:#f2f2ef}
@@ -210,10 +222,10 @@
 
   // ---------- personal logo: small box like the photo, and a full editor (frame it, colour, phone / computer preview) ----------
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
-  window.rnxLogoThumb = function (logo) {
-    style();
-    return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="Your logo"></div>`
-      : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>Your logo</span></div>`;
+  window.rnxLogoThumb = function (logo, label) {
+    style(); label = label || "Your logo";
+    return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="${esc(label)}"></div>`
+      : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>${esc(label)}</span></div>`;
   };
   // opts: { file (new picture) | src (cut-out original already saved) | current (what fans see now), mode, photo, pos, title, getToken }
   // resolves with { src: Blob|null (new cut-out original), out: Blob, mode } or null if cancelled
@@ -223,12 +235,12 @@
       const st = { mode: opts.mode || "original", src: null, out: null, cropper: null, seq: 0, busy: false, view: "phone" };
       const p = opts.pos || { x: 50, y: 35, z: 1 };
       const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rxl-h");
-      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead("Your logo", opts.file ? "Add your logo" : "Adjust your logo").replace("<b>", '<b id="rxl-h">')}
-        <div class="rxe-b rxl-b">
-          ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame your logo</div><div id="rxl-crop"></div></div>` : ""}
+      ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead(opts.label || "Your logo", opts.heading || (opts.file ? "Add your logo" : "Adjust your logo")).replace("<b>", '<b id="rxl-h">')}
+        <div class="rxe-b rxl-b${opts.file ? " fr" : ""}">
+          ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame ${opts.partners ? "the" : "your"} logo</div><div id="rxl-crop"></div></div>` : ""}
           <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
           <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
-            <div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div></div>
+            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>Partners</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
         </div>
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));

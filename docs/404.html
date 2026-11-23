@@ -467,11 +467,11 @@
   @keyframes tt-pop-out{to{opacity:0;transform:translateY(8px) scale(.98)}}
   @media (prefers-reduced-motion:reduce){ #tt,.tt-modal,#tt.closing,#tt.closing .tt-modal{animation-duration:.01s !important} }
 </style>
-<script src="config.js?v=20261123-143000"></script>
-<script src="rnx-social.js?v=20261123-143000"></script>
-<script src="rnx-ui.js?v=20261123-143000"></script>
-<script src="rnx-edit.js?v=20261123-143000"></script>
-<script src="rnx-data.js?v=20261123-143000"></script>
+<script src="config.js?v=20261123-144403"></script>
+<script src="rnx-social.js?v=20261123-144403"></script>
+<script src="rnx-ui.js?v=20261123-144403"></script>
+<script src="rnx-edit.js?v=20261123-144403"></script>
+<script src="rnx-data.js?v=20261123-144403"></script>
 </head>
 <body>
 <div class="wrap">
@@ -764,7 +764,7 @@ document.addEventListener("click", async e => {
   const ev = EVENTS[+b.dataset.i], dl = dateLabel(ev);
   const text = shareMsg(ev, dl);
   const url = PAGE_URL + "#race-" + ev.id;
-  if (navigator.share){ try { await navigator.share({title:"Louis Race Hub", text: text + "\n" + url}); } catch(err){} return; }
+  if (navigator.share){ try { await navigator.share({title:`${FIRST} Race Hub`, text: text + "\n" + url}); } catch(err){} return; }
   try { await navigator.clipboard.writeText(text + "\n" + url); toast(T("copied")); } catch(err){ toast(url); }
 });
 // Message de partage (WhatsApp etc.) : infos clés + horaire en heure du circuit

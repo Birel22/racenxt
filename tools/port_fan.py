@@ -65,6 +65,7 @@ cut('const CAR_OF = {', 'function fillCar(series){', 'const CAR_OF = RNX.carOf;\
 rep('const c = CARS[CAR_OF[series]], tm = TEAM[series];', 'const c = CARS[CAR_OF[series]], tm = TEAM[series]; if (!c) return;')
 rep('${T("drivers")}: Louis Delétraz, ${tm.mates.map(esc).join(", ")}', '${T("drivers")}: ${[P.display_name, ...tm.mates].map(esc).join(", ")}')
 rep('const PAGE_URL = "https://birel22.github.io/louis-calendar/";', 'const PAGE_URL = RNX.pageUrl;')
+rep('navigator.share({title:"Louis Race Hub",', 'navigator.share({title:`${FIRST} Race Hub`,')
 s = re.sub(r'const WATCH = \{[^\n]*\};', 'const WATCH = RNX.watch;', s, count=1)
 rep('`🏁 *Louis Delétraz · ${L(ev.name)}*`', '`🏁 *${P.display_name} · ${L(ev.name)}*`')
 # car button only when a vehicle exists for the series
@@ -102,4 +103,5 @@ open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
 s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)
 open('/home/claude/racenxt/docs/404.html', 'w', encoding='utf-8').write(s404)
 import subprocess; subprocess.run(['python3', '/home/claude/racenxt/tools/stamp.py'])
+subprocess.run(['python3', '/home/claude/racenxt/tools/previews.py', 'refresh'])  # athletes' pages with their link preview
 print("ok", len(s))

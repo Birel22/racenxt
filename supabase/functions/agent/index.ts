@@ -45,10 +45,10 @@ function priceOf(model: string, inp: number, out: number) {
 const newUsage = (): Usage => ({ input: 0, output: 0, searches: 0, fetches: 0, cost_usd: 0 });
 function addUsage(a: Usage, b: Usage) { a.input += b.input; a.output += b.output; a.searches += b.searches; a.fetches += b.fetches; a.cost_usd = Math.round((a.cost_usd + b.cost_usd) * 10000) / 10000; a.model = a.model ? `${a.model} + ${b.model}` : b.model; return a; }
 // Ask with Haiku first; if the answer isn't usable JSON, ask Sonnet once.
-async function ask(system: string, user: string, maxFetch = 8) {
+async function ask(system: string, user: string, maxFetch = 8, models = [FAST, STRONG]) {
   const total = newUsage();
   let last = "";
-  for (const model of [FAST, STRONG]) {
+  for (const model of models) {
     try {
       const r = await claude(model, system, user, maxFetch);
       addUsage(total, r.usage);
@@ -217,7 +217,7 @@ const SKIPPED = "Official pages unchanged since the last check: AI not needed.";
 
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
-- Use the championship's OFFICIAL website as the source of truth for dates, timetables and broadcast information. Use web search only to find that official site or pages on it. Never take dates or times from news sites, fan sites, Wikipedia or ticket resellers.
+- Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
 - Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". If the page doesn't say, write "unknown".
 - For support series (e.g. F2, F3, Porsche Supercup, F1 Academy), the main event's official timetable (e.g. formula1.com, which lists every series in local time) is an official source too.
 - Never guess. If something is not published on the official site, leave it out or set it to null.
@@ -240,7 +240,7 @@ ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_in
 Task:
 1. Find the official website of this championship.
 2. Find the championship's official logo: up to 3 direct, absolute image URLs (SVG or PNG preferred), e.g. the logo image in the official site's header. If the official site doesn't expose one, a Wikimedia Commons file of the official logo (upload.wikimedia.org) is acceptable as the last candidate.
-3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}).
+3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
 4. For each race weekend: round number, official race name, first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
 5. Timetables: for the next upcoming race weekends, check the race page on the official site. If the official timetable (HTML or PDF) is already published, list every on-track session of THIS championship (practice, qualifying, hyperpole, warm-up, races) in local circuit time. If it is not published yet, set "sessions": null. Don't spend more than a few page reads on this; stop at the first race whose timetable is not published.
 6. Find the championship's usual official place to watch (streaming service, YouTube channel or TV page), if published.
@@ -334,14 +334,23 @@ Circuit: ${[v.name, v.city, v.country].filter(Boolean).join(", ")} (local time z
 Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
 Task:
-1. Find the official timetable (schedule) of this race weekend on the official website (it can be an HTML page or a PDF). List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
+1. Find the official timetable (schedule) of this race weekend. Search strategy:
+   a. Open the race's page on the championship website (and its documents / downloads section).
+   b. If it isn't there, search the web, for example "${series.short_name || series.name} ${v.name || ev.name} ${ev.start_date.slice(0, 4)} timetable", and also in the local language of the circuit (horaires, programme, horario, Zeitplan, orari, tijdschema).
+   c. The timetable is often a PDF on the organiser's or the circuit's website, or published with the event's supplementary regulations. Open PDFs: you can read them.
+   List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
 2. Find where fans can watch THIS race: the official live stream or broadcast page for this weekend if published, otherwise the championship's official live-stream page${series.watch_url ? ` (usually ${series.watch_url}; confirm it still applies)` : ""}.
 If the timetable is not published yet, set "timetable_found": false and an empty list.
 JSON schema:
 {"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null,
  "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "duration_min": number|null, "category": string|null}],
  "watch_url": string|null}`;
-  const { out, usage } = await ask(RULES, user, 6);
+  let { out, usage } = await ask(RULES, user, 8);
+  // close to the race and still nothing: one more, deeper look with the stronger model
+  const daysToStart = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5);
+  if (!(out.timetable_found && (out.sessions || []).length) && daysToStart <= 10 && daysToStart >= -1) {
+    try { const deep = await ask(RULES, user + "\nA first search didn't find the timetable. Look harder: search the web in English and in the local language, and check the circuit's own website and official PDF documents.", 10, [STRONG]); addUsage(usage, deep.usage); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; else if (!out.watch_url && deep.out.watch_url) out.watch_url = deep.out.watch_url; } catch (_) { /* keep the first answer */ }
+  }
   const props: string[] = [];
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
   const zone = ctz ? pageZone(out.times_zone, ctz) : "";

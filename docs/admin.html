@@ -7,7 +7,7 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-014553"></script>
+<script src="config.js?v=20261123-020150"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -286,6 +286,16 @@ function aiNotice(msg, toReview, href = "#/review"){
   d.appendChild(n);
 }
 const aiBusy = key => Object.values(RUNS).some(r => r.key === key);
+// timetables: ask the AI for each upcoming race (next 60 days) that has no schedule yet
+async function findTimetables(seriesId, quiet){
+  const s = D.series.find(x => x.id === seriesId); if (!s) return 0;
+  const lim = new Date(Date.now() + 60 * 864e5).toISOString().slice(0,10);
+  const evs = await api(`events?series_id=eq.${seriesId}&end_date=gte.${TODAY}&start_date=lte.${lim}&select=id,name,start_date,sessions(id)&order=start_date&limit=6`).catch(() => []);
+  const todo = evs.filter(e => !(e.sessions || []).length && !aiBusy(e.id)).slice(0, 3);
+  for (const e of todo) runAgent({ action:"check_event", event_id:e.id }, `Timetable ${s.short_name || s.name} ${e.name}`, e.id);
+  if (!todo.length && !quiet) toast("Every race in the next 60 days already has a schedule");
+  return todo.length;
+}
 async function runAgent(body, label, key, hooks = {}){
   if (aiBusy(key)) return toast("Already checking…");
   const t = await token();
@@ -514,13 +524,14 @@ async function championshipPage(slug, openId){
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
       <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
-      <button class="btn ai" id="s-ai"${aiBusy(s.id) ? " disabled" : ""} title="Finds the official site, logo, calendar and where to watch">${aiBusy(s.id) ? "Checking…" : "Check calendar with AI"}</button><button class="btn" id="s-edit">Edit championship</button></div>
+      <button class="btn ai" id="s-ai"${aiBusy(s.id) ? " disabled" : ""} title="Finds the official site, logo, calendar and where to watch">${aiBusy(s.id) ? "Checking…" : "Check calendar with AI"}</button><button class="btn ai" id="s-tt" title="Searches the official timetable of each race in the next 60 days that has no schedule yet">Find timetables</button><button class="btn" id="s-edit">Edit championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="e-q" placeholder="Search races, circuits…" aria-label="Search races"></label>
       <span class="grow"></span><button class="btn" id="e-import">Import calendar</button><button class="btn pri" id="e-add">+ Add race</button></div>
     <div id="e-up">${upcoming.length ? table(upcoming) : `<div class="card empty">No upcoming races. Add them one by one or import the whole calendar.</div>`}</div>
     <div id="e-res" hidden></div>
     ${past.length ? `<details id="e-past" style="margin-top:22px"><summary class="btn sm" style="list-style:none;display:inline-flex">Past races (${past.length})</summary><div style="margin-top:10px">${table(past)}</div></details>` : ""}`;
   $("#s-edit").onclick = () => editSeries(s, src);
+  $("#s-tt").onclick = async () => { $("#s-tt").disabled = true; await findTimetables(s.id); };
   $("#s-ai").onclick = () => { runAgent({ action:"discover", series_id:s.id }, `Checking ${s.short_name || s.name} calendar`, s.id); $("#s-ai").disabled = true; $("#s-ai").textContent = "Checking…"; };
   const yr = upcoming[0] ? +upcoming[0].start_date.slice(0,4) : YEAR;
   $("#e-add").onclick = () => editRace(s, null, yr);
@@ -868,7 +879,7 @@ async function review(slug){
   for (const p of ps){
     const box = document.querySelector(`[data-p="${p.id}"]`);
     current(p).then(t => box.querySelector(".now").textContent = t);
-    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
+    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (p.kind === "new_season" || p.kind === "new_event") { findTimetables(p.series_id, true); } if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
     box.querySelector('[data-act="edit"]').onclick = async () => {
       const r = await drawer("Edit proposal", [{ k:"payload", l:"Data (local circuit times)", type:"textarea" }], { payload: JSON.stringify(p.payload, null, 2) }, { ok:"Approve with changes" });

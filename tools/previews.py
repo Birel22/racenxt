@@ -12,7 +12,7 @@ import hashlib, html, io, json, os, pathlib, re, shutil, sys, urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
-SITE = os.environ.get("RNX_SITE", "https://birel22.github.io/racenxt").rstrip("/")
+SITE = os.environ.get("RNX_SITE", "https://louisdeletraz.app").rstrip("/")
 MARK_A, MARK_B = "<!--rnx-og-->", "<!--/rnx-og-->"
 ACCENT = (255, 90, 31)
 W, H = 1200, 630
@@ -22,7 +22,7 @@ def page_with(meta):
     """the fan page (404.html) with this athlete's title and preview tags"""
     s = (DOCS / "404.html").read_text(encoding="utf-8")
     s = re.sub(r"<title>.*?</title>\n?", "", s, count=1)
-    return s.replace('<base href="/racenxt/">', '<base href="/racenxt/">\n' + MARK_A + "\n" + meta + "\n" + MARK_B, 1)
+    return s.replace('<base href="/">', '<base href="/">\n' + MARK_A + "\n" + meta + "\n" + MARK_B, 1)
 
 
 def pages():

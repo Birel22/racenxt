@@ -123,8 +123,8 @@ rep('const shown = EVENTS.filter(e => filter==="all" || e.series===filter);', 'c
 rep('    </section>`; }).join("");', '    </section>`; }).join("") + (Q && !shown.length ? `<p class="ff-none">${T("noEv")}</p>` : "");')
 rep('let filter = "all";', open('/home/claude/racenxt/tools/fan_search.js').read().strip() + '\nlet filter = "all";')
 open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
-# GitHub Pages serves 404.html for any unknown path, e.g. /racenxt/louis -> fan page for "louis"
-s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)
+# GitHub Pages serves 404.html for any unknown path, e.g. /louis -> fan page for "louis"
+s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/">', 1)
 open('/home/claude/racenxt/docs/404.html', 'w', encoding='utf-8').write(s404)
 import subprocess; subprocess.run(['python3', '/home/claude/racenxt/tools/stamp.py'])
 subprocess.run(['python3', '/home/claude/racenxt/tools/previews.py', 'refresh'])  # athletes' pages with their link preview

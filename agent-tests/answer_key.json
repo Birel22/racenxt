@@ -502,6 +502,134 @@
       "event": "Yas Marina 2026",
       "source": "https://www.fiaformula2.com/en/racing/2026/yas-marina",
       "expect": "nothing yet: all sessions TBC (4-6 Dec)."
+    },
+    {
+      "id": "alms-2026-27-calendar",
+      "series": "Asian Le Mans Series",
+      "task": "calendar",
+      "year": "2026-27 season (winter, runs into 2027)",
+      "verified": "checked by Louis in the app (Nov 2026)",
+      "expect": [
+        {
+          "round": "1-2",
+          "name": "4 Hours of Jerez",
+          "circuit": "Circuito de Jerez - Ángel Nieto",
+          "start": "2027-01-15",
+          "end": "2027-01-17"
+        },
+        {
+          "round": "3-4",
+          "name": "4 Hours of Portimão",
+          "circuit": "Algarve International Circuit",
+          "start": "2027-02-19",
+          "end": "2027-02-21"
+        }
+      ],
+      "notes": "A winter season named across two years; each event is a double-header (two 4-hour races)."
+    },
+    {
+      "id": "alms-jerez-2027-schedule",
+      "series": "Asian Le Mans Series",
+      "task": "schedule",
+      "event": "4 Hours of Jerez 2027",
+      "timezone": "local (Europe/Madrid)",
+      "verified": "checked by Louis in the app",
+      "expect": [
+        {
+          "day": "2027-01-15",
+          "label": "Practice 1",
+          "start": "10:10"
+        },
+        {
+          "day": "2027-01-15",
+          "label": "Practice 2",
+          "start": "13:30"
+        },
+        {
+          "day": "2027-01-15",
+          "label": "Qualifying 1 - GT3",
+          "start": "16:05"
+        },
+        {
+          "day": "2027-01-15",
+          "label": "Qualifying 2 - GT3",
+          "start": "16:25"
+        },
+        {
+          "day": "2027-01-15",
+          "label": "Qualifying 1 - Hypercar & LMP2",
+          "start": "16:50"
+        },
+        {
+          "day": "2027-01-15",
+          "label": "Qualifying 2 - Hypercar & LMP2",
+          "start": "17:10"
+        },
+        {
+          "day": "2027-01-16",
+          "label": "Race 1",
+          "start": "13:45",
+          "end": "17:45"
+        },
+        {
+          "day": "2027-01-17",
+          "label": "Race 2",
+          "start": "13:45",
+          "end": "17:45"
+        }
+      ]
+    },
+    {
+      "id": "alms-portimao-2027-schedule",
+      "series": "Asian Le Mans Series",
+      "task": "schedule",
+      "event": "4 Hours of Portimão 2027",
+      "timezone": "local (Europe/Lisbon)",
+      "verified": "checked by Louis in the app",
+      "expect": [
+        {
+          "day": "2027-02-19",
+          "label": "Practice 1",
+          "start": "10:10"
+        },
+        {
+          "day": "2027-02-19",
+          "label": "Practice 2",
+          "start": "13:30"
+        },
+        {
+          "day": "2027-02-19",
+          "label": "Qualifying 1 - GT3",
+          "start": "16:05"
+        },
+        {
+          "day": "2027-02-19",
+          "label": "Qualifying 2 - GT3",
+          "start": "16:25"
+        },
+        {
+          "day": "2027-02-19",
+          "label": "Qualifying 1 - Hypercar & LMP2",
+          "start": "16:50"
+        },
+        {
+          "day": "2027-02-19",
+          "label": "Qualifying 2 - Hypercar & LMP2",
+          "start": "17:10"
+        },
+        {
+          "day": "2027-02-20",
+          "label": "Race 1",
+          "start": "13:15",
+          "end": "17:15"
+        },
+        {
+          "day": "2027-02-21",
+          "label": "Race 2",
+          "start": "13:15",
+          "end": "17:15"
+        }
+      ]
     }
   ]
 }

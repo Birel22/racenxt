@@ -1,6 +1,7 @@
 // Racenxt research agent.
 // POST { action: "discover", series_id }  -> finds official site, logo, calendar (+ timetables already out); files proposals
 // POST { action: "check_event", event_id } -> finds the race timetable and where-to-watch; files proposals
+// POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
 // POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
 // POST { action: "tick" } + x-cron-secret      -> called by pg_cron every 15 min: starts the checks that are due
 // Scheduled checks (monthly / daily) first compare the official pages with last time and skip the AI if unchanged.
@@ -268,6 +269,32 @@ Rules:
 - Be economical: open each page at most once, go straight to the calendar / race pages, and stop as soon as you have the answer.
 - Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
 
+// ---------- where to watch: set per championship; a race only gets its own link if it has a page of its own ----------
+const WATCH_TASK = `Where to watch, for the whole championship (official sources only):
+   - "stream_url": the championship's official live stream, i.e. its own streaming service or official live channel (e.g. F1 TV, MotoGP VideoPass, FIA WEC+, the official YouTube live page). null if there is none.
+   - "broadcasters_url": the official page that lists the TV broadcasters by country (often called "Where to watch", "Broadcasters", "TV schedule"). null if there is none.`;
+const sameUrl = (a: unknown, b: unknown) => !!a && !!b && String(a).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase() === String(b).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase();
+const okUrl = (u: unknown) => typeof u === "string" && /^https?:\/\/[^\s]+$/.test(u);
+// proposes the championship links that are new or changed (never removes one)
+async function proposeLinks(series: any, out: any, runId: string, url: string) {
+  const pl: any = {};
+  if (okUrl(out.stream_url) && !sameUrl(out.stream_url, series.stream_url)) pl.stream_url = out.stream_url;
+  if (okUrl(out.broadcasters_url) && !sameUrl(out.broadcasters_url, series.broadcasters_url)) pl.broadcasters_url = out.broadcasters_url;
+  if (!Object.keys(pl).length) return false;
+  await ins("proposals", { run_id: runId, series_id: series.id, kind: "series_links", payload: pl, evidence: { url: pl.broadcasters_url || pl.stream_url || url, excerpt: `Where to watch ${series.short_name || series.name}` } });
+  return true;
+}
+async function links(series: any, runId: string) {
+  const user = `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
+Official website: ${series.website_url || "unknown"}
+Today: ${new Date().toISOString().slice(0, 10)}
+Task: ${WATCH_TASK}
+JSON schema: {"stream_url": string|null, "broadcasters_url": string|null}`;
+  const { out, usage } = await ask(RULES, user, 5);
+  const found = await proposeLinks(series, out, runId, series.website_url || "");
+  return { result: found ? "proposal" : "no_change", summary: found ? "Found: where to watch for the championship." : "Nothing new: where-to-watch links unchanged.", usage, pages: [] };
+}
+
 // ---------- discover: official site, logo, calendar ----------
 async function discover(series: any, src: any, runId: string, kind = "discover") {
   if (kind === "monthly") {
@@ -287,9 +314,9 @@ Task:
 3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
 4. For each race weekend: round number, the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
 5. Timetables: for the next upcoming race weekends, check the race page on the official site. If the official timetable (HTML or PDF) is already published, list every on-track session of THIS championship (practice, qualifying, hyperpole, warm-up, races) in local circuit time. If it is not published yet, set "sessions": null. Don't spend more than a few page reads on this; stop at the first race whose timetable is not published.
-6. Find the championship's usual official place to watch (streaming service, YouTube channel or TV page), if published.
+6. ${WATCH_TASK}
 JSON schema:
-{"website_url": string|null, "logo_urls": [string], "calendar_url": string|null, "watch_url": string|null,
+{"website_url": string|null, "logo_urls": [string], "calendar_url": string|null, "stream_url": string|null, "broadcasters_url": string|null,
  "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null},
    "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}] | null,
@@ -306,8 +333,7 @@ JSON schema:
   await db("series_sources", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id: series.id, urls: urls.map(url => ({ url })), allowed_domains: domains, agent_instructions: src?.agent_instructions || "" }) });
   const upd: any = {};
   if (!series.website_url && site) upd.website_url = site;
-  // the championship's usual stream is only a hint for race-week checks (fans see one link per race)
-  if (out.watch_url && !series.watch_url) upd.watch_url = out.watch_url;
+
   // logo: copied to our storage when the championship has none yet (the admin turns it white and asks for confirmation)
   let logoNote = "";
   if (!series.logo_url) {
@@ -319,6 +345,7 @@ JSON schema:
     if (logos.length) { upd.logo_url = logos[0]; upd.logo_candidates = logos; } else logoNote = " No logo found: add one on the review page.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
+  if (await proposeLinks(series, out, runId, site || "")) props.push("where to watch");
 
   // calendar: new races in one proposal, changed dates as separate proposals
   const found = (out.seasons || []).flatMap((s: any) => (s.events || []).map((e: any) => ({ ...e, year: s.year || +String(e.start_date).slice(0, 4) })))
@@ -371,6 +398,8 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
   }
   const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min&order=local_start`);
   const v = ev.venues || {};
+  // the race's own broadcast page is only published in the days before the race
+  const raceWeek = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5) <= 7;
   const user = `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
 Official website: ${series.website_url || "unknown"}
 ${(src?.urls || []).length ? `Official pages we know: ${(src.urls || []).map((u: any) => u.url).join(", ")}\n` : ""}Race: ${ev.name}
@@ -384,7 +413,7 @@ Task:
    b. If it isn't there, search the web, for example "${series.short_name || series.name} ${v.name || ev.name} ${ev.start_date.slice(0, 4)} timetable", and also in the local language of the circuit (horaires, programme, horario, Zeitplan, orari, tijdschema).
    c. The timetable is often a PDF on the organiser's or the circuit's website, or published with the event's supplementary regulations. Open PDFs: you can read them.
    List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
-2. Find where fans can watch THIS race: the official live stream or broadcast page for this weekend if published, otherwise the championship's official live-stream page${series.watch_url ? ` (usually ${series.watch_url}; confirm it still applies)` : ""}.
+2. ${raceWeek ? `Where to watch THIS race: only a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page), on an official site. Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. Set "watch_url" to null if there is no page for this race.` : `Skip where to watch: set "watch_url" to null.`}
 If the timetable is not published yet, set "timetable_found": false and an empty list.
 JSON schema:
 {"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null,
@@ -415,9 +444,10 @@ JSON schema:
       props.push(`timetable (${sessions.length} sessions)`);
     }
   }
-  if (out.watch_url && out.watch_url !== ev.watch_url) {
-    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: { watch_url: out.watch_url }, evidence: { url: out.watch_url, excerpt: `Where to watch ${ev.name}` } });
-    props.push("where to watch");
+  if (!raceWeek || sameUrl(out.watch_url, series.stream_url) || sameUrl(out.watch_url, series.broadcasters_url) || !okUrl(out.watch_url)) out.watch_url = null;
+  if (out.watch_url && !sameUrl(out.watch_url, ev.watch_url)) {
+    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: { watch_url: out.watch_url }, evidence: { url: out.watch_url, excerpt: `Broadcast page for ${ev.name}` } });
+    props.push("this race's broadcast page");
   }
   const summary = props.length ? `Found: ${props.join(", ")}.` : out.timetable_found ? "Nothing new: timetable unchanged." : "Timetable not published yet.";
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.source_url, out.race_page_url, ...(src?.urls || []).map((u: any) => u.url)]) };
@@ -463,7 +493,7 @@ Deno.serve(async (req) => {
     await patch("series", `id=eq.${s.id}`, { logo_candidates: all });
     return json({ candidates: all });
   }
-  if (body.action === "discover") {
+  if (body.action === "discover" || body.action === "links") {
     [series] = await db(`series?id=eq.${body.series_id}&select=*`);
   } else if (body.action === "check_event") {
     [ev] = await db(`events?id=eq.${body.event_id}&select=*,venues(name,city,country,timezone)`);
@@ -476,7 +506,7 @@ Deno.serve(async (req) => {
   const [run] = await ins("check_runs", { series_id: series.id, event_id: ev?.id || null, kind, result: "running", pages: [] });
   const job = (async () => {
     try {
-      const r = body.action === "discover" ? await discover(series, src, run.id, kind) : await checkEvent(ev, series, src, run.id, kind);
+      const r = body.action === "discover" ? await discover(series, src, run.id, kind) : body.action === "links" ? await links(series, run.id) : await checkEvent(ev, series, src, run.id, kind);
       await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, finished_at: new Date().toISOString() });
     } catch (e) {
       await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() });

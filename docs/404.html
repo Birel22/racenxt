@@ -398,12 +398,19 @@
     .ev.ev2 .tt-btn{padding:0 10px}
   }
   @media (max-width:360px){ .ev.ev2 .tt-btn span{display:none} .ev.ev2 .tt-btn{padding:0 9px} .ev.ev2 .where{-webkit-line-clamp:1} .ev.ev2 .ev-name{font-size:18px} }
+  .wdrop{position:relative;display:inline-flex}
+  .wmenu{position:absolute;right:0;bottom:calc(100% + 8px);z-index:40;min-width:220px;display:grid;gap:2px;padding:6px;background:#15161a;border:1px solid #33363e;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);text-align:left}
+  .wmenu[hidden]{display:none}
+  .wmenu a{display:grid;gap:2px;padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none;font:600 15px/1.2 'Barlow',sans-serif;letter-spacing:0;text-transform:none}
+  .wmenu a small{font:500 12.5px/1.2 'Barlow',sans-serif;color:var(--muted)}
+  .wmenu a:hover,.wmenu a:focus-visible{background:#23252b;outline:none}
+  @media (max-width:620px){ .cd-btns > .wdrop{flex:1} .wdrop .watch{width:100%} .wmenu{left:0;right:auto;min-width:0;width:max(100%,220px)} }
 </style>
-<script src="config.js?v=20261123-114456"></script>
-<script src="rnx-social.js?v=20261123-114456"></script>
-<script src="rnx-ui.js?v=20261123-114456"></script>
-<script src="rnx-edit.js?v=20261123-114456"></script>
-<script src="rnx-data.js?v=20261123-114456"></script>
+<script src="config.js?v=20261123-120205"></script>
+<script src="rnx-social.js?v=20261123-120205"></script>
+<script src="rnx-ui.js?v=20261123-120205"></script>
+<script src="rnx-edit.js?v=20261123-120205"></script>
+<script src="rnx-data.js?v=20261123-120205"></script>
 </head>
 <body>
 <div class="wrap">
@@ -453,13 +460,13 @@ if (!RNX) return;
 // ===== Langue / Language =====
 rnxDecorate(RNX);
 const I18N = {
-  en:{docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
+  en:{wStream:"Official stream", wTv:"TV broadcasters", wTvRace:"TV for this race", wTvSub:"Channels by country", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
       socials:"Social media", website:"Website", partners:"Partners", filterBy:"Filter by championship", all:"All", lmFull:"24 Hours of Le Mans",
       disclaimer:"Dates are provisional and subject to change.", poweredBy:"Powered by", shareLocal:"local time,", shareSoon:"Schedule: coming soon", shareMore:"Where to watch, times in your own time zone + add to your calendar:", close:"Close", next:"Next", raceLength:"Race length", maps:"View on Google Maps",
       schedule:"Schedule", watch:"Where to watch", nextRace:"Next race", now:"Right now", racing:"Racing 🏁", season:"Season 2027", over:"Over — thanks for the support!",
       days:"days", hours:"hours", min:"min", sec:"sec", notYet:"Not published yet.<br>Schedules usually come out a few weeks before the race.",
       official:"View on the official website ↗", localTrack:"Local track time", partialLM:"practice, qualifying and Hyperpole not published yet", locale:"en-GB", timeMode:"Time zone", trackTime:"Track time", myTime:"My time", yourTime:"Your local time", addOne:"Add to my calendar", addAll:"Add all to my calendar", calNote:"Saved in your phone’s calendar in your own time zone, with an alert 15 minutes before each session.", selectAll:"Select all", carShort:"Car", drivers:"Drivers", raceWord:"Race", seasonDone:"Season complete", share:"Share", shareText:"Follow Louis at {race}, {dates} 🏁", copied:"Link copied", filter:"Filter", allChamps:"All races", n_imsa:"IMSA WeatherTech Championship", n_elms:"European Le Mans Series", n_alms:"Asian Le Mans Series", n_lm:"Le Mans 24 Hours", nextSession:"Next session", endsAround:"Ends around", then:"then", yourTimeShort:"your time", carSpecs:"Car specs", more:"More", moreRaces:"More races", cancel:"Cancel", calHint:"Tap the calendar icon next to a session to add it — you can then select several at once. Saved in your own time zone, with an alert 15 minutes before.", selectNone:"Clear selection", pickNone:"Select sessions to add", addOneSel:"Add 1 session to my calendar", addN:"Add {n} sessions to my calendar", subscribe:"Subscribe to the calendar", incomplete:"Incomplete schedule — not published yet:", cat_fp:"free practice", cat_q:"qualifying", cat_r:"race", subTitle:"Subscribe to Louis’s calendar", subIntro:"Pick what you want on your phone. Race weekends are always included, and new schedules are added automatically.", sub_all:"Everything", sub_all_d:"Free practice, qualifying and races", sub_qr:"Qualifying & races", sub_qr_d:"No free practice", sub_r:"Races only", sub_r_d:"Just the race starts", subNote:"All race weekends and schedules, updated automatically on your phone."},
-  fr:{docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
+  fr:{wStream:"Stream officiel", wTv:"Chaînes TV", wTvRace:"TV pour cette course", wTvSub:"Chaînes par pays", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
       socials:"Réseaux sociaux", website:"Site web", partners:"Partenaires", filterBy:"Filtrer par championnat", all:"Tout", lmFull:"24 Heures du Mans",
       disclaimer:"Dates indicatives, susceptibles de changer.", poweredBy:"Propulsé par", shareLocal:"heure locale,", shareSoon:"Horaires : bientôt disponibles", shareMore:"Où regarder, les horaires à ton heure + ajout au calendrier :", close:"Fermer", next:"Prochaine", raceLength:"Durée de course", maps:"Voir sur Google Maps",
       schedule:"Horaires", watch:"Où regarder", nextRace:"Prochaine course", now:"En ce moment", racing:"En course 🏁", season:"Saison 2027", over:"Terminée — merci pour le soutien !",
@@ -737,8 +744,25 @@ function seasonProgress(){
   el.setAttribute("aria-label", `${done} / ${total}`);
 }
 // Where to watch
-const WATCH = RNX.watch;
-const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${(ev.watch || WATCH[ev.series]) ? `<a class="watch" href="${ev.watch || WATCH[ev.series]}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>${T("watch")}</a>` : ""}</div>`;
+const WATCH = RNX.watch, TV = RNX.tv || {};
+const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>';
+const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
+// Where to watch: the championship's official stream + TV broadcasters (this race's own page if it has one, else the full list)
+function watchLinks(ev){
+  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
+  if (!st && !tv) return "";
+  if (!st || !tv) return `<a class="watch" href="${esc0(st || tv)}" target="_blank" rel="noopener">${PLAY}${T("watch")}</a>`;
+  return `<span class="wdrop"><button type="button" class="watch wbtn" aria-haspopup="true" aria-expanded="false">${PLAY}${T("watch")}</button><span class="wmenu" role="menu" hidden>`
+    + `<a role="menuitem" href="${esc0(st)}" target="_blank" rel="noopener"><b>${T("wStream")}</b><small>${esc0(hostOf(st))}</small></a>`
+    + `<a role="menuitem" href="${esc0(tv)}" target="_blank" rel="noopener"><b>${ev.watch ? T("wTvRace") : T("wTv")}</b><small>${T("wTvSub")}</small></a></span></span>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".wbtn");
+  document.querySelectorAll(".wmenu").forEach(m => { if (!b || m.previousElementSibling !== b){ m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); } });
+  if (b){ const m = b.nextElementSibling; m.hidden = !m.hidden; b.setAttribute("aria-expanded", String(!m.hidden)); if (!m.hidden) m.querySelector("a").focus(); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".wmenu:not([hidden])").forEach(m => { m.hidden = true; m.previousElementSibling.setAttribute("aria-expanded", "false"); m.previousElementSibling.focus(); }); });
+const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
 
 // Countdown
 // ===== Horloge (avec mode démo : ?demo=pre | next | live | between | race) =====

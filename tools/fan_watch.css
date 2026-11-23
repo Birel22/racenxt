@@ -1,0 +1,7 @@
+  .wdrop{position:relative;display:inline-flex}
+  .wmenu{position:absolute;right:0;bottom:calc(100% + 8px);z-index:40;min-width:220px;display:grid;gap:2px;padding:6px;background:#15161a;border:1px solid #33363e;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);text-align:left}
+  .wmenu[hidden]{display:none}
+  .wmenu a{display:grid;gap:2px;padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none;font:600 15px/1.2 'Barlow',sans-serif;letter-spacing:0;text-transform:none}
+  .wmenu a small{font:500 12.5px/1.2 'Barlow',sans-serif;color:var(--muted)}
+  .wmenu a:hover,.wmenu a:focus-visible{background:#23252b;outline:none}
+  @media (max-width:620px){ .cd-btns > .wdrop{flex:1} .wdrop .watch{width:100%} .wmenu{left:0;right:auto;min-width:0;width:max(100%,220px)} }

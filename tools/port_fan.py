@@ -76,6 +76,13 @@ s = s.replace('<a class="watch" href="${WATCH[ev.series]}"', '${(ev.watch || WAT
 s = s.replace('${T("watch")}</a></div>`;', '${T("watch")}</a>` : ""}</div>`;')
 rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">',
     '${LOGO[ev.series] ? `<img class="ev-logo${RNX.square[ev.series]?\' sq\':\'\'}" src="${LOGO[ev.series]}" alt="${LABEL[ev.series]}">` : `<span class="ev-logo-txt">${esc(LABEL[ev.series])}</span>`}')
+# where to watch: official stream (championship) + TV broadcasters (this race's page, or the championship's list)
+s = s.replace('${(ev.watch || WATCH[ev.series]) ? `<a class="watch" href="${ev.watch || WATCH[ev.series]}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>${T("watch")}</a>` : ""}', '${watchLinks(ev)}')
+assert '${watchLinks(ev)}' in s, "watch button not found"
+rep('const WATCH = RNX.watch;', open('/home/claude/racenxt/tools/fan_watch.js').read().strip())
+rep('en:{docTitle:', 'en:{wStream:"Official stream", wTv:"TV broadcasters", wTvRace:"TV for this race", wTvSub:"Channels by country", docTitle:')
+rep('fr:{docTitle:', 'fr:{wStream:"Stream officiel", wTv:"Chaînes TV", wTvRace:"TV pour cette course", wTvSub:"Chaînes par pays", docTitle:')
+s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + '</style>', 1)
 # single-day events (the athlete's own: tests, appearances) and no race length
 rep("return {big:`${a.getDate()}–${b.getDate()}`,", "return {big: a.getTime()===b.getTime() ? `${a.getDate()}` : `${a.getDate()}–${b.getDate()}`,")
 rep('<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>', '${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}')

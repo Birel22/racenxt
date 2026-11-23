@@ -32,12 +32,12 @@
     const { prof, entries, overrides, sponsors, events, sessions } = raw;
     const hidden = new Set(overrides.filter(o => o.hidden).map(o => o.event_id));
     const notes = Object.fromEntries(overrides.filter(o => o.note).map(o => [o.event_id, o.note]));
-    const series = [], logo = {}, label = {}, official = {}, watch = {}, carOf = {}, cars = {}, team = {}, color = {}, square = {};
+    const series = [], logo = {}, label = {}, official = {}, watch = {}, tv = {}, carOf = {}, cars = {}, team = {}, color = {}, square = {};
     for (const en of entries) {
       const s = en.series; if (!s) continue;
       if (!series.find(x => x.slug === s.slug)) series.push(s);
       logo[s.slug] = s.logo_url || ""; label[s.slug] = s.short_name; official[s.slug] = s.website_url || "";
-      watch[s.slug] = ""; /* one where-to-watch link per race, set in race week */ color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
+      /* where to watch: the championship's stream + list of broadcasters; a race can have its own page (ev.watch) */ watch[s.slug] = s.stream_url || ""; tv[s.slug] = s.broadcasters_url || ""; color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
       team[s.slug] = { num: en.car_number || "", team: en.team || "", mates: en.teammates || [] };
       if (en.vehicles) {
         // specs from the library, photo = the user's own livery
@@ -51,7 +51,7 @@
       if (!events.some(e => !e.series_id && (e.kind || "other") === k)) continue;
       const sl = "x-" + k, [nm, lb, cl] = KINDS[k];
       series.push({ slug: sl, name: nm, short_name: lb });
-      logo[sl] = ""; label[sl] = lb; official[sl] = ""; watch[sl] = ""; color[sl] = cl; team[sl] = null;
+      logo[sl] = ""; label[sl] = lb; official[sl] = ""; watch[sl] = ""; tv[sl] = ""; color[sl] = cl; team[sl] = null;
     }
     const slugOfSeries = Object.fromEntries(entries.filter(e => e.series).map(e => [e.series_id, e.series.slug]));
     const byEvent = {};
@@ -83,7 +83,7 @@
     const css = Object.entries(color).map(([k, c]) => `.ev.${k},.tt-head.${k},.countdown.${k}{--c:${c}}`).join("\n");
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     return {
-      profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, carOf, cars, team, color, square,
+      profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, tv, carOf, cars, team, color, square,
       sponsors, pageUrl: location.origin + location.pathname, entries,
       customEvents: events.filter(e => !e.series_id)
     };

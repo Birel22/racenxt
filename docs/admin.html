@@ -1308,7 +1308,8 @@ async function testsPage(open){
   $("#t-all").onclick = () => guard(async () => {
     $("#t-all").disabled = true; $("#t-all").textContent = "Starting…";
     const ids = cases.map(c => c.id);
-    for (let i = 0; i < ids.length; i += 3) { await Promise.all(ids.slice(i, i + 3).map(runOne)); await new Promise(r => setTimeout(r, 1500)); }
+    // one every 8 seconds: starting them all at once hits the AI rate limit
+    for (const id of ids) { await runOne(id); $("#t-all").textContent = `Starting ${ids.indexOf(id) + 1}/${ids.length}…`; await new Promise(r => setTimeout(r, 8000)); }
     testsPage(open);
   }, "All tests started: results arrive in a few minutes");
   $$("[data-run]").forEach(b => b.onclick = e => { e.stopPropagation(); guard(async () => { await runOne(b.dataset.run); testsPage(open); }, "Test started"); });

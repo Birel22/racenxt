@@ -523,6 +523,9 @@ const looseUrl = (found: unknown, exp: unknown) => {
   const e = firstUrl(exp), f = String(found || "");
   if (!e || !f) return false;
   if (sameUrl(f, e)) return true;
+  // same page id in a different URL shape (fiaformula2.com/About/<id>/... vs /en/information/...<id>)
+  const id = (e.match(/[A-Za-z0-9]{18,}/) || [""])[0];
+  if (id && f.includes(id)) return true;
   const clean = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").replace(/[/#?]+$/, "").toLowerCase();
   const fe = clean(f), ee = clean(e);
   // same host and one path is the start of the other (youtube.com/@channel vs youtube.com/@channel/streams, f1tv.formula1.com vs f1tv.formula1.com/...)
@@ -655,7 +658,7 @@ Deno.serve(async (req) => {
     for (const c of cases) {
       const [run] = await ins("agent_test_runs", { case_id: c.id, status: "running" });
       await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { "x-cron-secret": cron, "Content-Type": "application/json" }, body: JSON.stringify({ action: "test_one", case_id: c.id, run_id: run.id }) });
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 8000));
     }
     return json({ started: cases.length });
   }

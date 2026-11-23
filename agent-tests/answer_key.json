@@ -514,9 +514,35 @@
       "task": "schedule",
       "event": "Yas Marina 2026",
       "source": "https://www.fiaformula2.com/en/racing/2026/yas-marina",
-      "expect": "nothing yet: all sessions TBC (4-6 Dec).",
+      "expect": [
+        {
+          "day": "2026-12-04",
+          "label": "Practice",
+          "start": "11:05",
+          "end": "11:50"
+        },
+        {
+          "day": "2026-12-04",
+          "label": "Qualifying",
+          "start": "15:00",
+          "end": "15:30"
+        },
+        {
+          "day": "2026-12-05",
+          "label": "Sprint Race",
+          "start": "16:15",
+          "end": "17:05"
+        },
+        {
+          "day": "2026-12-06",
+          "label": "Feature Race",
+          "start": "13:15",
+          "end": "14:20"
+        }
+      ],
       "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
-      "event_id": "f8b2f131-d77e-4311-8f0d-1b160388f973"
+      "event_id": "f8b2f131-d77e-4311-8f0d-1b160388f973",
+      "note": "Updated 23 Nov 2026: the timetable is now on formula1.com (local time). Practice 11:05-11:50 checked by hand; the other three to confirm."
     },
     {
       "id": "alms-2026-27-calendar",

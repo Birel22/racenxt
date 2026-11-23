@@ -59,7 +59,18 @@
     cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
     return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
   }
-  const pickFile = () => new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => res(i.files[0] || null); i.click(); });
+  // the file input stays in the page while the picker is open (iPhone Safari drops it otherwise)
+  const pickFile = () => new Promise(res => {
+    const i = document.createElement("input"); i.type = "file"; i.accept = "image/*";
+    i.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0";
+    document.body.appendChild(i);
+    let done = false; const fin = f => { if (done) return; done = true; res(f); setTimeout(() => i.remove(), 1000); };
+    i.addEventListener("change", () => fin(i.files[0] || null));
+    i.addEventListener("cancel", () => fin(null));
+    i.click();
+  });
+  // resize when the browser can read the picture; otherwise send it as it is
+  const safePicture = async (f, sq, max) => { try { return await picture(f, sq, max); } catch (e) { return f; } };
   async function save(fn, msg) {
     busy(true);
     try { await fn(); busy(false, msg || "Saved"); setTimeout(() => location.reload(), 500); return true; }
@@ -288,13 +299,15 @@
           if (!need("#rx-first", "Add your first name.") || !need("#rx-last", "Add your last name.")) return null;
           const mail = $("#rx-mail").value.trim(); if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { alert("That contact email doesn't look right."); return null; }
           const socials = {}; SOCIALS.forEach(s => { const v = toUrl(s.k, $("#rx-s-" + s.k).value); if (v) socials[s.k] = v; });
-          const web = toUrl("website", $("#rx-web").value); if (web) socials.website = web;
+          const webRaw = $("#rx-web").value.trim();
+          if (webRaw && /@/.test(webRaw) && !/\//.test(webRaw.replace(/^https?:\/\//, ""))) { alert("That looks like an email address. Put it in Contact email, and your website address (like louisdeletraz.com) here."); $("#rx-web").focus(); return null; }
+          const web = toUrl("website", webRaw); if (web) socials.website = web;
           const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
           return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(framer ? { photo_pos: framer.get() } : {}) };
         } });
     if (!r) return;
     save(async () => {
-      if (file) { r.photo_url = await upload(await picture(file, false, 1800), `profiles/${p.id}-${Date.now()}.jpg`); r.hero_url = null; }
+      if (file) { r.photo_url = await upload(await safePicture(file, false, 1800), `profiles/${p.id}-${Date.now()}.jpg`); r.hero_url = null; }
       await upd("profiles", p.id, { ...r, updated_at: new Date().toISOString() });
     }, "Profile saved");
   }
@@ -325,6 +338,7 @@
     let year = en ? en.year : years[0];
     let hidden = new Set();
     if (en) { const ov = await api(`event_overrides?profile_id=eq.${R.profile.id}&hidden=eq.true&select=event_id`); hidden = new Set(ov.map(o => o.event_id)); }
+    if (evs.length && year == null && !en) { alert(`${s.short_name} is already in your season. Tap it in "Your season" to change it.`); return null; }
     if (!evs.length || year == null) {
       if (en) return { year: en.year, hide: [] };
       let y = YEAR; while (taken.has(y)) y++;
@@ -393,7 +407,7 @@
     if (!r) return;
     if (r.__delete) return save(() => api(`entries?id=eq.${en.id}`, { method: "DELETE" }), "Removed");
     save(async () => {
-      if (photoFile) r.car_photo_url = await upload(await picture(photoFile, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`);
+      if (photoFile) r.car_photo_url = await upload(await safePicture(photoFile, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`);
       if (isNew) { await ins("entries", { profile_id: R.profile.id, series_id: en.series_id, ...r }); if (rounds) await saveRounds(rounds); }
       else await upd("entries", en.id, r);
     }, isNew ? "Added to your season" : "Saved");
@@ -639,7 +653,7 @@
       const b = e.target.closest(".car-btn, .cd-car"); if (!b || document.body.classList.contains("rx-view")) return;
       setTimeout(() => { const en = entryOf(b.dataset.series), body = $("#tt-body"); if (!en || !body) return; body.insertAdjacentHTML("afterbegin", `<div class="rx-only" style="display:flex;gap:8px;justify-content:center;margin:0 0 14px;flex-wrap:wrap"><button class="rx-b pri" id="rx-carph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${en.car_photo_url ? "Change car photo" : "Add your car photo"}</button><button class="rx-b" id="rx-caredit">${PEN.replace("<svg", '<svg width="15" height="15"')} Edit entry</button></div>`);
         $("#rx-caredit").onclick = () => { $("#tt-close")?.click(); editEntry(en); };
-        $("#rx-carph").onclick = async () => { const f = await pickFile(); if (!f) return; save(async () => { const u = await upload(await picture(f, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`); await upd("entries", en.id, { car_photo_url: u }); }, "Car photo saved"); }; }, 0);
+        $("#rx-carph").onclick = async () => { const f = await pickFile(); if (!f) return; save(async () => { const u = await upload(await safePicture(f, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`); await upd("entries", en.id, { car_photo_url: u }); }, "Car photo saved"); }; }, 0);
     }, true);
 
     // account menu

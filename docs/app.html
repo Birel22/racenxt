@@ -341,7 +341,7 @@ function obStep(){
     $("#o-first").oninput = auto; $("#o-last").oninput = auto;
     $("#o-slug").oninput = () => { OB.touched = true; $("#o-slug").value = $("#o-slug").value.toLowerCase().replace(/[^a-z0-9-]/g, ""); check(); };
     if (OB.slug) check();
-    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = () => { const f = i.files[0]; if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = null; obSave(); obStep(); }; i.click(); };
+    $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = null; obSave(); obStep(); }; i.click(); };
     FRAMER = OB.photoUrl && window.rnxPhotoFramer ? rnxPhotoFramer($("#ob-frame"), OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`) : null;
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
@@ -357,12 +357,13 @@ function obStep(){
       if (!OB.avail){ $("#o-slug").focus(); return alert("Pick a page link that's available."); }
     }
     if (n === 2 && OB.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(OB.email)){ $("#o-mail").focus(); return alert("That contact email doesn't look right."); }
+    if (n === 2 && OB.website && /@/.test(OB.website.replace(/^https?:\/\//, "").split("/")[0])){ $("#o-web").focus(); return alert("That looks like an email address. Put it in Contact email, and your website address (like louisdeletraz.com) here."); }
     if (n < 3){ OB.step++; obStep(); window.scrollTo(0, 0); return; }
     $("#o-next").disabled = true; $("#o-next").textContent = "Creating your page…";
     try {
       const id = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" });
       const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
-      if (OB.photo){ row.photo_url = await upload(await heroPhoto(OB.photo), `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
+      if (OB.photo){ let pic; try { pic = await heroPhoto(OB.photo); } catch(e){ pic = OB.photo; } row.photo_url = await upload(pic, `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
       await upd("profiles", id, row);
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){

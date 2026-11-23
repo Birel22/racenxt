@@ -91,4 +91,5 @@ open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
 # GitHub Pages serves 404.html for any unknown path, e.g. /racenxt/louis -> fan page for "louis"
 s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)
 open('/home/claude/racenxt/docs/404.html', 'w', encoding='utf-8').write(s404)
+import subprocess; subprocess.run(['python3', '/home/claude/racenxt/tools/stamp.py'])
 print("ok", len(s))

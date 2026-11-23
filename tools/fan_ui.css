@@ -34,10 +34,11 @@
   @keyframes tt-pop-out{to{opacity:0;transform:translateY(8px) scale(.98)}}
   @media (prefers-reduced-motion:reduce){ #tt,.tt-modal,#tt.closing,#tt.closing .tt-modal{animation-duration:.01s !important} }
 
-/* custom event links: Where to watch, Live timing, Tickets... */
-.ev-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.ev-link{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line,#2a2d35);background:rgba(255,255,255,.03);color:var(--text,#f4f4f2);font:600 13.5px 'Barlow',sans-serif;text-decoration:none;transition:border-color .2s ease,background .2s ease}
-.ev-link svg{width:16px;height:16px;flex:none;color:var(--c,#FF5A1F)}
-.ev-link .ext{width:12px;height:12px;color:var(--muted,#8e919b)}
-.ev-link:hover,.ev-link:focus-visible{border-color:var(--c,#FF5A1F);background:rgba(255,90,31,.08)}
+/* custom event: one small link icon on the card (opens the links popup) */
+.ev.ev2 .lk-btn{flex:none;display:inline-grid;place-items:center;width:30px;height:28px;padding:0;margin:0;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s}
+.ev.ev2 .lk-btn svg{width:15px;height:15px}
+.ev.ev2 .lk-btn:hover,.ev.ev2 .lk-btn:focus-visible{color:var(--text);border-color:#4a4d56}
 .month h2 .yr{color:var(--muted,#8e919b);font-weight:500}
+
+/* phone: a card with Schedule + Car + Links keeps just the flag (the place is on the line above) */
+@media (max-width:440px){.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country{font-size:0;gap:0}.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country .flag{font-size:17px}}

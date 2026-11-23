@@ -81,8 +81,8 @@ rep('<img class="ev-logo${ev.series===\'lm\'?\' sq\':\'\'}" src="${LOGO[ev.serie
 s = s.replace('${(ev.watch || WATCH[ev.series]) ? `<a class="watch" href="${ev.watch || WATCH[ev.series]}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>${T("watch")}</a>` : ""}', '${watchLinks(ev)}')
 assert '${watchLinks(ev)}' in s, "watch button not found"
 rep('const WATCH = RNX.watch;', open('/home/claude/racenxt/tools/fan_watch.js').read().strip())
-rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
-rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
+rep('en:{docTitle:', 'en:{wTitle:"Where to watch", wLinks:"Links", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:')
+rep('fr:{docTitle:', 'fr:{wTitle:"Où regarder", wLinks:"Liens", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:')
 s = s.replace('</style>', open('/home/claude/racenxt/tools/fan_watch.css').read() + open('/home/claude/racenxt/tools/fan_ui.css').read() + '</style>', 1)
 # close the schedule sheet with a short exit animation (reopening cancels it)
 s = s.replace('document.getElementById("tt").hidden = false;', 'document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false;')
@@ -104,19 +104,13 @@ rep("shown.forEach(e => { const m = d(e.s).getMonth(); (groups[m] ||= []).push(e
 rep("<h2>${MONTHS[LANG][m]}</h2>", '<h2>${MONTHS[LANG][m]}${multiY && yr !== SEASON ? ` <span class="yr">${yr}</span>` : ""}</h2>')
 rep('    </section>`).join("");', '    </section>`; }).join("");')
 rep('${groups[m].map(ev =>', '${groups[k].map(ev =>')
-# a custom event's own links (Where to watch, Live timing...) as buttons on its card
-rep("${ev.note?`<div class=\"note\">${esc(L(ev.note))}</div>`:''}",
-    "${ev.note?`<div class=\"note\">${esc(L(ev.note))}</div>`:''}${ev.links && ev.links.length ? `<div class=\"ev-links\">${ev.links.map(l => `<a class=\"ev-link\" href=\"${esc(l.url)}\" target=\"_blank\" rel=\"noopener\">${linkIco(l.label)}<span>${esc(l.label)}</span><svg class=\"ext\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M7 17L17 7M9 7h8v8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>`).join(\"\")}</div>` : \"\"}")
-rep("let filter = \"all\";", """const LICO = {
-  tv: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M10 10l4 2-4 2z" fill="currentColor"/></g></svg>',
-  timing: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></g></svg>',
-  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></g></svg>',
-  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-};
-const linkIco = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast/.test(t) ? LICO.tv : /timing|tracker/.test(t) ? LICO.timing : /ticket/.test(t) ? LICO.ticket : /result|standing/.test(t) ? LICO.flag : LICO.link; };
-let filter = "all";""")
 
+
+# custom events: their own car, and one small link icon (opens the links popup) after Schedule / Car
+s = s.replace('CARS[CAR_OF[ev.series]]', 'CARS[CAR_OF[ev.carKey || ev.series]]')
+rep('class="car-btn" data-series="${ev.series}"', 'class="car-btn" data-series="${ev.carKey || ev.series}"')
+rep('class="watch ghost cd-car" data-series="${ev.series}"', 'class="watch ghost cd-car" data-series="${ev.carKey || ev.series}"')
+rep('<span class="car-lbl">${T("carShort")}</span></button>` : ""}</div>', '<span class="car-lbl">${T("carShort")}</span></button>` : ""}${linkBtn(ev)}</div>')
 open('/home/claude/racenxt/docs/fan.html', 'w', encoding='utf-8').write(s)
 # GitHub Pages serves 404.html for any unknown path, e.g. /racenxt/louis -> fan page for "louis"
 s404 = s.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/racenxt/">', 1)

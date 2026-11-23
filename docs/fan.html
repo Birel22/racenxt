@@ -466,19 +466,20 @@
   @keyframes tt-pop-out{to{opacity:0;transform:translateY(8px) scale(.98)}}
   @media (prefers-reduced-motion:reduce){ #tt,.tt-modal,#tt.closing,#tt.closing .tt-modal{animation-duration:.01s !important} }
 
-/* custom event links: Where to watch, Live timing, Tickets... */
-.ev-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.ev-link{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line,#2a2d35);background:rgba(255,255,255,.03);color:var(--text,#f4f4f2);font:600 13.5px 'Barlow',sans-serif;text-decoration:none;transition:border-color .2s ease,background .2s ease}
-.ev-link svg{width:16px;height:16px;flex:none;color:var(--c,#FF5A1F)}
-.ev-link .ext{width:12px;height:12px;color:var(--muted,#8e919b)}
-.ev-link:hover,.ev-link:focus-visible{border-color:var(--c,#FF5A1F);background:rgba(255,90,31,.08)}
+/* custom event: one small link icon on the card (opens the links popup) */
+.ev.ev2 .lk-btn{flex:none;display:inline-grid;place-items:center;width:30px;height:28px;padding:0;margin:0;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s}
+.ev.ev2 .lk-btn svg{width:15px;height:15px}
+.ev.ev2 .lk-btn:hover,.ev.ev2 .lk-btn:focus-visible{color:var(--text);border-color:#4a4d56}
 .month h2 .yr{color:var(--muted,#8e919b);font-weight:500}
+
+/* phone: a card with Schedule + Car + Links keeps just the flag (the place is on the line above) */
+@media (max-width:440px){.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country{font-size:0;gap:0}.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country .flag{font-size:17px}}
 </style>
-<script src="config.js?v=20261123-172710"></script>
-<script src="rnx-social.js?v=20261123-172710"></script>
-<script src="rnx-ui.js?v=20261123-172710"></script>
-<script src="rnx-edit.js?v=20261123-172710"></script>
-<script src="rnx-data.js?v=20261123-172710"></script>
+<script src="config.js?v=20261123-173429"></script>
+<script src="rnx-social.js?v=20261123-173429"></script>
+<script src="rnx-ui.js?v=20261123-173429"></script>
+<script src="rnx-edit.js?v=20261123-173429"></script>
+<script src="rnx-data.js?v=20261123-173429"></script>
 </head>
 <body>
 <div class="wrap">
@@ -528,13 +529,13 @@ if (!RNX) return;
 // ===== Langue / Language =====
 rnxDecorate(RNX);
 const I18N = {
-  en:{wTitle:"Where to watch", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
+  en:{wTitle:"Where to watch", wLinks:"Links", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
       socials:"Social media", website:"Website", partners:"Partners", filterBy:"Filter by championship", all:"All", lmFull:"24 Hours of Le Mans",
       disclaimer:"Dates are provisional and subject to change.", poweredBy:"Powered by", shareLocal:"local time,", shareSoon:"Schedule: coming soon", shareMore:"Where to watch, times in your own time zone + add to your calendar:", close:"Close", next:"Next", raceLength:"Race length", maps:"View on Google Maps",
       schedule:"Schedule", watch:"Where to watch", nextRace:"Next race", now:"Right now", racing:"Racing 🏁", season:"Season 2027", over:"Over — thanks for the support!",
       days:"days", hours:"hours", min:"min", sec:"sec", notYet:"Not published yet.<br>Schedules usually come out a few weeks before the race.",
       official:"View on the official website ↗", localTrack:"Local track time", partialLM:"practice, qualifying and Hyperpole not published yet", locale:"en-GB", timeMode:"Time zone", trackTime:"Track time", myTime:"My time", yourTime:"Your local time", addOne:"Add to my calendar", addAll:"Add all to my calendar", calNote:"Saved in your phone’s calendar in your own time zone, with an alert 15 minutes before each session.", selectAll:"Select all", carShort:"Car", drivers:"Drivers", raceWord:"Race", seasonDone:"Season complete", share:"Share", shareText:"Follow Louis at {race}, {dates} 🏁", copied:"Link copied", filter:"Filter", allChamps:"All races", n_imsa:"IMSA WeatherTech Championship", n_elms:"European Le Mans Series", n_alms:"Asian Le Mans Series", n_lm:"Le Mans 24 Hours", nextSession:"Next session", endsAround:"Ends around", then:"then", yourTimeShort:"your time", carSpecs:"Car specs", more:"More", moreRaces:"More races", cancel:"Cancel", calHint:"Tap the calendar icon next to a session to add it — you can then select several at once. Saved in your own time zone, with an alert 15 minutes before.", selectNone:"Clear selection", pickNone:"Select sessions to add", addOneSel:"Add 1 session to my calendar", addN:"Add {n} sessions to my calendar", subscribe:"Subscribe to the calendar", incomplete:"Incomplete schedule — not published yet:", cat_fp:"free practice", cat_q:"qualifying", cat_r:"race", subTitle:"Subscribe to Louis’s calendar", subIntro:"Pick what you want on your phone. Race weekends are always included, and new schedules are added automatically.", sub_all:"Everything", sub_all_d:"Free practice, qualifying and races", sub_qr:"Qualifying & races", sub_qr_d:"No free practice", sub_r:"Races only", sub_r_d:"Just the race starts", subNote:"All race weekends and schedules, updated automatically on your phone."},
-  fr:{wTitle:"Où regarder", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
+  fr:{wTitle:"Où regarder", wLinks:"Liens", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
       socials:"Réseaux sociaux", website:"Site web", partners:"Partenaires", filterBy:"Filtrer par championnat", all:"Tout", lmFull:"24 Heures du Mans",
       disclaimer:"Dates indicatives, susceptibles de changer.", poweredBy:"Propulsé par", shareLocal:"heure locale,", shareSoon:"Horaires : bientôt disponibles", shareMore:"Où regarder, les horaires à ton heure + ajout au calendrier :", close:"Fermer", next:"Prochaine", raceLength:"Durée de course", maps:"Voir sur Google Maps",
       schedule:"Horaires", watch:"Où regarder", nextRace:"Prochaine course", now:"En ce moment", racing:"En course 🏁", season:"Saison 2027", over:"Terminée — merci pour le soutien !",
@@ -585,14 +586,6 @@ const TIMETABLES = RNX.timetables;
 const OFFICIAL = RNX.official;
 const dayName = iso => { const s = d(iso).toLocaleDateString(T("locale"), {weekday:"short", day:"numeric", month:"short"}); return s.charAt(0).toUpperCase()+s.slice(1); };
 
-const LICO = {
-  tv: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M10 10l4 2-4 2z" fill="currentColor"/></g></svg>',
-  timing: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></g></svg>',
-  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></g></svg>',
-  flag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-};
-const linkIco = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast/.test(t) ? LICO.tv : /timing|tracker/.test(t) ? LICO.timing : /ticket/.test(t) ? LICO.ticket : /result|standing/.test(t) ? LICO.flag : LICO.link; };
 let filter = "all";
 function render(){
   const list = document.getElementById("list");
@@ -610,8 +603,8 @@ function render(){
             <div class="ev-main">
               <div class="ev-head"><h3 class="ev-name">${esc(L(ev.name))}</h3><span class="ev-meta">${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}${ev===nextEv?`<span class="ev-next">${T("next")}</span>`:''}</span><button class="share-btn" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button></div>
               <a class="where" href="${mapUrl(ev)}" target="_blank" rel="noopener" title="${T("maps")}"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${esc(L(ev.where))}</a>
-              <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.series]] ? `<button class="car-btn" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}" title="${T("carSpecs")}">${CARICON}<span class="car-lbl">${T("carShort")}</span></button>` : ""}</div>
-              ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}${ev.links && ev.links.length ? `<div class="ev-links">${ev.links.map(l => `<a class="ev-link" href="${esc(l.url)}" target="_blank" rel="noopener">${linkIco(l.label)}<span>${esc(l.label)}</span><svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`).join("")}</div>` : ""}
+              <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="car-btn" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}" title="${T("carSpecs")}">${CARICON}<span class="car-lbl">${T("carShort")}</span></button>` : ""}${linkBtn(ev)}</div>
+              ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}
             </div>
           </article>`; }).join("")}
       </div>
@@ -831,9 +824,17 @@ const W_ICON = {
 };
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
 // Where to watch: the championship's Official stream + TV broadcast (this race's own page if it has one, else the channels by country)
+const LKI = {
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  timing: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></svg>',
+  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg>'
+};
+const lkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast|live$/.test(t) ? W_ICON.stream : /timing|tracker/.test(t) ? LKI.timing : /ticket/.test(t) ? LKI.ticket : LKI.link; };
+// the small link icon on a custom event's card: opens its links in the same popup
+const linkBtn = ev => ev.links && ev.links.length ? `<button type="button" class="lk-btn wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog" aria-label="${T("wLinks")} – ${esc0(L(ev.name))}" title="${T("wLinks")}">${LKI.link}</button>` : "";
 function watchLinks(ev){
   const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
-  if (!st && !tv) return "";
+  if (!st && !tv) return ev.links && ev.links.length ? `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${LKI.link}${T("wLinks")}</button>` : "";
   return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>`;
 }
 let wLast = null;
@@ -844,9 +845,9 @@ function openWatch(ev, from){
   el.className = "ws"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "ws-h");
   el.style.setProperty("--c", (RNX.color && RNX.color[ev.series]) || "#ff6a1f");
   el.innerHTML = `<div class="ws-back" data-close></div><div class="ws-card"><span class="ws-grab" aria-hidden="true"></span>
-    <div class="ws-head"><div><small>${T("wTitle")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
-    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}</div>
-    <p class="ws-note">${T("wOpens")}</p></div>`;
+    <div class="ws-head"><div><small>${st || tv ? T("wTitle") : T("wLinks")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
+    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}${(ev.links || []).map(l => `<a class="ws-row" href="${esc0(l.url)}" target="_blank" rel="noopener"><span class="ws-ic">${lkIcon(l.label)}</span><span class="ws-t"><b>${esc0(l.label)}</b><small>${esc0(hostOf(l.url))}</small></span><span class="ws-go">${W_ICON.out}</span></a>`).join("")}</div>
+    ${st || tv ? `<p class="ws-note">${T("wOpens")}</p>` : ""}</div>`;
   document.body.appendChild(el);
   wLast = from || null;
   document.documentElement.classList.add("ws-lock");
@@ -866,7 +867,7 @@ function openWatch(ev, from){
   card.addEventListener("touchend", () => { if (y0 == null) return; card.style.transition = ""; card.style.transform = ""; if (dy > 90) close(); y0 = null; });
 }
 document.addEventListener("click", e => { const b = e.target.closest(".wbtn"); if (b) openWatch(EVENTS[+b.dataset.i], b); });
-const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
+const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
 
 // Countdown
 // ===== Horloge (avec mode démo : ?demo=pre | next | live | between | race) =====

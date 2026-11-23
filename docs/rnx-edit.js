@@ -310,6 +310,12 @@
   .rx-comp-f{display:flex;align-items:center;gap:8px}
   .rx-comp-f .rx-b{height:42px;border-radius:12px;padding:0 16px}
   .rx-link.bad{color:#ff6b5e}
+  .rx-mycars{display:grid;gap:8px}
+  .rx-mycars img,.rx-carc img{flex:none;width:56px;height:38px;border-radius:8px;object-fit:cover;background:#0d0e11}
+  .rx-mycars .lic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,90,31,.12);color:#FF5A1F}
+  .rx-mycars .lb{display:grid;gap:1px}.rx-mycars .lb small{font-size:12.5px;font-weight:500;color:#8e919b}
+  .rx-mycars .rx-plus{flex:none;color:#FF5A1F;display:grid}
+  .rx-carc small .rx-link{font-size:13px}
   .rx-lrow .lic{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:rgba(255,90,31,.12);color:#FF5A1F}
   .rx-lrow .lb{display:grid;gap:1px}.rx-lrow .lb small{font-size:12.5px;font-weight:500;color:#8e919b;overflow:hidden;text-overflow:ellipsis}
   .rx-lrow + .rx-lrow{margin-top:8px}
@@ -755,11 +761,16 @@
     flag: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>',
     link: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'
   };
+  const CARI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15l1.6-4.2A2 2 0 0 1 6.5 9.5h8.3a2 2 0 0 1 1.5.7L19 13l1.6.5A1.5 1.5 0 0 1 21.7 15v1.5H3z"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="17" cy="16.5" r="1.8"/></svg>';
   const PIN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const CALI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
   // custom events: anything that isn't in an official championship calendar (tests, media, autograph sessions...)
   async function editEvent(ev) {
     const isNew = !ev;
+    await loadLists();
+    // car: optional. Quick picks = the athlete's own championship cars (with their livery photo)
+    let car = ev?.vehicle_id ? { v: ev.vehicles || VEH.find(x => x.id === ev.vehicle_id), photo: ev.car_photo_url || "" } : null, carFile = null;
+    const mine = []; for (const e of R.entries) if (e.vehicles && !mine.some(m => m.v.id === e.vehicles.id && m.photo === (e.car_photo_url || ""))) mine.push({ v: e.vehicles, photo: e.car_photo_url || "", from: `${e.series?.short_name || ""} ${e.year}`.trim() });
     const ses = ev ? await api(`sessions?event_id=eq.${ev.id}&select=*&order=local_start`) : [];
     const v = ev?.venues || null;
     const D = { start: ev?.start_date || "", end: ev?.end_date || "", picking: false, onChange: () => {} };
@@ -775,6 +786,7 @@
         <div class="rx-cal" id="rx-cal" hidden></div></div>
       <div><label class="rx-f" for="rx-eq">Location</label><input type="hidden" id="rx-eloc" value="">
         <div id="rx-lw"></div><div class="rx-help">Search a circuit, a venue, a city or an address. Optional.</div></div>
+      <div><label class="rx-f">Car</label><input type="hidden" id="rx-ecar" value=""><div id="rx-carw"></div></div>
       <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off" maxlength="90" placeholder="e.g. Free entry · Fan zone stand 4"><div class="rx-help">Optional. Shown under the event on your page.</div></div>
       <div><label class="rx-f">Links</label><input type="hidden" id="rx-ljson" value=""><div id="rx-lkw"></div></div>
       <div><label class="rx-f">Schedule</label><input type="hidden" id="rx-sjson" value=""><div id="rx-sw"></div></div>`,
@@ -813,6 +825,26 @@
             box.onkeydown = e => { const bs = [...box.querySelectorAll("button")], i = bs.indexOf(document.activeElement); if (e.key === "ArrowDown") { e.preventDefault(); bs[Math.min(bs.length - 1, i + 1)]?.focus(); } if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? bs[i - 1] : q).focus(); } };
           };
           drawLoc();
+          // car
+          const drawCar = () => {
+            $("#rx-ecar").value = car ? car.v.id + "|" + (carFile ? "new" : car.photo) : "";
+            if (car) {
+              const img = carFile ? URL.createObjectURL(carFile) : car.photo;
+              $("#rx-carw").innerHTML = `<div class="rx-loc rx-carc">${img ? `<img src="${esc(img)}" alt="">` : `<span class="rx-loc-i">${CARI}</span>`}<span class="rx-loc-t"><b>${esc(car.v.name)}</b><small>${img ? "With your photo" : "No photo"} · <button type="button" class="rx-link" id="rx-ecph">${img ? "Change photo" : "Add photo"}</button></small></span><button type="button" class="rx-link" id="rx-ecx">Remove</button></div><div class="rx-help">Fans see it next to Schedule on the card.</div>`;
+              $("#rx-ecx").onclick = () => { car = null; carFile = null; drawCar(); };
+              $("#rx-ecph").onclick = async () => { const f = await pickFile(); if (f) { carFile = f; drawCar(); } };
+              return;
+            }
+            $("#rx-carw").innerHTML = (mine.length ? `<div class="rx-mycars">${mine.map((m, i) => `<button type="button" class="rx-srow2" data-mc="${i}">${m.photo ? `<img src="${esc(m.photo)}" alt="">` : `<span class="lic">${CARI}</span>`}<span class="lb">${esc(m.v.name)}<small>Your ${esc(m.from)} car</small></span><span class="rx-plus">${PLUS.replace("<svg", '<svg width="16" height="16"')}</span></button>`).join("")}</div>` : "")
+              + `<div class="rx-vp rx-srch" style="margin-top:${mine.length ? 8 : 0}px">${CARI}<input id="rx-ecq" autocomplete="off" placeholder="${mine.length ? "Or search all cars" : "Search a car"}" aria-label="Search the car catalogue" data-form-type="other"><div class="rx-vl" id="rx-ecl" hidden></div></div><div class="rx-help">Optional. For a test or a demo in a car you want fans to see.</div>`;
+            $$("#rx-carw [data-mc]").forEach(b => b.onclick = () => { const m = mine[+b.dataset.mc]; car = { v: m.v, photo: m.photo }; drawCar(); });
+            const q = $("#rx-ecq"), l = $("#rx-ecl");
+            const show = () => { const t = q.value.trim().toLowerCase(); const hits = VEH.filter(v => !t || v.name.toLowerCase().includes(t)).slice(0, 12);
+              l.innerHTML = hits.map(v => `<button type="button" data-v="${v.id}">${esc(v.name)}${v.engine ? `<br><small>${esc(v.engine)}</small>` : ""}</button>`).join("") || `<div class="rx-help" style="padding:8px 12px">No car found.</div>`;
+              l.hidden = false; l.querySelectorAll("[data-v]").forEach(b => b.onmousedown = e => { e.preventDefault(); car = { v: VEH.find(v => v.id === b.dataset.v), photo: "" }; drawCar(); }); };
+            q.onfocus = show; q.oninput = show; q.onblur = () => setTimeout(() => l.hidden = true, 120);
+          };
+          drawCar();
           // links: Where to watch, Live timing, Tickets... or anything
           const linkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|live stream|broadcast/.test(t) ? LI.tv : /timing|live tim|tracker/.test(t) ? LI.timing : /ticket/.test(t) ? LI.ticket : /result|standing/.test(t) ? LI.flag : LI.link; };
           const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
@@ -899,13 +931,14 @@
           if ($("#rx-comp")) { alert("Add or cancel the time you're editing in the schedule first."); $("#rx-comp").scrollIntoView({ block: "nearest" }); return null; }
           const times = S.filter(x => days.includes(x.day));
           if (times.length && !loc) { alert("Add the location, so the times are in the right local time."); $("#rx-eq")?.focus(); return null; }
-          return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, links: LK, loc, times };
+          return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, links: LK, vehicle_id: car?.v?.id || null, car_photo_url: car ? car.photo || null : null, loc, times };
         } });
     if (!r) return;
     if (r.__delete) return save(() => api(`events?id=eq.${ev.id}`, { method: "DELETE" }), "Event deleted");
     save(async () => {
       const { loc: L, times, ...row2 } = r;
       row2.venue_id = await venueFor(L);
+      if (row2.vehicle_id && carFile) row2.car_photo_url = await upload(await safePicture(carFile, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`);
       let id = ev?.id;
       if (isNew) { const [n] = await ins("events", { ...row2, kind: "other", owner_profile_id: R.profile.id }); id = n.id; }
       else await upd("events", ev.id, { ...row2, updated_at: new Date().toISOString() });

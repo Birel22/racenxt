@@ -63,10 +63,13 @@
       if (!sl) continue;
       const v = e.venues || {};
       const id = e.ext_key || e.id.slice(0, 8);
+      // a custom event can have its own car
+      let carKey = "";
+      if (!e.series_id && e.vehicles) { carKey = "e-" + e.id.slice(0, 8); carOf[carKey] = carKey; label[carKey] = e.name; cars[carKey] = { name: e.vehicles.name, img: e.car_photo_url || "", specs: carSpecs(e.vehicles) }; }
       EVENTS.push({
         s: e.start_date, e: e.end_date, series: sl, id, uuid: e.id, name: e.name, dur: e.duration_label || "",
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),
-        note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
+        note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", carKey, links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
       });
       const ss = byEvent[e.id];
       if (ss && ss.length) {
@@ -109,7 +112,7 @@
       ]);
       const ors = entries.map(e => `and(series_id.eq.${e.series_id},year.eq.${e.year})`);
       ors.push(`owner_profile_id.eq.${prof.id}`);
-      const events = await get(`events?or=(${ors.join(",")})&select=*,venues(*)&order=start_date`);
+      const events = await get(`events?or=(${ors.join(",")})&select=*,venues(*),vehicles(*)&order=start_date`);
       const ids = events.map(e => e.id);
       const sessions = ids.length ? await get(`session_times?event_id=in.(${ids.join(",")})&select=*&order=local_start`) : [];
       fetch(C.url + "/rest/v1/rpc/track_view", { method: "POST", headers: { ...H, "Content-Type": "application/json" }, body: JSON.stringify({ p_slug: slug }) }).catch(() => {});

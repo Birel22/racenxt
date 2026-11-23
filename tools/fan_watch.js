@@ -8,9 +8,17 @@ const W_ICON = {
 };
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
 // Where to watch: the championship's Official stream + TV broadcast (this race's own page if it has one, else the channels by country)
+const LKI = {
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  timing: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></svg>',
+  ticket: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/></svg>'
+};
+const lkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv|broadcast|live$/.test(t) ? W_ICON.stream : /timing|tracker/.test(t) ? LKI.timing : /ticket/.test(t) ? LKI.ticket : LKI.link; };
+// the small link icon on a custom event's card: opens its links in the same popup
+const linkBtn = ev => ev.links && ev.links.length ? `<button type="button" class="lk-btn wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog" aria-label="${T("wLinks")} – ${esc0(L(ev.name))}" title="${T("wLinks")}">${LKI.link}</button>` : "";
 function watchLinks(ev){
   const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
-  if (!st && !tv) return "";
+  if (!st && !tv) return ev.links && ev.links.length ? `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${LKI.link}${T("wLinks")}</button>` : "";
   return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>`;
 }
 let wLast = null;
@@ -21,9 +29,9 @@ function openWatch(ev, from){
   el.className = "ws"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "ws-h");
   el.style.setProperty("--c", (RNX.color && RNX.color[ev.series]) || "#ff6a1f");
   el.innerHTML = `<div class="ws-back" data-close></div><div class="ws-card"><span class="ws-grab" aria-hidden="true"></span>
-    <div class="ws-head"><div><small>${T("wTitle")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
-    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}</div>
-    <p class="ws-note">${T("wOpens")}</p></div>`;
+    <div class="ws-head"><div><small>${st || tv ? T("wTitle") : T("wLinks")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
+    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}${(ev.links || []).map(l => `<a class="ws-row" href="${esc0(l.url)}" target="_blank" rel="noopener"><span class="ws-ic">${lkIcon(l.label)}</span><span class="ws-t"><b>${esc0(l.label)}</b><small>${esc0(hostOf(l.url))}</small></span><span class="ws-go">${W_ICON.out}</span></a>`).join("")}</div>
+    ${st || tv ? `<p class="ws-note">${T("wOpens")}</p>` : ""}</div>`;
   document.body.appendChild(el);
   wLast = from || null;
   document.documentElement.classList.add("ws-lock");

@@ -125,7 +125,7 @@ function pageZone(z: any, circuitTz: string) {
 }
 function toCircuitTime(list: any[], zone: string, circuitTz: string) {
   if (!circuitTz || !validTz(circuitTz) || zone === circuitTz) return list;
-  return (list || []).map((x: any) => x && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") ? { ...x, local_start: utcToWall(wallToUtc(x.local_start, zone), circuitTz) } : x);
+  return (list || []).map((x: any) => x && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") ? { ...x, local_start: utcToWall(wallToUtc(x.local_start, zone), circuitTz), ...(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_end || "") ? { local_end: utcToWall(wallToUtc(x.local_end, zone), circuitTz) } : {}) } : x);
 }
 
 // race names: no championship name, year, round number ("4 Hours of Jerez", not "4 Hours of Jerez by ALMS 2027")
@@ -141,11 +141,35 @@ function cleanName(name: string, series: any) {
 }
 
 const TYPES = ["practice", "qualifying", "race", "warmup", "other"];
+// one name per session kind, whatever wording the official page uses ("First Practice Session" -> "Practice 1")
+const ORD: Record<string, string> = { first: "1", second: "2", third: "3", fourth: "4", "1st": "1", "2nd": "2", "3rd": "3", "4th": "4" };
+function normLabel(label: string) {
+  let l = String(label || "").replace(/\s+/g, " ").trim();
+  l = l.replace(/\s*\((?:[^)]*\b(?:laps?|mins?|minutes?|hours?|h)\b[^)]*)\)\s*/ig, " ").replace(/\bsession\b/ig, " ").replace(/\s+/g, " ").trim();
+  let m = l.match(/^(first|second|third|fourth|1st|2nd|3rd|4th)\s+(?:free\s+)?practice$/i); if (m) return `Practice ${ORD[m[1].toLowerCase()]}`;
+  m = l.match(/^(?:free\s+practice|practice|fp)\s*(\d)$/i); if (m) return `Practice ${m[1]}`;
+  if (/^free practice$/i.test(l)) return "Practice";
+  if (/^grand prix$/i.test(l)) return "Race";
+  m = l.match(/^(first|second|third|1st|2nd|3rd)\s+qualifying$/i); if (m) return `Qualifying ${ORD[m[1].toLowerCase()]}`;
+  return l.replace(/^\w/, c => c.toUpperCase());
+}
+const DEF_MIN: Record<string, number> = { practice: 60, qualifying: 60, race: 60, warmup: 20, other: 60 };
 function cleanSessions(list: any[], start: string, end: string) {
   const lo = new Date(start + "T00:00:00Z").getTime() - 2 * 864e5, hi = new Date(end + "T23:59:00Z").getTime() + 864e5;
-  return (list || []).filter((x: any) => x && x.label && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") && (() => { const t = new Date(x.local_start.replace(" ", "T") + ":00Z").getTime(); return t >= lo && t <= hi; })())
-    .map((x: any) => ({ label: x.label, type: TYPES.includes(x.type) ? x.type : "other", local_start: x.local_start, duration_min: Math.max(1, Math.round(+x.duration_min || 60)), category: x.category || null }));
+  const ms = (w: string) => new Date(w.replace(" ", "T") + ":00Z").getTime();
+  return (list || []).filter((x: any) => x && x.label && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") && (() => { const t = ms(x.local_start); return t >= lo && t <= hi; })())
+    .map((x: any) => {
+      const type = TYPES.includes(x.type) ? x.type : "other";
+      // the end time shown on the timetable wins; otherwise the stated length; otherwise a typical length, flagged
+      let dur = 0, est = false;
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_end || "")) dur = Math.round((ms(x.local_end) - ms(x.local_start)) / 60000);
+      if (!(dur > 0 && dur <= 1800) && +x.duration_min > 0) dur = Math.round(+x.duration_min);
+      if (!(dur > 0 && dur <= 1800)) { dur = DEF_MIN[type]; est = true; }
+      return { label: normLabel(x.label), type, local_start: x.local_start, duration_min: dur, ...(est ? { end_estimated: true } : {}), category: x.category || null };
+    });
 }
+// "TBC" on the visible timetable means it isn't published, even if the page's hidden data has placeholder times
+const isTbc = (t: unknown) => /\bTB[CDA]\b|to be (?:confirmed|announced|defined)/i.test(String(t || ""));
 
 // ---------- logo: try the AI's candidates, then logos found in the official homepage's HTML ----------
 function abs(u: string, base: string) { try { return new URL(u.trim().replace(/&amp;/g, "&"), base).href; } catch { return ""; } }
@@ -237,6 +261,8 @@ const RULES = `You are the research agent of Racenxt, an app that shows athletes
 Rules:
 - Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
 - Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". If the page doesn't say, write "unknown". Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
+- A timetable is only published when the page shows real times. If it shows "TBC", "TBA" or "TBD", it is NOT published, even if the page's hidden data contains times (those are placeholders).
+- For each session give the start and, when the timetable shows it, the end time (local_end). Use the session names as the official timetable writes them.
 - For support series (e.g. F2, F3, Porsche Supercup, F1 Academy), the main event's official timetable (e.g. formula1.com, which lists every series in local time) is an official source too.
 - Never guess. If something is not published on the official site, leave it out or set it to null.
 - Be economical: open each page at most once, go straight to the calendar / race pages, and stop as soon as you have the answer.
@@ -266,7 +292,7 @@ JSON schema:
 {"website_url": string|null, "logo_urls": [string], "calendar_url": string|null, "watch_url": string|null,
  "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null},
-   "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "duration_min": number|null, "category": string|null}] | null,
+   "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}] | null,
    "times_zone": "local"|"UTC"|string|null, "timetable_url": string|null}]}],
  "notes": string}`;
   const { out, usage } = await ask(RULES, user, 10);
@@ -302,7 +328,7 @@ JSON schema:
       const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
       const conv = tz && zone && zone !== tz;
       return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
-        sessions: cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
+        sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
     });
   const fresh: any[] = [];
   let ttFound = 0;
@@ -362,7 +388,7 @@ Task:
 If the timetable is not published yet, set "timetable_found": false and an empty list.
 JSON schema:
 {"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null,
- "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "duration_min": number|null, "category": string|null}],
+ "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}],
  "watch_url": string|null}`;
   let { out, usage } = await ask(RULES, user, 8);
   // close to the race and still nothing: one more, deeper look with the stronger model
@@ -375,10 +401,16 @@ JSON schema:
   const zone = ctz ? pageZone(out.times_zone, ctz) : "";
   const conv = !!ctz && zone !== ctz;
   const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : String(out.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(out.source_url || "") ? " (the page didn't say which time zone: check the times)" : "";
+  if (isTbc(out.excerpt)) out.timetable_found = false;
   const sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
   if (out.timetable_found && sessions.length) {
-    const key = (l: any[]) => JSON.stringify(l.map(s => [String(s.local_start).replace("T", " ").slice(0, 16), norm(s.label), s.duration_min]).sort());
-    if (key(sessions) !== key(current)) {
+    // only real changes count: start times and lengths, not how the sessions are named
+    // (an estimated length never replaces a known one)
+    const key = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
+    const lens = (l: any[]) => JSON.stringify([...l].sort((a, b) => String(a.local_start).localeCompare(String(b.local_start))).map(s => s.end_estimated ? null : s.duration_min));
+    const curLens = JSON.stringify(current.map((s: any) => s.duration_min));
+    const changedLens = current.length === sessions.length && JSON.parse(lens(sessions)).some((d: any, i: number) => d !== null && d !== JSON.parse(curLens)[i]);
+    if (key(sessions) !== key(current) || changedLens) {
       await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + zoneNote } });
       props.push(`timetable (${sessions.length} sessions)`);
     }

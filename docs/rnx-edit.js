@@ -307,8 +307,9 @@
   .rx-lrow .lb{display:grid;gap:1px}.rx-lrow .lb small{font-size:12.5px;font-weight:500;color:#8e919b;overflow:hidden;text-overflow:ellipsis}
   .rx-lrow + .rx-lrow{margin-top:8px}
   .rx-chips-t button{min-width:0;padding:9px 12px;display:block}
-  .rx-evpen{flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(255,90,31,.5);background:rgba(255,90,31,.12);color:#FF5A1F;font:700 13px Barlow,system-ui,sans-serif;cursor:pointer}
-  .rx-evpen svg{width:14px;height:14px}
+  .rx-evpen{display:inline-grid;place-items:center;vertical-align:middle;width:30px;height:30px;margin:-6px 0 -4px 2px;padding:0;border:0;border-radius:50%;background:none;color:#FF5A1F;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .rx-evpen svg{width:16px;height:16px}
+  .rx-evpen:hover,.rx-evpen:focus-visible{background:rgba(255,90,31,.14)}
   @keyframes rxShake{0%,100%{translate:0}25%{translate:-5px 0}75%{translate:5px 0}}
   .rx-shake{animation:rxShake .28s ease;border-color:#ff6b5e !important}
   .rx-seg{display:flex;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;padding:4px;gap:4px}
@@ -968,8 +969,8 @@
       if (a.querySelector(".rx-evpen")) return;
       const ce = evs.find(x => "race-" + (x.ext_key || x.id.slice(0, 8)) === a.id); if (!ce) return;
       const b = document.createElement("button"); b.className = "rx-evpen rx-only"; b.type = "button"; b.setAttribute("aria-label", `Edit ${ce.name}`); b.title = "Edit event";
-      b.innerHTML = PEN + "<span>Edit</span>"; b.onclick = e => { e.stopPropagation(); editEvent(ce); };
-      (a.querySelector(".ev-actions") || a.querySelector(".ev-main"))?.appendChild(b);
+      b.innerHTML = PEN; b.onclick = e => { e.stopPropagation(); editEvent(ce); };
+      a.querySelector(".ev-name")?.appendChild(b);
     });
     pens(); const lst = $("#list"); if (lst) new MutationObserver(pens).observe(lst, { childList: true });
 

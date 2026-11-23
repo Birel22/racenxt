@@ -205,9 +205,9 @@
           "round": 4,
           "name": "4 Hours of Spa-Francorchamps",
           "circuit": "Spa-Francorchamps",
-          "start": null,
-          "end": null,
-          "tbc": "to confirm with Louis: the news article gives no date, the site's season bar shows 20 August"
+          "start": "2027-08-20",
+          "end": "2027-08-22",
+          "note": "confirmed by Louis (ends 22 Aug); the article text reader didn't pick it up, the site's season bar shows 20 August"
         },
         {
           "round": 5,
@@ -228,7 +228,8 @@
       "not_races": [
         "Official test (Prologue) Barcelona 8-9 March 2027"
       ],
-      "notes": "Sources disagree in places (season bar vs article): the agent must flag the doubt, not pick silently."
+      "notes": "Sources disagree in places (season bar vs article): the agent must flag the doubt, not pick silently.",
+      "source_en": "https://www.europeanlemansseries.com/en/news/six-race-calendar-and-early-start-for-exciting-2027-elms-season/13656"
     },
     {
       "id": "elms-2027-barcelona-schedule",

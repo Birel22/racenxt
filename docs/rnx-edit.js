@@ -168,10 +168,6 @@
   .rx-ord button{width:30px;height:22px;border:1px solid #33363d;border-radius:6px;background:#17181d;color:#a9abb2;font-size:9px;cursor:pointer}
   .rx-ord button:disabled{opacity:.3;cursor:default}
   .rx-seg.rx-seg-wrap{flex-wrap:wrap} .rx-seg.rx-seg-wrap button{flex:1 1 30%}
-  .rx-srow{display:grid;grid-template-columns:118px 104px 1fr 40px;gap:8px;align-items:center}
-  .rx-srow select{min-height:48px;padding:0 10px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:15px Barlow,system-ui,sans-serif}
-  .rx-srow .rx-sx{height:44px;width:40px;padding:0;justify-content:center;border-radius:10px}
-  @media (max-width:420px){.rx-srow{grid-template-columns:1fr 1fr 40px}.rx-srow .rx-sl{grid-column:1/3;grid-row:2}}
   .rx-full{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;border:1px solid #3b3e47;background:#15161b;color:#f4f4f2;cursor:pointer;text-align:left;font:inherit}
   .rx-full span{flex:1;display:grid} .rx-full b{font-size:16px} .rx-full small{color:#8e919b;font-size:13.5px}
   .rx-tog{width:46px;height:28px;border-radius:999px;background:#3b3e47;position:relative;flex:none;transition:background .15s}
@@ -235,6 +231,64 @@
   .rx-sheet input:not([type=color]){width:100%;min-height:48px;padding:11px 14px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:16px Barlow,system-ui,sans-serif;box-sizing:border-box}
   .rx-sheet input:focus,.rx-sheet button:focus-visible{outline:2px solid #FF5A1F;outline-offset:1px}
   .rx-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  /* custom events: one-box dates, place search, schedule by day */
+  .rx-field{width:100%;min-height:52px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:600 16px Barlow,system-ui,sans-serif;text-align:left;cursor:pointer}
+  .rx-field svg{color:#FF5A1F;flex:none}
+  .rx-field.empty{color:#8a8d96;font-weight:500}
+  .rx-field span{flex:1;min-width:0}
+  .rx-field em{flex:none;font-style:normal;font-size:13px;font-weight:600;color:#c9cad0;background:#1d2026;border:1px solid #2c2f37;border-radius:999px;padding:3px 9px}
+  .rx-field em:empty{display:none}
+  .rx-field.open{border-color:#FF5A1F}
+  .rx-cal{margin-top:8px;padding:12px;background:#121419;border:1px solid #262930;border-radius:16px;animation:rxCalIn .22s cubic-bezier(.2,.85,.25,1)}
+  @keyframes rxCalIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .rx-cal-top{display:grid;gap:10px}
+  .rx-cal-yr{display:flex;gap:4px;background:#0d0e11;border:1px solid #2c2f37;border-radius:11px;padding:3px}
+  .rx-cal-yr button{flex:1;height:34px;border:0;border-radius:8px;background:none;color:#a9abb2;font:700 15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-cal-yr button[aria-pressed="true"]{background:#2a2d35;color:#fff}
+  .rx-cal-ms{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;scroll-behavior:smooth}
+  .rx-cal-ms::-webkit-scrollbar{display:none}
+  .rx-cal-ms button{flex:none;position:relative;min-width:50px;height:34px;padding:0 10px;border:1px solid #2c2f37;border-radius:999px;background:none;color:#c9cad0;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-cal-ms button[aria-pressed="true"]{background:#FF5A1F;border-color:#FF5A1F;color:#fff}
+  .rx-cal-ms button.dot::after{content:"";position:absolute;top:4px;right:6px;width:5px;height:5px;border-radius:50%;background:#FF5A1F}
+  .rx-cal-ms button.dot[aria-pressed="true"]::after{background:#fff}
+  .rx-cal-h{display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px}
+  .rx-cal-h b{font:700 20px 'Barlow Condensed',Barlow,sans-serif;text-transform:uppercase;letter-spacing:.02em}
+  .rx-cal-nav{width:40px;height:40px;border-radius:50%;border:1px solid #2c2f37;background:#1b1c22;color:#f4f4f2;display:grid;place-items:center;cursor:pointer}
+  .rx-cal-nav svg{width:18px;height:18px}
+  .rx-cal-g{display:grid;grid-template-columns:repeat(7,1fr);row-gap:4px}
+  .rx-cal-g i{font:600 11px Barlow,system-ui,sans-serif;color:#6f727b;text-align:center;font-style:normal;padding:4px 0}
+  .rx-cal-g button{height:42px;border:0;background:none;color:#e8e8e6;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer;border-radius:12px;position:relative}
+  .rx-cal-g button.t::after{content:"";position:absolute;left:50%;bottom:6px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:#FF5A1F}
+  .rx-cal-g button.in{background:rgba(255,90,31,.16);border-radius:0}
+  .rx-cal-g button.s,.rx-cal-g button.e{background:#FF5A1F;color:#fff}
+  .rx-cal-g button.s{border-radius:12px 0 0 12px}.rx-cal-g button.e{border-radius:0 12px 12px 0}.rx-cal-g button.s.e{border-radius:12px}
+  .rx-cal-g button.s.t::after,.rx-cal-g button.e.t::after{background:#fff}
+  .rx-cal-hint{text-align:center;font-size:13px;color:#a9abb2;margin-top:8px}
+  .rx-srch{position:relative}
+  .rx-srch svg{position:absolute;left:14px;top:50%;margin-top:-9px;color:#8a8d96;pointer-events:none}
+  .rx-sheet .rx-srch input{padding-left:42px}
+  .rx-lres{margin-top:6px;background:#121419;border:1px solid #262930;border-radius:14px;overflow:hidden}
+  .rx-lres button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;background:none;border:0;border-bottom:1px solid #1f2228;color:#f4f4f2;text-align:left;font:15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-lres button:hover,.rx-lres button:focus-visible{background:#1b1d23;outline:none}
+  .rx-lres .rx-lres-own{color:#FF5A1F;font-weight:600;font-size:14px;padding:12px}
+  .rx-lres-m{padding:12px;font-size:14px;color:#a9abb2;border-bottom:1px solid #1f2228}
+  .rx-lres-c{padding:6px 12px;font-size:11px;color:#62656e}
+  .rx-loc{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#1d2026;border:1px solid #2a2d35;border-radius:14px}
+  .rx-loc-i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(255,90,31,.12);color:#FF5A1F}
+  .rx-loc-t{flex:1;min-width:0;display:grid;gap:2px}
+  .rx-loc-t b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-loc-t small{font-size:13px;color:#a9abb2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-sheet .rx-add-s{width:100%;height:48px;justify-content:center;border-radius:14px;border-style:dashed;margin-top:6px}
+  .rx-sday{margin-top:12px;display:grid;gap:8px}
+  .rx-sday-h{display:flex;align-items:center;justify-content:space-between}
+  .rx-sday-h b{font:700 13px Barlow,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#c9cad0}
+  .rx-ses{display:grid;gap:8px;padding:10px;background:#1d2026;border:1px solid #2a2d35;border-radius:14px}
+  .rx-ses-1{display:grid;grid-template-columns:1fr 44px;gap:8px;align-items:center}
+  .rx-ses .rx-sx{height:44px;width:44px;display:grid;place-items:center;border:1px solid #2c2f37;border-radius:12px;background:none;color:#a9abb2;cursor:pointer}
+  .rx-ses-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rx-ses-2 label{display:grid;gap:4px;font-size:12px;font-weight:600;color:#8a8d96}
+  .rx-sheet .rx-ses input{min-height:44px}
+  .rx-sheet .rx-help.warn{color:#f2b20f}
   .rx-seg{display:flex;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;padding:4px;gap:4px}
   .rx-seg button{flex:1;height:40px;border:0;border-radius:9px;background:none;color:#a9abb2;font:700 15px Barlow,system-ui,sans-serif;cursor:pointer}
   .rx-seg button[aria-checked="true"]{background:#FF5A1F;color:#fff}
@@ -553,7 +607,6 @@
   }
 
   // ---------- your own events (tests, appearances…) ----------
-  const KINDS = [["test", "Test"], ["appearance", "Appearance"], ["simulator", "Simulator"], ["media", "Media"], ["other", "Other"]];
   let tzLib = null;
   const loadTz = () => tzLib || (tzLib = new Promise(res => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tz-lookup@6.1.25/tz.js"; s.onload = () => res(window.tzlookup || null); s.onerror = () => res(null); document.head.appendChild(s); }));
   async function placeId(name, country) {
@@ -570,46 +623,177 @@
     const [v] = await ins("venues", { name, city, country: country || "", country_code: cc, lat, lng, timezone: tz });
     return v.id;
   }
-  const daysOf = (a, b) => { const out = []; if (!a || !b || b < a) return out; for (let t = new Date(a + "T12:00:00Z"); t <= new Date(b + "T12:00:00Z") && out.length < 14; t.setUTCDate(t.getUTCDate() + 1)) out.push(t.toISOString().slice(0, 10)); return out; };
+  const daysOf = (a, b) => { const out = []; if (!a || !b || b < a) return out; for (let t = new Date(a + "T12:00:00Z"); t <= new Date(b + "T12:00:00Z") && out.length < 31; t.setUTCDate(t.getUTCDate() + 1)) out.push(t.toISOString().slice(0, 10)); return out; };
   const dayLbl = d => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  const flag = cc => cc && /^[A-Za-z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "";
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MONTHS_L = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const rangeText = (a, b) => {
+    if (!a) return "";
+    b = b || a;
+    const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), d = x => `${WD[x.getUTCDay()]} ${x.getUTCDate()}`, mo = x => MONTHS[x.getUTCMonth()];
+    if (a === b) return `${d(A)} ${mo(A)} ${A.getUTCFullYear()}`;
+    if (A.getUTCFullYear() !== B.getUTCFullYear()) return `${d(A)} ${mo(A)} ${A.getUTCFullYear()} – ${d(B)} ${mo(B)} ${B.getUTCFullYear()}`;
+    return A.getUTCMonth() === B.getUTCMonth() ? `${d(A)} – ${d(B)} ${mo(B)} ${B.getUTCFullYear()}` : `${d(A)} ${mo(A)} – ${d(B)} ${mo(B)} ${B.getUTCFullYear()}`;
+  };
+  // one-box date range: tap the first day, then the last day
+  function rangeCal(box, st) {
+    const today = new Date().toISOString().slice(0, 10), Y = +today.slice(0, 4);
+    let view = st.start ? [+st.start.slice(0, 4), +st.start.slice(5, 7) - 1] : [Y, +today.slice(5, 7) - 1];
+    const draw = () => {
+      const [y, m] = view, first = new Date(Date.UTC(y, m, 1)), lead = (first.getUTCDay() + 6) % 7, n = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+      const years = [...new Set([Y, Y + 1, y])].sort();
+      const inR = d => st.start && d >= st.start && d <= (st.end || st.start);
+      const has = mm => st.start && (iso(y, mm, 31) >= st.start) && (iso(y, mm, 1) <= (st.end || st.start));
+      let cells = ""; for (let i = 0; i < lead; i++) cells += `<span></span>`;
+      for (let d = 1; d <= n; d++) {
+        const k = iso(y, m, d), s = k === st.start, e = k === (st.end || st.start);
+        cells += `<button type="button" data-d="${k}" class="${inR(k) ? "in" : ""}${s ? " s" : ""}${e ? " e" : ""}${k === today ? " t" : ""}" aria-pressed="${inR(k)}" aria-label="${dayLbl(k)} ${y}">${d}</button>`;
+      }
+      box.innerHTML = `<div class="rx-cal-top"><div class="rx-cal-yr" role="group" aria-label="Year">${years.map(v => `<button type="button" data-y="${v}" aria-pressed="${v === y}">${v}</button>`).join("")}</div>
+        <div class="rx-cal-ms">${MONTHS.map((t, i) => `<button type="button" data-m="${i}" aria-pressed="${i === m}" class="${has(i) ? "dot" : ""}">${t}</button>`).join("")}</div></div>
+        <div class="rx-cal-h"><button type="button" class="rx-cal-nav" data-nav="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><b>${MONTHS_L[m]} ${y}</b><button type="button" class="rx-cal-nav" data-nav="1" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></div>
+        <div class="rx-cal-g">${["M", "T", "W", "T", "F", "S", "S"].map(w => `<i>${w}</i>`).join("")}${cells}</div>
+        <div class="rx-cal-hint">${!st.start ? "Tap the first day" : st.picking ? "Tap the last day, or" : "Tap a day to choose again"}${st.start ? ` <button type="button" class="rx-link" data-done="1">Done</button>` : ""}</div>`;
+      const ms = box.querySelector('.rx-cal-ms [aria-pressed="true"]'); if (ms) ms.parentNode.scrollLeft = ms.offsetLeft - ms.parentNode.clientWidth / 2 + ms.clientWidth / 2;
+    };
+    box.onclick = e => {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.y) view = [+b.dataset.y, view[1]];
+      else if (b.dataset.m) view = [view[0], +b.dataset.m];
+      else if (b.dataset.nav) { let [y, m] = view; m += +b.dataset.nav; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } view = [y, m]; }
+      else if (b.dataset.d) {
+        const d = b.dataset.d;
+        if (!st.start || !st.picking) { st.start = d; st.end = d; st.picking = true; }
+        else if (d < st.start) { st.start = d; st.end = d; }
+        else { st.end = d; st.picking = false; }
+        st.onChange();
+      }
+      draw();
+    };
+    draw();
+    return { draw, show: d => { if (d) view = [+d.slice(0, 4), +d.slice(5, 7) - 1]; draw(); } };
+  }
+  // place search (OpenStreetMap): type and pick, the city and country fill in by themselves
+  async function placeSearch(q) {
+    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lang=en`).then(r => r.json());
+    const seen = new Set();
+    return (r.features || []).map(f => {
+      const p = f.properties || {}, [lng, lat] = f.geometry?.coordinates || [];
+      const street = [p.street, p.housenumber].filter(Boolean).join(" ");
+      const name = p.name || street || p.city || "";
+      const city = p.city || p.town || p.village || p.county || (["city", "town", "village"].includes(p.osm_value) ? p.name : "") || "";
+      const sub = [street && street !== name ? street : "", city && city !== name ? city : "", p.country].filter(Boolean).join(", ");
+      return { name, city, country: p.country || "", cc: (p.countrycode || "").toUpperCase(), lat, lng, sub };
+    }).filter(x => x.name && !seen.has(x.name + x.sub) && seen.add(x.name + x.sub));
+  }
+  async function venueFor(loc) {
+    if (!loc || !loc.name) return null;
+    if (loc.id) return loc.id;
+    if (loc.lat == null) return placeId(loc.name, loc.country || "");
+    const [hit] = await api(`venues?name=eq.${encodeURIComponent(loc.name)}&country=eq.${encodeURIComponent(loc.country || "")}&select=id&limit=1`);
+    if (hit) return hit.id;
+    let tz = null; try { const lib = await loadTz(); if (lib) tz = lib(loc.lat, loc.lng); } catch (e) {}
+    const [v] = await ins("venues", { name: loc.name, city: loc.city || null, country: loc.country || "", country_code: loc.cc || null, lat: loc.lat, lng: loc.lng, timezone: tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
+    return v.id;
+  }
+  const PIN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  const CALI = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+  // custom events: anything that isn't in an official championship calendar (tests, media, autograph sessions...)
   async function editEvent(ev) {
-    const isNew = !ev; let kind = ev?.kind || "test";
+    const isNew = !ev;
     const ses = ev ? await api(`sessions?event_id=eq.${ev.id}&select=*&order=local_start`) : [];
-    const v = ev?.venues || {};
-    const row = (x, days) => `<div class="rx-srow"><select class="rx-sd" aria-label="Day">${(days.length ? days : [x.day || ""]).map(d => `<option value="${d}"${d === x.day ? " selected" : ""}>${d ? dayLbl(d) : "—"}</option>`).join("")}</select><input type="time" class="rx-st" value="${esc(x.time || "")}" aria-label="Time"><input class="rx-sl" value="${esc(x.label || "")}" aria-label="What" placeholder="What"><button type="button" class="rx-b rx-sx" aria-label="Remove">×</button></div>`;
-    const r = await sheet(isNew ? "Add an event" : "Edit event", `
-      <div><label class="rx-f" id="rx-kl">Type</label><div class="rx-seg rx-seg-wrap" role="radiogroup" aria-labelledby="rx-kl" id="rx-ks">${KINDS.map(([k, l]) => `<button type="button" role="radio" data-k="${k}" aria-checked="${k === kind}">${l}</button>`).join("")}</div></div>
-      <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off"><div class="rx-help">As fans should see it, for example: Rookie test, Fan zone autograph session.</div></div>
-      <div class="rx-two"><div><label class="rx-f" for="rx-es">First day</label><input id="rx-es" type="date" value="${esc(ev?.start_date || "")}"></div><div><label class="rx-f" for="rx-ee">Last day</label><input id="rx-ee" type="date" value="${esc(ev?.end_date || "")}"></div></div>
-      <div class="rx-two"><div><label class="rx-f" for="rx-ep">Place</label><input id="rx-ep" value="${esc(v.name || "")}" autocomplete="off"><div class="rx-help">Circuit, city or venue. Optional.</div></div><div><label class="rx-f" for="rx-ec">Country</label><input id="rx-ec" value="${esc(v.country || "")}" autocomplete="off"></div></div>
-      <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off"><div class="rx-help">Optional.</div></div>
-      <div><label class="rx-f">Times</label><div id="rx-srows" style="display:grid;gap:8px">${ses.map(x => row({ day: x.local_start.slice(0, 10), time: x.local_start.slice(11, 16), label: x.label }, daysOf(ev.start_date, ev.end_date))).join("")}</div><button type="button" class="rx-link" id="rx-sadd" style="margin-top:8px">+ Add a time</button><div class="rx-help">Optional. Local time at the place. Fans can add them to their calendar.</div></div>`,
+    const v = ev?.venues || null;
+    const D = { start: ev?.start_date || "", end: ev?.end_date || "", picking: false, onChange: () => {} };
+    let loc = v && v.name ? { id: ev.venue_id, name: v.name, city: v.city || "", country: v.country || "", cc: v.country_code || "" } : null;
+    const hm = (t, add) => { const [h, m] = t.split(":").map(Number), x = (h * 60 + m + add) % 1440; return `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`; };
+    let S = ses.map(x => ({ day: x.local_start.slice(0, 10), start: x.local_start.slice(11, 16), end: x.duration_min && x.duration_min !== 60 ? hm(x.local_start.slice(11, 16), x.duration_min) : "", label: x.label }));
+    let showSched = S.length > 0;
+    const X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    const r = await sheet(isNew ? "Add a custom event" : "Edit custom event", `
+      <div><label class="rx-f" for="rx-en">Name</label><input id="rx-en" value="${esc(ev?.name || "")}" autocomplete="off" maxlength="80" placeholder="e.g. Autograph session"><div class="rx-help">As fans will see it: a test, a media day, an autograph session…</div></div>
+      <div><label class="rx-f" id="rx-dl">Dates</label><input type="hidden" id="rx-es" value="${esc(D.start)}"><input type="hidden" id="rx-ee" value="${esc(D.end)}">
+        <button type="button" class="rx-field" id="rx-dbtn" aria-labelledby="rx-dl rx-dtx" aria-expanded="false">${CALI}<span id="rx-dtx"></span><em id="rx-dn"></em></button>
+        <div class="rx-cal" id="rx-cal" hidden></div></div>
+      <div><label class="rx-f" for="rx-eq">Location</label><input type="hidden" id="rx-eloc" value="">
+        <div id="rx-lw"></div><div class="rx-help">Search a circuit, a venue, a city or an address. Optional.</div></div>
+      <div><label class="rx-f" for="rx-eno">Note on the card</label><input id="rx-eno" value="${esc(ev?.note || "")}" autocomplete="off" maxlength="90" placeholder="e.g. Free entry · Fan zone stand 4"><div class="rx-help">Optional. Shown under the event on your page.</div></div>
+      <div><div class="rx-sched-h"><label class="rx-f" style="margin:0">Schedule</label></div><div id="rx-sw"></div></div>`,
       { ok: isNew ? "Add event" : "Save", del: !isNew && ROLE === "owner" ? "Delete" : null, delText: `Delete ${ev?.name || "this event"}?`,
         after() {
-          $$("#rx-ks button").forEach(b => b.onclick = () => { kind = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); });
-          const days = () => daysOf($("#rx-es").value, $("#rx-ee").value || $("#rx-es").value);
-          $("#rx-es").addEventListener("change", () => { if (!$("#rx-ee").value || $("#rx-ee").value < $("#rx-es").value) $("#rx-ee").value = $("#rx-es").value; });
-          $("#rx-sadd").onclick = () => { const d = days(); if (!d.length) return alert("Set the dates first."); $("#rx-srows").insertAdjacentHTML("beforeend", row({ day: d[0] }, d)); };
-          $("#rx-srows").onclick = e => { if (e.target.closest(".rx-sx")) e.target.closest(".rx-srow").remove(); };
+          // dates
+          const cal = rangeCal($("#rx-cal"), D);
+          const dText = () => { $("#rx-dtx").textContent = D.start ? rangeText(D.start, D.end) : "Choose the dates"; const n = daysOf(D.start, D.end || D.start).length; $("#rx-dn").textContent = n ? `${n} day${n > 1 ? "s" : ""}` : ""; $("#rx-dbtn").classList.toggle("empty", !D.start); $("#rx-es").value = D.start; $("#rx-ee").value = D.end || D.start; };
+          const openCal = on => { $("#rx-cal").hidden = !on; $("#rx-dbtn").setAttribute("aria-expanded", on); $("#rx-dbtn").classList.toggle("open", on); if (on) cal.show(D.start); };
+          D.onChange = () => { dText(); drawSched(); if (!D.picking) setTimeout(() => openCal(false), 380); };
+          $("#rx-cal").addEventListener("click", e => { if (e.target.closest("[data-done]")) { D.picking = false; openCal(false); $("#rx-dbtn").focus(); } });
+          $("#rx-dbtn").onclick = () => openCal($("#rx-cal").hidden);
+          dText(); if (isNew) openCal(true);
+          // location
+          let tmr = null, seq = 0;
+          const drawLoc = () => {
+            $("#rx-eloc").value = loc ? JSON.stringify([loc.name, loc.city, loc.country]) : "";
+            $("#rx-lw").innerHTML = loc
+              ? `<div class="rx-loc"><span class="rx-loc-i">${PIN}</span><span class="rx-loc-t"><b>${esc(loc.name)}</b><small>${esc([loc.city !== loc.name ? loc.city : "", loc.country].filter(Boolean).join(", "))} ${flag(loc.cc)}</small></span><button type="button" class="rx-link" id="rx-lch">Change</button></div>`
+              : `<div class="rx-srch">${PIN}<input id="rx-eq" autocomplete="off" placeholder="Search a place" role="combobox" aria-expanded="false" aria-controls="rx-lres" aria-autocomplete="list"></div><div class="rx-lres" id="rx-lres" role="listbox" hidden></div>`;
+            if (loc) { $("#rx-lch").onclick = () => { loc = null; drawLoc(); $("#rx-eq").focus(); }; return; }
+            const q = $("#rx-eq"), box = $("#rx-lres");
+            const show = (list, text) => {
+              box.hidden = false; q.setAttribute("aria-expanded", "true");
+              box.innerHTML = (list.length ? list.map((x, i) => `<button type="button" role="option" data-i="${i}"><span class="rx-loc-i">${PIN}</span><span class="rx-loc-t"><b>${esc(x.name)}</b><small>${esc(x.sub)} ${flag(x.cc)}</small></span></button>`).join("") : `<div class="rx-lres-m">${text}</div>`)
+                + `<button type="button" class="rx-lres-own" data-own="1">Use “${esc(q.value.trim())}” as it is</button><div class="rx-lres-c">Places © OpenStreetMap</div>`;
+              box.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { loc = list[+b.dataset.i]; drawLoc(); });
+              box.querySelector("[data-own]").onclick = () => { loc = { name: q.value.trim(), city: "", country: "", cc: "" }; drawLoc(); };
+            };
+            q.oninput = () => {
+              clearTimeout(tmr); const t = q.value.trim();
+              if (t.length < 2) { box.hidden = true; q.setAttribute("aria-expanded", "false"); return; }
+              tmr = setTimeout(async () => { const my = ++seq; show([], "Searching…"); try { const l = await placeSearch(t); if (my === seq) show(l, "No place found. Try another spelling, or use it as it is."); } catch (e) { if (my === seq) show([], "Search isn't available right now."); } }, 260);
+            };
+            q.onkeydown = e => { if (e.key === "ArrowDown") { e.preventDefault(); box.querySelector("button")?.focus(); } };
+            box.onkeydown = e => { const bs = [...box.querySelectorAll("button")], i = bs.indexOf(document.activeElement); if (e.key === "ArrowDown") { e.preventDefault(); bs[Math.min(bs.length - 1, i + 1)]?.focus(); } if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? bs[i - 1] : q).focus(); } };
+          };
+          drawLoc();
+          // schedule, day by day
+          const sync = () => $$("#rx-sw .rx-ses").forEach(c => { const x = S[+c.dataset.i]; x.label = c.querySelector(".rx-sl").value; x.start = c.querySelector(".rx-st").value; x.end = c.querySelector(".rx-se").value; });
+          function drawSched() {
+            sync();
+            const days = daysOf(D.start, D.end || D.start);
+            if (!showSched) { $("#rx-sw").innerHTML = `<button type="button" class="rx-b rx-add-s" id="rx-son">${PLUS.replace("<svg", '<svg width="16" height="16"')} Add a schedule</button><div class="rx-help">Optional. Times fans can add to their calendar.</div>`; $("#rx-son").onclick = () => { if (!D.start) { openCal(true); $("#rx-dbtn").focus(); return; } showSched = true; if (!S.length) S.push({ day: D.start, start: "", end: "", label: "" }); drawSched(); $("#rx-sw .rx-sl")?.focus(); }; return; }
+            if (!days.length) { $("#rx-sw").innerHTML = `<div class="rx-help">Choose the dates first.</div>`; return; }
+            const off = S.filter(x => !days.includes(x.day));
+            $("#rx-sw").innerHTML = days.map(d => `<div class="rx-sday"><div class="rx-sday-h"><b>${dayLbl(d)}</b><button type="button" class="rx-link" data-add="${d}">+ Add</button></div>
+              ${S.map((x, i) => x.day === d ? `<div class="rx-ses" data-i="${i}"><div class="rx-ses-1"><input class="rx-sl" value="${esc(x.label)}" placeholder="What" aria-label="What" maxlength="60"><button type="button" class="rx-sx" data-x="${i}" aria-label="Remove">${X}</button></div><div class="rx-ses-2"><label>Start<input type="time" class="rx-st" value="${esc(x.start)}"></label><label>End<input type="time" class="rx-se" value="${esc(x.end)}"></label></div></div>` : "").join("")}</div>`).join("")
+              + (off.length ? `<div class="rx-help warn">${off.length} time${off.length > 1 ? "s are" : " is"} outside the new dates and won't be saved.</div>` : "")
+              + `<div class="rx-help">Local time at the place. End is optional.</div>`;
+            $$("#rx-sw [data-add]").forEach(b => b.onclick = () => { sync(); S.push({ day: b.dataset.add, start: "", end: "", label: "" }); drawSched(); $$(`#rx-sw .rx-ses`).pop()?.querySelector(".rx-sl").focus(); });
+            $$("#rx-sw [data-x]").forEach(b => b.onclick = () => { sync(); S.splice(+b.dataset.x, 1); if (!S.length) showSched = false; drawSched(); });
+          }
+          drawSched();
         },
         collect() {
-          if (!need("#rx-en", "Give the event a name.") || !need("#rx-es", "Set the first day.")) return null;
-          const s1 = $("#rx-es").value, s2 = $("#rx-ee").value || s1; if (s2 < s1) { alert("The last day is before the first day."); return null; }
-          const times = $$("#rx-srows .rx-srow").map(x => ({ day: x.querySelector(".rx-sd").value, time: x.querySelector(".rx-st").value, label: x.querySelector(".rx-sl").value.trim() })).filter(x => x.time || x.label);
-          if (times.some(x => !x.time || !x.label || !x.day)) { alert("Each time needs a day, an hour and what it is."); return null; }
-          if (times.length && !$("#rx-ep").value.trim()) { alert("Add the place, so the times are in the right local time."); $("#rx-ep").focus(); return null; }
-          return { kind, name: $("#rx-en").value.trim(), start_date: s1, end_date: s2, year: +s1.slice(0, 4), note: $("#rx-eno").value.trim() || null, place: $("#rx-ep").value.trim(), country: $("#rx-ec").value.trim(), times };
+          if (!need("#rx-en", "Give the event a name.")) return null;
+          if (!D.start) { alert("Choose the dates."); $("#rx-dbtn").focus(); return null; }
+          $$("#rx-sw .rx-ses").forEach(c => { const x = S[+c.dataset.i]; x.label = c.querySelector(".rx-sl").value; x.start = c.querySelector(".rx-st").value; x.end = c.querySelector(".rx-se").value; });
+          const days = daysOf(D.start, D.end || D.start);
+          const times = S.filter(x => days.includes(x.day) && (x.start || x.label.trim()));
+          if (times.some(x => !x.start || !x.label.trim())) { alert("Each time in the schedule needs a start time and what it is."); return null; }
+          if (times.length && !loc) { alert("Add the location, so the times are in the right local time."); $("#rx-eq")?.focus(); return null; }
+          return { name: $("#rx-en").value.trim(), start_date: D.start, end_date: D.end || D.start, year: +D.start.slice(0, 4), note: $("#rx-eno").value.trim() || null, loc, times };
         } });
     if (!r) return;
     if (r.__delete) return save(() => api(`events?id=eq.${ev.id}`, { method: "DELETE" }), "Event deleted");
     save(async () => {
-      const { place, country, times, ...row2 } = r;
-      row2.venue_id = place ? await placeId(place, country) : null;
+      const { loc: L, times, ...row2 } = r;
+      row2.venue_id = await venueFor(L);
       let id = ev?.id;
-      if (isNew) { const [n] = await ins("events", { ...row2, owner_profile_id: R.profile.id }); id = n.id; }
+      if (isNew) { const [n] = await ins("events", { ...row2, kind: "other", owner_profile_id: R.profile.id }); id = n.id; }
       else await upd("events", ev.id, { ...row2, updated_at: new Date().toISOString() });
       await api(`sessions?event_id=eq.${id}`, { method: "DELETE" });
-      if (times.length) await ins("sessions", times.map(x => ({ event_id: id, type: "other", label: x.label, local_start: `${x.day}T${x.time}:00`, duration_min: 60 })));
+      const mins = x => { if (!x.end) return 60; const [a, b] = [x.start, x.end].map(t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; }); return ((b - a) + 1440) % 1440 || 60; };
+      if (times.length) await ins("sessions", times.map(x => ({ event_id: id, type: "other", label: x.label.trim(), local_start: `${x.day}T${x.start}:00`, duration_min: mins(x) })));
     }, isNew ? "Event added" : "Saved");
   }
 
@@ -664,11 +848,10 @@
 
     // your own events
     const evs = [...(R.customEvents || [])].sort((a, b) => a.start_date.localeCompare(b.start_date));
-    const kindL = Object.fromEntries(KINDS);
     const fmtR = (a, b) => { const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), m = x => x.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }); return a === b ? `${A.getUTCDate()} ${m(A)}` : A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
     const evCard = document.createElement("section"); evCard.className = "rx-season rx-only"; evCard.id = "rx-events";
-    evCard.innerHTML = `<div class="rx-season-h"><div><b>Your events</b><span>${evs.length ? `${evs.length} event${evs.length > 1 ? "s" : ""}` : "Tests, appearances, simulator days…"}</span></div><button class="rx-b" id="rx-eadd">${PLUS} Add</button></div>
-      ${evs.length ? `<div class="rx-rows">${evs.map(e => `<button class="rx-row rx-row-ev" data-ev="${e.id}" style="--c:#8a8d96"><span class="rx-row-d">${fmtR(e.start_date, e.end_date)}<small>${e.start_date.slice(0, 4)}</small></span><span class="rx-row-t"><b>${esc(e.name)}</b><small>${esc([kindL[e.kind || "other"], e.venues?.name].filter(Boolean).join(" · "))}</small></span><span></span>${CHEV}</button>`).join("")}</div>` : ""}`;
+    evCard.innerHTML = `<div class="rx-season-h"><div><b>Custom events</b><span>${evs.length ? `${evs.length} event${evs.length > 1 ? "s" : ""}` : "Tests, media days, autograph sessions…"}</span></div><button class="rx-b" id="rx-eadd">${PLUS} Add</button></div>
+      ${evs.length ? `<div class="rx-rows">${evs.map(e => `<button class="rx-row rx-row-ev" data-ev="${e.id}" style="--c:#8a8d96"><span class="rx-row-d">${fmtR(e.start_date, e.end_date)}<small>${e.start_date.slice(0, 4)}</small></span><span class="rx-row-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", ") || "No location")}</small></span><span></span>${CHEV}</button>`).join("")}</div>` : ""}`;
     strip.insertAdjacentElement("afterend", evCard);
     $("#rx-eadd").onclick = () => editEvent();
     evCard.querySelectorAll("[data-ev]").forEach(b => b.onclick = () => editEvent(evs.find(x => x.id === b.dataset.ev)));
@@ -704,7 +887,7 @@
       m.innerHTML = `<div class="rx-menu-h">${avatar("rx-av lg")}<div><b>${esc(p.display_name)}</b><small>${esc(ME.email || "")}</small></div></div>
         <button role="menuitem" data-a="profile">${PEN}Edit profile</button>
         <button role="menuitem" data-a="season">${FLAG}Your season</button>
-        <button role="menuitem" data-a="events">${CAL}Your events</button>
+        <button role="menuitem" data-a="events">${CAL}Custom events</button>
         <button role="menuitem" data-a="partners">${STAR}Partners</button>
         <button role="menuitem" data-a="preview">${EYE}Preview as a fan</button>
         <button role="menuitem" data-a="copy">${LINK}Copy page link</button>

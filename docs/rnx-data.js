@@ -72,7 +72,7 @@
       if (ss && ss.length) {
         TT[id] = {
           src: official[sl] || "", tz: ss[0].timezone, missing: [],
-          title: `${label[sl]} ${e.name}`, loc: [v.name, v.city, v.country].filter(Boolean).join(", "),
+          title: sl.startsWith("x-") ? e.name : `${label[sl]} ${e.name}`, loc: [v.name, v.city, v.country].filter(Boolean).join(", "),
           sessions: ss.map(x => ({ id: x.id, date: x.local_start.slice(0, 10), time: x.local_start.slice(11, 16), label: x.label, min: x.duration_min, utc: new Date(x.start_utc).toISOString() }))
         };
       }

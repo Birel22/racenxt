@@ -135,9 +135,9 @@
   .rx-row:last-child{border-bottom:0}
   .rx-row::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
   .rx-row:hover{background:#181a20}
-  .rx-row-lg{height:32px;display:flex;align-items:center;justify-content:center}
+  .rx-row-lg{height:32px;width:64px;min-width:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
   .rx-row-lg img{max-width:60px;max-height:32px;object-fit:contain}
-  .rx-lgt{font:700 13px 'Barlow Condensed';color:#a9abb2;border:1px solid #3b3e47;border-radius:7px;padding:4px 6px}
+  .rx-lgt{display:block;max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 13px 'Barlow Condensed';color:#a9abb2;border:1px solid #3b3e47;border-radius:7px;padding:4px 6px;box-sizing:border-box}
   .rx-row-t{display:grid;min-width:0}
   .rx-row-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rx-row-t small{font-size:13.5px;color:#a9abb2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -347,9 +347,9 @@
   .rx-pick{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center;width:100%;padding:12px;border-radius:14px;background:#15161b;border:1px solid #2a2c33;color:#f4f4f2;cursor:pointer;text-align:left;font:600 15px Barlow,system-ui,sans-serif}
   .rx-pick:hover{border-color:#3b3e47}
   .rx-pick small{display:block;color:#7d808a;font-weight:500}
-  .rx-lg{height:36px;display:flex;align-items:center;justify-content:center}
+  .rx-lg{height:36px;max-width:76px;min-width:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
   .rx-lg img{max-width:64px;max-height:36px;object-fit:contain}
-  .rx-lg span{font:700 13px 'Barlow Condensed';color:#a9abb2;border:1px solid #3b3e47;border-radius:8px;padding:5px 7px}
+  .rx-lg span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 13px 'Barlow Condensed';color:#a9abb2;border:1px solid #3b3e47;border-radius:8px;padding:5px 7px;box-sizing:border-box}
   .rx-grp{font:700 12px Barlow;letter-spacing:.12em;text-transform:uppercase;color:#7d808a;margin:6px 0 0}
   .rx-vp{position:relative}
   .rx-vl{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:5;background:#1b1c22;border:1px solid #3b3e47;border-radius:12px;padding:6px;max-height:240px;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.45)}

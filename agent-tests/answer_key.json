@@ -644,7 +644,9 @@
       "id": "aci-karting-stream",
       "series": "Italian ACI Karting Championship",
       "task": "watch",
-      "expect": "TO CONFIRM: ACI championship YouTube channel (exact link from Louis)"
+      "expect": {
+        "stream_url": "https://www.youtube.com/@ACISportTVofficial"
+      }
     },
     {
       "id": "f2-watch",

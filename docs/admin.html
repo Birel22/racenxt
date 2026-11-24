@@ -997,7 +997,8 @@ async function editSeries(s, src){
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
     { section:"Classes", sub:"Only when several classes share this calendar and not every class races at every round (e.g. IMSA). Athletes then pick their class, and their page only shows the races of their class.", items:[
-      { k:"classes_txt", l:"Classes", help:"Separate with commas, e.g. GTP, LMP2, GTD PRO, GTD. Leave empty for a one-class championship." } ] },
+      { k:"classes_txt", l:"Classes", help:"Separate with commas, e.g. GTP, LMP2, GTD PRO, GTD. Leave empty for a one-class championship." },
+      ...((s.classes || []).length > 1 ? [{ html:`<button type="button" class="btn sm ai" id="f-cls"${aiBusy("cls-" + s.id) ? " disabled" : ""}>Check which class races where with AI</button>` }] : []) ] },
     { section:"Usual race weekend", sub:"Only a hint for the AI (formats often change): learned from the first timetable you approve. It never blocks or stops a search.", items:[
       { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
     { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
@@ -1006,7 +1007,7 @@ async function editSeries(s, src){
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], { ...s, classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
-    after(){ lp.after(); sp.after(); $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
+    after(){ lp.after(); sp.after(); if ($("#f-cls")) $("#f-cls").onclick = () => { runAgent({ action:"classes", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cls-" + s.id); $("#f-cls").disabled = true; $("#f-cls").textContent = "Checking… results go to the Review queue"; }; $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
     collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
@@ -1214,7 +1215,7 @@ async function usage(){
   const mCost = mRuns.reduce((a, r) => a + runCost(r.usage), 0);
   const done = runs.filter(r => r.usage);
   const avg = done.length ? done.reduce((a, r) => a + runCost(r.usage), 0) / done.length : 0;
-  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)" };
+  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)", classes:"Classes" };
   const RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","No change · free"] };
   $("#main").innerHTML = `<div class="ph"><h1>AI usage</h1></div>
     <div class="kpis">

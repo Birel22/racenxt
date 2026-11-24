@@ -377,10 +377,10 @@ Task: the race calendar, nothing else.
 6. If official sources disagree on a date, use the most recent one and say so in "doubts".
 7. Official announcements often show the calendar only as a picture, which you can't read: give the address of the official page announcing the ${year + 1} calendar in "announcement_url" (we read its pictures), even if its text has no dates.
 8. Fallback, only for rounds whose exact dates the official sites don't give in text: reliable motorsport press or the circuit's own official website (e.g. formula1.com, motorsport.com, autosport.com, the-race.com, racer.com, sportscar365.com, dailysportscar.com, endurance-info.com, speedweek.com). Use such a round only when at least 2 independent sources give the same race day (the last day of the weekend); the first day often differs between sources (some count practice or the Thursday): that is not a disagreement, use the earliest first day given. Then set "source": "press" and list the addresses in "sources". If the race days differ, keep the round in "tbc" with both versions in "when". Rounds read on official pages have "source": "official".
-9. Classes: some championships run several classes with their own classification on one shared calendar, and not every class races at every round (e.g. IMSA: GTP, LMP2, GTD PRO, GTD; some rounds are GT only, others have no LMP2). Then list the classes in "classes" with their official short names${(series.classes || []).length ? " (use the known classes' names)" : ""}, and for each round give "classes": the classes that race there, read on the official calendar page (it usually shows each round's classes, often as small class labels); don't open every round's page just for this. If every class races at a round, "classes" is null. If the championship has one class, or all its classes race at every round, "classes" is [] and every round's "classes" is null. Never guess: when the calendar doesn't say which classes race at a round, use null.
+9. Classes: if the championship runs several classes with their own classification on one shared calendar and not every class races at every round (e.g. IMSA: GTP, LMP2, GTD PRO, GTD; some rounds are GT only), list the classes in "classes" with their official short names${(series.classes || []).length ? " (use the known classes' names)" : ""}. Otherwise "classes" is []. (Which class races where is checked separately: don't research it.)
 JSON schema:
 {"website_url": string|null, "calendar_url": string|null, "announcement_url": string|null, "classes": [string],
- "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "classes": [string]|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
+ "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}],
  "tbc": [{"year": number, "round": number|null, "name": string|null, "circuit": string|null, "when": string|null}],
  "doubts": [string], "notes": string}`;
@@ -488,7 +488,6 @@ async function computeCalendar(series: any, src: any) {
     });
   // classes on a shared calendar: the known names win; a round with every class is stored as null (= all)
   const allCls: string[] = (series.classes || []).length ? series.classes : [...new Map((Array.isArray(out.classes) ? out.classes : []).map((c: any) => String(c || "").trim()).filter(Boolean).map((c: string) => [clsKey(c), c])).values()];
-  for (const e of found) e.classes = allCls.length > 1 ? fixClasses(allCls, e.classes) : null;
   out.classes = allCls.length > 1 ? allCls : [];
   // the official announcement's calendar picture: read when some rounds are undated or only from the press
   if (out.announcement_url && ((out.tbc || []).length || found.some((e: any) => e.source === "press"))) {
@@ -640,31 +639,59 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
       props.push(newRoundTo && match.start_date === e.start_date ? `double header: ${match.name}` : `date change: ${match.name}`);
     }
   }
-  // classes: a shared calendar where not every class races everywhere. Races we already have get one "classes" proposal.
-  // (a round the agent can't tell about keeps the classes we already have)
-  const hasSubsets = found.some((e: any) => e.classes);
-  if (out.classes.length > 1 && (hasSubsets || (series.classes || []).length)) {
-    const thisYear = new Date().getUTCFullYear();
-    const evCh: any[] = [];
-    for (const e of found) {
-      const match = known.find((k: any) => k.year === e.year && ((e.circuit?.name && k.venues?.name && norm(k.venues.name) === norm(e.circuit.name)) || norm(k.name) === norm(e.name) || (e.round && k.round === e.round)));
-      if (match && match.year >= thisYear && (e.classes || !(match.classes || []).length) && !sameCls(match.classes, e.classes) && !evCh.some(x => x.event_id === match.id)) evCh.push({ event_id: match.id, name: match.name, start_date: match.start_date, classes: e.classes });
-    }
-    const [clsPending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.classes&status=eq.pending&select=id&limit=1`);
-    if (!clsPending && (evCh.length || !sameCls(series.classes, out.classes))) {
-      await ins("proposals", { run_id: runId, series_id: series.id, kind: "classes", payload: { classes: out.classes, events: evCh },
-        evidence: { url: out.calendar_url || site, excerpt: `${series.short_name || series.name} runs ${out.classes.length} classes on one calendar and not every class races at every round. Athletes pick their class: their page only shows the races of their class.` } });
-      props.push("classes");
-    }
+  // classes: a shared calendar (e.g. IMSA). Which class races where is a separate job with its own time budget:
+  // started now for the races we already have, or when the new races are approved (database trigger)
+  if (out.classes.length > 1 && !fresh.length) {
+    try {
+      await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "classes", series_id: series.id, classes: out.classes, calendar_url: out.calendar_url || site }) });
+      props.push("classes (checked race by race next)");
+    } catch (_) { /* next check */ }
   }
   if (fresh.length) {
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
-      payload: { ...(hasSubsets && !(series.classes || []).length ? { classes: out.classes } : {}), events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, ...(e.classes ? { classes: e.classes } : {}), ...(e.source && e.source !== "official" ? { source: e.source, sources: (e.sources || []).filter(okUrl).slice(0, 4) } : {}), name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
-      evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
+      payload: { ...(out.classes.length > 1 && !(series.classes || []).length ? { classes: out.classes } : {}), events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, ...(e.source && e.source !== "official" ? { source: e.source, sources: (e.sources || []).filter(okUrl).slice(0, 4) } : {}), name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
+      evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.classes.length > 1 ? `Shared calendar: ${out.classes.join(", ")}. Once approved, the AI checks which classes race at each round.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.calendar_url, ...urls, site]), trace: { ...trace, answer: out } };
+}
+
+// ---------- classes: which classes race at each round of a shared calendar ----------
+function classesPrompt(series: any, cls: string[], calUrl: string, evs: any[]) {
+  return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
+Official calendar: ${calUrl || series.website_url || "unknown"}
+Classes: ${cls.join(", ")}
+Today: ${new Date().toISOString().slice(0, 10)}
+Task: these classes share one calendar, and not every class races at every round. For each numbered round below, say which of the classes race there.
+Read the official calendar page first: it usually shows each round's classes (often as small class labels or logos). Open a round's own official page only if the calendar doesn't show them. If you can't tell for a round, use null. Use the class names exactly as listed above.
+Rounds:
+${evs.map((e, i) => `${i + 1}. ${e.name} (${e.venues?.name || "circuit ?"}), ${e.start_date} to ${e.end_date}`).join("\n")}
+JSON schema: {"calendar_url": string|null, "rounds": [{"n": number, "classes": [string]|null}]}`;
+}
+async function classesJob(series: any, src: any, runId: string, body: any) {
+  const cls: string[] = (series.classes || []).length > 1 ? series.classes : (Array.isArray(body.classes) ? body.classes.map((c: any) => String(c || "").trim()).filter(Boolean) : []);
+  if (cls.length < 2) return { result: "no_change", summary: "One class: nothing to check.", usage: null, pages: [] };
+  const evs = await db(`events?series_id=eq.${series.id}&year=gte.${new Date().getUTCFullYear()}&select=id,name,start_date,end_date,classes,venues(name)&order=start_date&limit=40`);
+  if (!evs.length) return { result: "no_change", summary: "No races yet.", usage: null, pages: [] };
+  const calUrl = body.calendar_url || (src?.urls || [])[0]?.url || series.website_url || "";
+  const { out, usage, trace } = await ask(SYS(), classesPrompt(series, cls, calUrl, evs), 4);
+  const by = new Map<number, any>((out.rounds || []).map((r: any) => [Math.round(Number(r.n)), r.classes]));
+  const evCh: any[] = [];
+  let subsets = 0;
+  evs.forEach((ev: any, i: number) => {
+    const c = fixClasses(cls, by.get(i + 1));
+    if (c) subsets++;
+    // a round the AI can't tell about (null) keeps what we already have
+    if ((c || (Array.isArray(by.get(i + 1)) && !(ev.classes || []).length)) && !sameCls(ev.classes, c)) evCh.push({ event_id: ev.id, name: ev.name, start_date: ev.start_date, classes: c });
+  });
+  const pages = await fingerprint([out.calendar_url, calUrl]);
+  if (!subsets && !(series.classes || []).length) return { result: "no_change", summary: "Every class races at every round: no class choice needed.", usage, pages, trace: { ...trace, answer: out } };
+  const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.classes&status=eq.pending&select=id&limit=1`);
+  if (pending || (!evCh.length && sameCls(series.classes, cls))) return { result: "no_change", summary: pending ? "A classes suggestion is already waiting in the Review queue." : "Nothing new: classes unchanged.", usage, pages, trace: { ...trace, answer: out } };
+  await ins("proposals", { run_id: runId, series_id: series.id, kind: "classes", payload: { classes: cls, events: evCh },
+    evidence: { url: out.calendar_url || calUrl, excerpt: `${series.short_name || series.name} runs ${cls.length} classes on one calendar and not every class races at every round. Athletes pick their class: their page only shows the races of their class.` } });
+  return { result: "proposal", summary: `Found: classes${evCh.length ? ` (${evCh.length} race${evCh.length > 1 ? "s" : ""} without every class)` : ""}.`, usage, pages, trace: { ...trace, answer: out } };
 }
 
 // ---------- check_event: timetable + where to watch ----------
@@ -1032,6 +1059,12 @@ async function tick(secret: string) {
   return json({ started });
 }
 
+// the classes job started by the database (after new races of a shared calendar are approved): run as the service role
+async function startJob(b: any) {
+  const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "classes", series_id: b.series_id }) });
+  return json(await r.json().catch(() => ({})), r.status);
+}
+
 // ---------- entry ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -1040,11 +1073,12 @@ Deno.serve(async (req) => {
   if (cron) {
     // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
     const b = await req.json().catch(() => ({}));
-    if (b.action !== "test_all" && b.action !== "test_one") return tick(cron);
+    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes") return tick(cron);
     const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
     if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
     if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
     await loadGuidance();
+    if (b.action === "classes") return startJob(b);
     if (b.action === "test_one") {
       // one test per call, so each has the function's full time limit
       const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: ((stage ? stage + ": " : "") + String((e as Error).message || e)).slice(0, 500), finished_at: new Date().toISOString() }));
@@ -1080,6 +1114,7 @@ Deno.serve(async (req) => {
       { key: "deeper", title: "3b · Schedule agent, deeper look", when: "Added when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
+      { key: "classes", title: "1b · Classes (shared calendars)", when: "Only for championships whose classes share one calendar without every class racing everywhere (e.g. IMSA). Right after the calendar check (or once the new races are approved), then with each later calendar check.", text: classesPrompt(S, ["<class A>", "<class B>"], "<official calendar>", [{ name: "<race>", start_date: "2027-01-01", end_date: "2027-01-03", venues: { name: "<circuit>" } }]) },
       { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion. If nothing is confirmed, it reads again with the stronger model.", text: CHECK_RULES },
     ] });
   }
@@ -1109,7 +1144,7 @@ Deno.serve(async (req) => {
     const logos = await storeLogos(s.slug, order.slice(0, 6).map(x => ({ url: x.url })), 6);
     return json({ candidates: logos, picked: f.picked >= 0 && logos.length ? logos[0] : null });
   }
-  if (body.action === "discover" || body.action === "links") {
+  if (body.action === "discover" || body.action === "links" || body.action === "classes") {
     [series] = await db(`series?id=eq.${body.series_id}&select=*`);
   } else if (body.action === "check_event") {
     [ev] = await db(`events?id=eq.${body.event_id}&select=*,venues(name,city,country,timezone)`);
@@ -1118,11 +1153,11 @@ Deno.serve(async (req) => {
   if (!series) return json({ error: "not found" }, 404);
   const [src] = await db(`series_sources?series_id=eq.${series.id}&select=*`);
 
-  const kind = ["monthly", "weekly", "daily", "final", "initial"].includes(body.kind) ? body.kind : (body.action === "discover" ? "discover" : "manual");
+  const kind = body.action === "classes" ? "classes" : ["monthly", "weekly", "daily", "final", "initial"].includes(body.kind) ? body.kind : (body.action === "discover" ? "discover" : "manual");
   const [run] = await ins("check_runs", { series_id: series.id, event_id: ev?.id || null, kind, result: "running", pages: [] });
   const job = (async () => {
     try {
-      const r = body.action === "discover" ? await discover(series, src, run.id, kind) : body.action === "links" ? await links(series, run.id) : await checkEvent(ev, series, src, run.id, kind);
+      const r = body.action === "discover" ? await discover(series, src, run.id, kind) : body.action === "links" ? await links(series, run.id) : body.action === "classes" ? await classesJob(series, src, run.id, body) : await checkEvent(ev, series, src, run.id, kind);
       await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() });
     } catch (e) {
       await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() });

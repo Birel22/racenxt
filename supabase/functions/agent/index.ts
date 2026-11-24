@@ -1,7 +1,7 @@
-// Racenxt research agents. Five agents, each with one job (see AGENTS below):
+// Racenxt research agents. Five agents, each with one job:
 //   calendar (dates and circuits, this year and next) · logo · schedule (one race at a time) · where to watch · checker (rereads the source, attaches proof)
-// POST { action: "discover", series_id }  -> finds official site, logo, calendar (+ timetables already out); files proposals
-// POST { action: "check_event", event_id } -> finds the race timetable and where-to-watch; files proposals
+// POST { action: "discover", series_id }  -> calendar agent, then logo, where to watch and the checker; files proposals
+// POST { action: "check_event", event_id } -> schedule agent (+ where to watch in race week) and the checker; files proposals
 // POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
 // POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
 // POST { action: "prompts" }               -> the instructions for each task, for the admin Agent page
@@ -547,7 +547,7 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
       payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
       evidence: { url: out.calendar_url || site, excerpt: [out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
-    props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetable already out for ${ttFound}; the others are checked closer to each race)`);
+    props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.calendar_url, ...urls, site]), trace: { ...trace, answer: out } };

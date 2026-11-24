@@ -466,7 +466,7 @@ async function loadDisciplines(){
 }
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode&order=name"),
+    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format&order=name"),
     api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
@@ -569,11 +569,13 @@ async function loadList(){
   if (CQ.sport) f.push(`sport=eq.${encodeURIComponent(CQ.sport)}`);
   if (CQ.attn) f.push(`or=(missing_soon.gt.0,pending_proposals.gt.0,last_check_result.eq.error)`);
   const from = CQ.page * PAGE;
-  const { rows, total } = await api(`series_overview?select=*&order=name&${f.join("&")}`, { headers:{ Prefer:"count=exact", Range:`${from}-${from + PAGE - 1}` }, withCount:true });
+  const [{ rows, total }, fol] = await Promise.all([api(`series_overview?select=*&order=name&${f.join("&")}`, { headers:{ Prefer:"count=exact", Range:`${from}-${from + PAGE - 1}` }, withCount:true }), rpc("series_followers").catch(() => [])]);
+  const FOL = Object.fromEntries((fol || []).map(x => [x.series_id, x]));
+  const folCell = s => { const x = FOL[s.id]; return x?.published ? `<b>${x.published}</b>${x.total > x.published ? ` <span class="muted">+${x.total - x.published}</span>` : ""}` : x?.total ? `<span class="muted">0 +${x.total}</span>` : `<span class="muted">0</span>`; };
   const status = s => s.last_check_result === "error" ? ["bad","Agent error"] : s.pending_proposals > 0 ? ["warn", `${s.pending_proposals} to review`] : s.missing_soon > 0 ? ["warn","Schedule missing"] : s.last_check_at ? ["good","Up to date"] : ["","Not checked yet"];
   const col = { good:"var(--good)", warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" };
-  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:80px">Discipline</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th>Status</th></tr>
-    ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.name)}</b>${s.short_name && s.short_name !== s.name ? ` <span class="dim">(${esc(s.short_name)})</span>` : ""}</td><td>${sportIcon(s.sport)}</td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
+  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:80px">Discipline</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th class="nowrap" title="Athletes with a published page racing in it (+ pages not published yet). The agents only search timetables for races with at least one published athlete.">Athletes</th><th>Status</th></tr>
+    ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.name)}</b>${s.short_name && s.short_name !== s.name ? ` <span class="dim">(${esc(s.short_name)})</span>` : ""}</td><td>${sportIcon(s.sport)}</td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="nowrap">${folCell(s)}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
     <div class="pager">${from + 1}–${Math.min(from + PAGE, total)} of ${total} <button class="btn sm" id="pg-prev"${CQ.page ? "" : " disabled"}>‹</button><button class="btn sm" id="pg-next"${from + PAGE < total ? "" : " disabled"}>›</button></div>`
     : `<div class="card empty">No championship found.</div>`;
   $$("[data-slug]").forEach(r => r.onclick = () => location.hash = `#/championships/${r.dataset.slug}`);
@@ -983,19 +985,23 @@ async function editSeries(s, src){
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
+    { section:"Race weekend", sub:"What a full weekend usually has. Learned from the first timetable you approve; the agents keep searching until each kind is published.", items:[
+      { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
     { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
       { k:"stream_url", l:"Official stream", type:"url", help:"The championship's own live stream, e.g. F1 TV, MotoGP VideoPass, FIA WEC+, an official YouTube live page." },
       { k:"broadcasters_url", l:"TV broadcasters", type:"url", help:"The official page listing the TV channels by country. Fans see it as “TV broadcast” on every race without an Event broadcast." },
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
-  ], s, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
+  ], { ...s, fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
     after(){ lp.after(); sp.after(); $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
     collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("series", s.id); location.hash = "#/championships"; route(); }, "Championship deleted");
   if (!sp.st.v){ alert("Choose a discipline."); return editSeries(s, src); }
-  const { urls, instr, ...row } = r;
+  const { urls, instr, fmt_practice, fmt_qualifying, fmt_race, ...row } = r;
+  const fmt = Object.fromEntries([["practice", fmt_practice], ["qualifying", fmt_qualifying], ["race", fmt_race]].filter(([, v]) => v !== "" && v != null && +v >= 0).map(([k, v]) => [k, Math.round(+v)]));
+  row.weekend_format = Object.keys(fmt).length ? fmt : null;
   for (const k of ["stream_url", "broadcasters_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }
   row.sport = sp.st.v;
   row.short_name = row.short_name || row.name;
@@ -1284,7 +1290,7 @@ function checkBox(c){
   if (!c.readable && !c.found) return `<div class="ck"><span class="chip warn">Checker couldn't read the source</span> <span class="muted" style="font-size:12px">Check it yourself with the link above.</span></div>`;
   const all = c.found === c.total, none = !c.found;
   const miss = (c.items || []).filter(i => !i.found), hit = (c.items || []).filter(i => i.found);
-  return `<div class="ck"><span class="chip ${all ? "good" : none ? "bad" : "warn"}">${all ? "✓ Checked on the source" : none ? "✗ Not found on the source" : "Partly found on the source"} · ${c.found}/${c.total}</span>
+  return `<div class="ck"><span class="chip ${all ? "good" : none ? "bad" : "warn"}">${all ? "✓ Checked on the source" : none ? "✗ Not found on the source" : "Partly found on the source"} · ${c.found}/${c.total}</span>${c.retried ? ` <span class="muted" style="font-size:12px">checked again with the stronger model</span>` : ""}
     ${miss.length ? `<div style="font-size:13px;margin:6px 0 2px"><b>Not found on the page:</b>${miss.map(i => `<div class="dim">• ${esc(i.item)}</div>`).join("")}</div>` : ""}
     ${hit.length ? `<details style="font-size:13px;margin-top:4px"><summary class="muted">Proof (${hit.length})</summary>${hit.map(i => `<div style="margin:4px 0"><span class="dim">${esc(i.item)}</span>${i.quote ? `<div class="muted">“${esc(i.quote)}”</div>` : ""}</div>`).join("")}</details>` : ""}</div>`;
 }

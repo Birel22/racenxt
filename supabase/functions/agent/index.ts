@@ -390,18 +390,19 @@ ${(src?.urls || []).length ? `Official pages we know: ${(src.urls || []).map((u:
 Dates: ${ev.start_date} to ${ev.end_date}
 Circuit: ${[v.name, v.city, v.country].filter(Boolean).join(", ")} (local time zone ${v.timezone || "unknown"})
 Today: ${new Date().toISOString().slice(0, 10)}
-${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
+${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}${src?.tt_url ? `Last time, this championship's timetable was found here: ${src.tt_url} (look at the same place for this race first).\n` : ""}${fmtText(series.weekend_format) ? `A full race weekend of this championship usually has ${fmtText(series.weekend_format)} (it can vary, e.g. sprint weekends or double headers).\n` : ""}
 Task:
 1. Find the official timetable (schedule) of this race weekend. Search strategy:
    a. Open the race's page on the championship website (and its documents / downloads section).
    b. If it isn't there, search the web, for example "${series.short_name || series.name} ${v.name || ev.name} ${ev.start_date.slice(0, 4)} timetable", and also in the local language of the circuit (horaires, programme, horario, Zeitplan, orari, tijdschema).
    c. The timetable is often a PDF on the organiser's or the circuit's website, or published with the event's supplementary regulations. Open PDFs: you can read them.
    List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
-If the timetable is not published yet, set "timetable_found": false and an empty list.
+If the timetable is not published yet, set "timetable_found": false and an empty list. If only part of it is published (e.g. practice only, or sessions still TBC), give what is published and set "complete": false.
 JSON schema:
-{"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
+{"timetable_found": boolean, "complete": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
  "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}]}`;
 }
+const fmtText = (f: any) => { if (!f || typeof f !== "object") return ""; const n: Record<string, string> = { practice: "practice", qualifying: "qualifying", race: "race" }; return Object.entries(f).filter(([k, v]) => n[k] && +(v as any) > 0).map(([k, v]) => `${v} ${n[k]} session${+(v as any) > 1 ? "s" : ""}`).join(", "); };
 const DEEP = "\nA first search didn't find the timetable. Look harder: search the web in English and in the local language, and check the circuit's own website and official PDF documents.";
 
 // ---------- where to watch: set per championship; a race only gets its own link if it has a page of its own ----------
@@ -424,11 +425,11 @@ const CHECK_RULES = `You check facts against ONE official web page (or PDF). Ope
 For each numbered item, say whether the page shows it. The page may write it differently (e.g. "15-17 Jan", "Friday 15 January", "10:10 AM", "10h10"): that still counts. A different date or time does not count.
 Quote the short exact words from the page that show it (at most 15 words), or null.
 Finish with ONE fenced \`\`\`json code block and nothing after it.`;
-async function checkSource(url: unknown, items: string[]) {
+async function checkSource(url: unknown, items: string[], models = [FAST]) {
   if (typeof url !== "string" || !/^https?:/.test(url) || !items.length) return null;
   const list = items.slice(0, 30);
   try {
-    const r = await ask(CHECK_RULES, `Page: ${url}\nItems:\n${list.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nJSON schema: {"readable": boolean, "items": [{"n": number, "found": boolean, "quote": string|null}]}`, 2, [FAST]);
+    const r = await ask(CHECK_RULES, `Page: ${url}\nItems:\n${list.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nJSON schema: {"readable": boolean, "items": [{"n": number, "found": boolean, "quote": string|null}]}`, 2, models);
     const by = new Map<number, any>((r.out.items || []).map((x: any) => [Math.round(Number(x.n)), x]));
     const res = list.map((item, i) => ({ item, found: !!by.get(i + 1)?.found, quote: by.get(i + 1)?.quote ? String(by.get(i + 1).quote).slice(0, 200) : null }));
     return { url, readable: r.out.readable !== false, found: res.filter(x => x.found).length, total: res.length, items: res, usage: r.usage, checked_at: new Date().toISOString() };
@@ -520,8 +521,14 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     const match = known.find((k: any) => k.year === e.year && ((e.circuit?.name && k.venues?.name && norm(k.venues.name) === norm(e.circuit.name)) || norm(k.name) === norm(e.name) || (e.round && k.round === e.round)));
     return !match || match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date);
   });
-  const chk = tocheck.length ? await checkSource(out.calendar_url || site, tocheck.map(label)) : null;
-  if (chk?.usage) { addUsage(usage, chk.usage); delete (chk as any).usage; }
+  let chk: any = tocheck.length ? await checkSource(out.calendar_url || site, tocheck.map(label)) : null;
+  if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
+  // nothing confirmed: read the page again with the stronger model before anything goes to the Review queue
+  if (chk && chk.total > 0 && chk.found === 0) {
+    const c2: any = await checkSource(out.calendar_url || site, tocheck.map(label), [STRONG]);
+    if (c2?.usage) { addUsage(usage, c2.usage); delete c2.usage; }
+    if (c2) chk = { ...c2, retried: true };
+  }
   const proofOf = (e: any) => { const x = chk?.items?.find((i: any) => i.item === label(e)); return x ? { ...chk, items: [x], found: x.found ? 1 : 0, total: 1 } : null; };
   const extra = [(out.tbc || []).length ? `Not dated yet: ${(out.tbc || []).map((t: any) => [t.name || t.circuit, t.when].filter(Boolean).join(" ")).join("; ")}.` : "", (out.doubts || []).length ? `Doubts: ${(out.doubts || []).join(" ")}` : ""].filter(Boolean).join(" ");
 
@@ -561,15 +568,15 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
 
 // ---------- check_event: timetable + where to watch ----------
 // the timetable the AI finds for one race, cleaned up and in circuit time. Nothing is filed here.
-async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
+async function computeSchedule(ev: any, series: any, src: any, current: any[], models = [FAST, STRONG]) {
   const v = ev.venues || {};
   // the race's own broadcast page is only published in the days before the race
   const raceWeek = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5) <= 7;
   const user = checkPrompt(ev, series, src, v, raceWeek);
-  let { out, usage, trace } = await ask(SYS(), user, 8);
+  let { out, usage, trace } = await ask(SYS(), user, models.length === 1 ? 10 : 8, models);
   // close to the race and still nothing: one more, deeper look with the stronger model
   const daysToStart = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5);
-  if (!(out.timetable_found && (out.sessions || []).length) && daysToStart <= 10 && daysToStart >= -1) {
+  if (models.length > 1 && !(out.timetable_found && (out.sessions || []).length) && daysToStart <= 10 && daysToStart >= -1) {
     try { const deep = await ask(SYS(), user + DEEP, 10, [STRONG]); addUsage(usage, deep.usage); addTrace(trace, deep.trace); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; } catch (_) { /* keep the first answer */ }
   }
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
@@ -606,13 +613,13 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
   return { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek };
 }
 async function checkEvent(ev: any, series: any, src: any, runId: string, kind = "manual") {
-  if (kind === "daily") {
-    // race week: skip the AI while the pages stay the same, but ask it at least every other day
-    const same = await unchanged(`event_id=eq.${ev.id}`, 2);
+  if (kind === "daily" || kind === "weekly") {
+    // skip the AI while the pages stay the same (race week: still asked at least every other day)
+    const same = await unchanged(`event_id=eq.${ev.id}`, kind === "daily" ? 2 : 8);
     if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
   }
   const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min&order=local_start`);
-  const { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek } = await computeSchedule(ev, series, src, current);
+  let { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek } = await computeSchedule(ev, series, src, current);
   const props: string[] = [];
   if (sessions.length) {
     // only real changes count: start times and lengths, not how the sessions are named
@@ -623,10 +630,22 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
     const changedLens = current.length === sessions.length && JSON.parse(lens(sessions)).some((d: any, i: number) => d !== null && d !== JSON.parse(curLens)[i]);
     if (key(sessions) !== key(current) || changedLens) {
       // agent 5, checker: the times as the page shows them (before any time-zone conversion), looked up again on the source
-      const raw = (out.sessions || []).filter((x: any) => x?.label && x?.local_start).map((x: any) => `${x.label}${x.category ? ` (${x.category})` : ""}: ${x.local_start}${x.local_end ? ` to ${String(x.local_end).slice(11)}` : ""}`);
-      const chk = await checkSource(out.source_url, raw);
-      if (chk?.usage) { addUsage(usage, chk.usage); delete (chk as any).usage; }
-      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote), check: chk } });
+      const rawOf = (o: any) => (o.sessions || []).filter((x: any) => x?.label && x?.local_start).map((x: any) => `${x.label}${x.category ? ` (${x.category})` : ""}: ${x.local_start}${x.local_end ? ` to ${String(x.local_end).slice(11)}` : ""}`);
+      let chk: any = await checkSource(out.source_url, rawOf(out));
+      if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
+      // nothing confirmed on the source: one more search with the stronger model, and keep it if its source confirms it
+      if (chk && chk.total > 0 && chk.found === 0) {
+        try {
+          const r2 = await computeSchedule(ev, series, src, current, [STRONG]); addUsage(usage, r2.usage); addTrace(trace, r2.trace);
+          if (r2.sessions.length) {
+            const chk2: any = await checkSource(r2.out.source_url, rawOf(r2.out), [STRONG]);
+            if (chk2?.usage) { addUsage(usage, chk2.usage); delete chk2.usage; }
+            if (chk2 && chk2.found > 0) { out = r2.out; sessions = r2.sessions; zoneNote = r2.zoneNote; zoneFix = r2.zoneFix; chk = { ...chk2, retried: true }; }
+            else chk = { ...chk, retried: true };
+          }
+        } catch (_) { /* keep the first answer */ }
+      }
+      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) + (out.complete === false ? " (only part of the timetable is published yet: the search goes on)" : ""), check: chk } });
       props.push(`timetable (${sessions.length} sessions)`);
     }
   }
@@ -956,11 +975,11 @@ Deno.serve(async (req) => {
     return json({ rules: RULES, guidance: GUIDANCE, tasks: [
       { key: "discover", title: "1 · Calendar agent", when: "When you add a championship or click Check calendar with AI, then once a month (skipped for free when the official pages haven't changed). Dates and circuits for this year and next only.", text: discoverPrompt(S, SRC, new Date().getUTCFullYear()) },
       { key: "logo", title: "2 · Logo agent", when: "When a championship has no logo yet (added, or Find logo with AI). Reads the official homepage (the homepage link in the header first), searches the web, then the AI picks among the pictures.", text: LOGO_PROMPT(S) },
-      { key: "race", title: "3 · Schedule agent", when: "One race at a time: first check for every race of this season and next, every day in race week (skipped while the pages are unchanged), and when you click Search with AI. Time zones are checked against the page's own exact timestamps when it has them.", text: checkPrompt(EV, S, SRC, V, false) },
+      { key: "race", title: "3 · Schedule agent", when: "Only races a published athlete takes part in. After a calendar is approved: races one by one in date order, until 2 have no timetable. Then nothing until D-30: once a week, twice a week from D-14, every day in race week, until the timetable is complete (every kind of session the championship usually has); a final check at D-3/D-2. Skipped for free while the pages are unchanged. It looks first where the championship's timetable was found last time. If the checker can't confirm anything on the source, it searches once more with the stronger model.", text: checkPrompt(EV, S, SRC, V, false) },
       { key: "deeper", title: "3b · Schedule agent, deeper look", when: "Added when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
-      { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion.", text: CHECK_RULES },
+      { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion. If nothing is confirmed, it reads again with the stronger model.", text: CHECK_RULES },
     ] });
   }
   if (body.action === "test_cases") {

@@ -30,6 +30,10 @@
   .rxa .tabs button{height:42px;border:0;border-radius:10px;background:none;color:#a9abb2;font:700 15px Barlow,system-ui,sans-serif;cursor:pointer}
   .rxa .tabs button[aria-selected="true"]{background:#23262d;color:#f4f4f2}
   .rxa .hint{font-size:13px;color:#8e919b;margin-top:-6px}
+  .rxa h2.sh{font-size:20px;letter-spacing:.06em}
+  .rxa .sw{display:grid;gap:10px;margin-top:6px;padding-top:18px;border-top:1px solid #2a2d35;text-align:center;font-size:14px;color:#a9abb2}
+  .rxa .sw .b{border-color:#FF5A1F;color:#FF5A1F;background:transparent}
+  .rxa .msg:empty{min-height:0;margin:-7px 0}
   .rxa-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(5,6,8,.72);display:flex;align-items:flex-end;justify-content:center}
   .rxa-box{width:100%;max-width:440px;background:#16181d;border:1px solid #2a2d35;border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));margin-bottom:var(--kb,0px);animation:rxaUp .32s cubic-bezier(.2,.85,.25,1)}
   @media (min-width:700px){.rxa-ov{align-items:center}.rxa-box{border-radius:22px}}
@@ -65,8 +69,12 @@
 
     // "signup" for new people (no remembered email), "signin" for people who've been here
     let mode = o.mode === "signin" || o.mode === "signup" ? o.mode : (localStorage.getItem("rnx_last_email") ? "signin" : "signup");
-    const tabs = () => `<div class="tabs" role="tablist"><button type="button" role="tab" data-m="signup" aria-selected="${mode === "signup"}">Create account</button><button type="button" role="tab" data-m="signin" aria-selected="${mode === "signin"}">Sign in</button></div>`;
-    const bindTabs = () => el.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { if (b.dataset.m === mode) return; const v = el.querySelector("#rxa-e")?.value.trim(); if (v) email = v; mode = b.dataset.m; step1(); });
+    // simple: no title, no tabs; sign in first, a clear way to create an account under it (and back)
+    const swap = () => o.simple ? (mode === "signin"
+      ? `<div class="sw"><span>New to Racenxt?</span><button type="button" class="b" data-m="signup">Create your Race Hub</button></div>`
+      : `<div class="sw"><span>Already have an account?</span><button type="button" class="b" data-m="signin">Sign in</button></div>`) : "";
+    const tabs = () => o.simple ? "" : `<div class="tabs" role="tablist"><button type="button" role="tab" data-m="signup" aria-selected="${mode === "signup"}">Create account</button><button type="button" role="tab" data-m="signin" aria-selected="${mode === "signin"}">Sign in</button></div>`;
+    const bindTabs = () => el.querySelectorAll(".tabs button,.sw [data-m]").forEach(b => b.onclick = () => { if (b.dataset.m === mode) return; const v = el.querySelector("#rxa-e")?.value.trim(); if (v) email = v; mode = b.dataset.m; step1(); });
     const eyeOn = (btn, inp) => { btn.onclick = () => { const on = inp.type === "password"; inp.type = on ? "text" : "password"; btn.textContent = on ? "Hide" : "Show"; }; };
 
     function step1(note, cls) {
@@ -75,7 +83,7 @@
 
     function signupForm(note, cls) {
       el.innerHTML = `<form class="rxa" id="rxa-f" novalidate>
-        <h2>${esc(o.title || "Create your account")}</h2>${o.sub ? `<div class="sub">${o.sub}</div>` : ""}
+        ${o.simple ? "" : `<h2>${esc(o.title || "Create your account")}</h2>${o.sub ? `<div class="sub">${o.sub}</div>` : ""}`}
         ${tabs()}
         <label>Email<input id="rxa-e" type="email" autocomplete="email" inputmode="email" autocapitalize="off" value="${esc(email)}" required></label>
         <label>Choose a password<span class="pw"><input id="rxa-p" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"><button type="button" id="rxa-eye">Show</button></span></label>
@@ -83,7 +91,7 @@
         <div class="hint">We'll email you a 6-digit code to confirm it's your address.</div>
         <div class="or">or</div>
         <button type="button" class="b" id="rxa-code">No password: email me a code</button>
-        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>
+        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>${swap()}
       </form>`;
       bindTabs();
       const e = el.querySelector("#rxa-e"), p = el.querySelector("#rxa-p");
@@ -114,7 +122,7 @@
 
     function signinForm(note, cls) {
       el.innerHTML = `<form class="rxa" id="rxa-f" novalidate>
-        <h2>${esc(o.signinTitle || "Welcome back")}</h2>
+        ${o.simple ? "" : `<h2>${esc(o.signinTitle || "Welcome back")}</h2>`}
         ${tabs()}
         <label>Email<input id="rxa-e" type="email" autocomplete="username email" inputmode="email" autocapitalize="off" value="${esc(email)}" required></label>
         <label>Password<span class="pw"><input id="rxa-p" type="password" autocomplete="current-password"><button type="button" id="rxa-eye">Show</button></span></label>
@@ -122,7 +130,7 @@
         <div class="or">or</div>
         <button type="button" class="b" id="rxa-code">Email me a sign-in code</button>
         <div class="hint">No password, or forgot it? The code signs you in.</div>
-        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>
+        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>${swap()}
       </form>`;
       bindTabs();
       const e = el.querySelector("#rxa-e"), p = el.querySelector("#rxa-p");

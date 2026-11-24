@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-002156"></script>
-<script src="rnx-social.js?v=20261125-002156"></script>
-<script src="rnx-auth.js?v=20261125-002156"></script>
-<script src="rnx-ui.js?v=20261125-002156"></script>
+<script src="config.js?v=20261125-002635"></script>
+<script src="rnx-social.js?v=20261125-002635"></script>
+<script src="rnx-auth.js?v=20261125-002635"></script>
+<script src="rnx-ui.js?v=20261125-002635"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -345,9 +345,10 @@ function openMenu(e){
 }
 
 function login(msg){
-  $("#app").innerHTML = `<div class="center"><div class="auth"><div class="brand" style="font-size:46px">RACEN<span class="x">X</span>T</div><div class="dim">Everything in one place</div>
-    <div class="card" id="lbox"></div></div></div>`;
-  rnxAuth($("#lbox"), { mode: /[?&]new\b/.test(location.search) ? "signup" : /[?&]signin\b/.test(location.search) ? "signin" : undefined, title: "Create your Race Hub", sub: "One page for your season: calendar, schedules, where to watch, your car and partners. Kept up to date for you.", note: msg, onSession: s => { S.set(s); boot(); } });
+  // same as the home page: the logo, then sign in, with "Create your Race Hub" right under it
+  $("#app").innerHTML = `<div class="center"><div class="auth"><div class="brand" style="font-size:52px">RACEN<span class="x">X</span>T</div><div class="dim" style="letter-spacing:.28em;text-transform:uppercase;font:600 14px 'Barlow Condensed',sans-serif;margin-top:-8px">Everything in one place</div>
+    <div id="lbox" style="margin-top:14px"></div></div></div>`;
+  rnxAuth($("#lbox"), { simple: true, mode: /[?&]new\b/.test(location.search) ? "signup" : "signin", note: msg, onSession: s => { S.set(s); boot(); } });
 }
 
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -623,6 +624,20 @@ function obSave(){
 }
 
 // ---------- start ----------
+function newWhileSignedIn(){
+  const p = ST.profile;
+  shell(`<div class="center"><div class="auth" style="text-align:left">
+    <h1 style="font-size:30px;line-height:1.05;margin:0">You're already signed in</h1>
+    <div class="dim">as <b style="color:var(--text)">${esc(ST.me.email || "")}</b>${p ? `, with ${esc(p.display_name)}’s page` : ""}.</div>
+    <button type="button" class="btn pri" id="nw-open" style="height:50px">Open ${p ? esc(p.display_name) + "’s page" : "my page"}</button>
+    <button type="button" class="btn" id="nw-new" style="height:50px">Create another page on this account</button>
+    <button type="button" class="btn" id="nw-out" style="height:50px;background:none">Sign out and use another email</button>
+  </div></div>`);
+  history.replaceState(null, "", location.pathname);
+  $("#nw-open").onclick = () => location.replace(PAGE_BASE + p.slug);
+  $("#nw-new").onclick = () => onboarding(true);
+  $("#nw-out").onclick = () => { S.set(null); localStorage.removeItem(CUR); location.replace(location.pathname + "?new"); };
+}
 async function boot(){
   readHash();
   if (!(await token())) return login();
@@ -631,7 +646,8 @@ async function boot(){
   try {
     await loadMembers();
     if (!ST.profile) return onboarding(false);
-    if (new URLSearchParams(location.search).has("new")) return onboarding(true);
+    // "Create your Race Hub" while signed in: say which account first, never start a new page silently
+    if (new URLSearchParams(location.search).has("new")) return newWhileSignedIn();
     // your page is the editor: same page fans see, with edit controls
     location.replace(PAGE_BASE + ST.profile.slug);
   } catch(e){ shell(`<div class="empty" style="margin-top:30px">Couldn't load your page: ${esc(e.message)}<button class="btn" onclick="location.reload()">Try again</button></div>`); }

@@ -37,6 +37,7 @@
   .rxe-lbl{font:700 12px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#9a9ca3;margin-bottom:8px}
   .rxt{width:132px;aspect-ratio:16/10;border-radius:12px;overflow:hidden;position:relative;background:#15161b;border:1px solid #3b3e47;flex:none}
   .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .rxt.rxt-st{aspect-ratio:auto;border:1px solid #3b3e47} .rxt.rxt-st .rxl-stage img.lg{inset:auto;height:auto} .rxt.rxt-st .rxl-stage img.ph{inset:0}
   .rxt.rxt-lg{background:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
   .rxt .rxt-logo{position:absolute;inset:14% 12%;width:76%;height:72%;object-fit:contain}
   .rxt.rxt-pv .rxt-pvlg{position:absolute;inset:auto;top:6%;left:4.4%;width:25.1%;height:auto;object-fit:contain;object-position:left top;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
@@ -330,9 +331,10 @@
 
   // ---------- personal logo: small box like the photo, and a full editor (frame it, colour, phone / computer preview) ----------
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
-  window.rnxLogoThumb = function (logo, label, photo, pos) {
+  window.rnxLogoThumb = function (logo, label, photo, pos, title) {
     style(); label = label || "Your logo";
-    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }, ls = +p.lg || 1; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}" style="width:${Math.min(38, 25.1 * ls)}%"></div>`; }
+    // with the photo: the same little page as the editor's Preview (same proportions, logo size and title), so both always match
+    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }, ls = +p.lg || 1; return `<div class="rxt rxt-st"><div class="rxl-stage" style="--lgs:${ls}"><img class="ph" src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="lg" src="${esc(logo)}" alt="${esc(label)}"><div class="nm">${title || ""}</div></div></div>`; }
     return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="${esc(label)}"></div>`
       : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>${esc(label)}</span></div>`;
   };

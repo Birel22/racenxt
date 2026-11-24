@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-004931"></script>
-<script src="rnx-social.js?v=20261125-004931"></script>
-<script src="rnx-auth.js?v=20261125-004931"></script>
-<script src="rnx-ui.js?v=20261125-004931"></script>
+<script src="config.js?v=20261125-005751"></script>
+<script src="rnx-social.js?v=20261125-005751"></script>
+<script src="rnx-auth.js?v=20261125-005751"></script>
+<script src="rnx-ui.js?v=20261125-005751"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -125,12 +125,13 @@
   .ok{color:var(--good)} .no{color:var(--bad)}
   .steps{display:flex;gap:6px}
   .steps i{width:34px;height:4px;border-radius:2px;background:var(--line2)} .steps i.on{background:var(--acc)}
-  .ob{display:grid;gap:18px;margin-top:2px}
+  .ob{display:grid;gap:16px;margin-top:2px}
   .ob-top{display:flex;align-items:center;justify-content:space-between;font-size:14px}
-  .ob-h{font-size:36px;line-height:1}
-  .ob-body{display:grid;gap:16px}
+  .ob-h{font-size:34px;line-height:1}
+  .ob-body{display:grid;gap:14px}
+  .wrap:has(> .ob){padding-bottom:0}
   .ob-list{display:grid;gap:16px}
-  .ob-foot{display:flex;gap:10px;position:sticky;bottom:0;padding:14px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(11,12,15,0),var(--bg) 24px)}
+  .ob-foot{display:flex;gap:10px;position:sticky;bottom:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(11,12,15,0),var(--bg) 24px)}
   .ob-foot .btn{height:52px} .ob-foot .btn.pri{flex:1} .ob-foot .btn.ghost{flex:none;padding:0 22px}
   #o-mine:empty,#o-all:empty{display:none}
   /* sheets on the sign-up: a small gap so the search box's top edge and focus ring are never cut under the title */
@@ -140,7 +141,8 @@
   #cs-b > .field:last-child{margin-bottom:4px}
   .ob-media{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
   .ob-media .rxt-btn,.ob-media .rxt{width:100%}
-  .ob-acts{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;min-height:22px}
+  .ob-media .rxt{aspect-ratio:5/6} .ob-media .rxt.rxt-st{aspect-ratio:auto}
+  .ob-acts{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;min-height:22px}
   .ob-acts button{background:none;border:0;padding:0;color:#d5d6d9;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
   .ob-acts button.pri,.ob-acts button:hover{color:var(--acc)} .ob-acts button.x{color:#8e919b}
   .ob-photo{width:100%;aspect-ratio:16/10;border-radius:18px;border:1.5px dashed var(--line2);background:var(--panel) center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0}
@@ -402,7 +404,7 @@ async function onboarding(another){
 function obStep(){
   const n = OB.step, titles = ["About you", "Your links", "Your championships"], subs = ["Your photo, name and page link.", "So fans can follow you. Everything here is optional.", "Pick every championship you race in this season. Calendars, schedules and where to watch fill in by themselves."];
   const head = `<div class="ob-top"><div class="steps" aria-label="Step ${n} of 3">${[1,2,3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</div><span class="muted">Step ${n} of 3</span></div>
-    <div><h1 class="ob-h">${titles[n-1]}</h1><div class="dim" style="margin-top:6px">${subs[n-1]}</div></div>`;
+    <div><h1 class="ob-h">${titles[n-1]}</h1>${n === 1 ? "" : `<div class="dim" style="margin-top:6px">${subs[n-1]}</div>`}</div>`;
   let body = "";
   if (n === 1) body = `
     <div class="ob-media">
@@ -486,7 +488,7 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `${rnxThumbBtn(rnxLogoThumb(url, "Add logo", OB.photoUrl, { ...(OB.pos || { x:50, y:35, z:1 }), lg: OB.lgs || 1 }), "ob-lgbox", url ? "Change logo" : "Add logo")}
+  box.innerHTML = `${rnxThumbBtn(rnxLogoThumb(url, "Add logo", OB.photoUrl, { ...(OB.pos || { x:50, y:35, z:1 }), lg: OB.lgs || 1 }, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`), "ob-lgbox", url ? "Change logo" : "Add logo")}
     <div class="ob-acts">${url ? `<button type="button" id="ob-lg">Change</button><button type="button" id="ob-lgc">Adjust</button><button type="button" id="ob-lgx" class="x">Remove</button>` : `<button type="button" id="ob-lg">Add logo</button>`}</div>`;
   const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, size: OB.lgs || 1, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) { OB.logo = { src: r.src, out: r.out, mode: r.mode }; OB.lgs = r.size || 1; } obLogo(); };

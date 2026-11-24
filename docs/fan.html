@@ -477,7 +477,9 @@
 @media (max-width:440px){.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country{font-size:0;gap:0}.ev.ev2 .ev-actions:has(.lk-btn):has(.car-btn) .country .flag{font-size:17px}}
 
 /* search an event */
-.ff-l{display:flex;align-items:center;gap:8px;min-width:0}
+.ff-l{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
+.ff-l .ff-btn{min-width:0;flex:0 1 auto}
+@media (max-width:420px){ .filter-dd{gap:8px} .ff-pre{display:none} .season-prog i{width:56px} }
 .ff-sbtn{flex:none;width:36px;height:36px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:rgba(13,14,17,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s}
 .ff-sbtn svg{width:17px;height:17px}
 .ff-sbtn:hover,.ff-sbtn:focus-visible{color:var(--text);border-color:#4a4d56}
@@ -492,11 +494,11 @@
 .ff-none{text-align:center;color:var(--muted);padding:40px 16px;font-size:15px}
 @media (prefers-reduced-motion:reduce){.ff-search{animation:none}}
 </style>
-<script src="config.js?v=20261124-220159"></script>
-<script src="rnx-social.js?v=20261124-220159"></script>
-<script src="rnx-ui.js?v=20261124-220159"></script>
-<script src="rnx-edit.js?v=20261124-220159"></script>
-<script src="rnx-data.js?v=20261124-220159"></script>
+<script src="config.js?v=20261124-220451"></script>
+<script src="rnx-social.js?v=20261124-220451"></script>
+<script src="rnx-ui.js?v=20261124-220451"></script>
+<script src="rnx-edit.js?v=20261124-220451"></script>
+<script src="rnx-data.js?v=20261124-220451"></script>
 </head>
 <body>
 <div class="wrap">
@@ -998,7 +1000,8 @@ function applyLang(lang){
   document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", T(el.dataset.i18nAria)); if (el.hasAttribute("title")) el.title = T(el.dataset.i18nAria); });
   document.querySelectorAll("[data-i18n-alt]").forEach(el => el.alt = T(el.dataset.i18nAlt));
   document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang===lang ? "true" : "false"));
-  render(); ffSync(); cdKey = null; tick(); seasonProgress(); if (document.getElementById("page-cue")) fitHero(true);
+  // the photo keeps its height when the language changes (French text is longer and would shrink it on phones)
+  render(); ffSync(); cdKey = null; tick(); seasonProgress(); if (document.getElementById("page-cue") && !fitW) fitHero(true);
   if (ttOpenIdx === "sub") fillSub(); else if (typeof ttOpenIdx === "string" && ttOpenIdx.startsWith("car:")) fillCar(ttOpenIdx.slice(4)); else if (ttOpenIdx !== null) fillTT(ttOpenIdx);
   if (ttOpenIdx !== null) requestAnimationFrame(updateCue);
 }
@@ -1028,7 +1031,9 @@ function fitHero(force){
   const below = cd.getBoundingClientRect().bottom - hero.getBoundingClientRect().bottom;
   const top = hero.getBoundingClientRect().top + window.scrollY;
   const cueSpace = (cue.offsetHeight || 32) + 2 + 10;
-  const h = Math.round(Math.max(200, Math.min(560, window.innerHeight - top - below - cueSpace)));
+  // phones keep the tall photo: never less than about half the screen (on screens tall enough), whatever the language
+  const floor = window.innerHeight >= 700 ? window.innerHeight * 0.52 : 200;
+  const h = Math.round(Math.max(floor, Math.min(560, window.innerHeight - top - below - cueSpace)));
   hero.style.minHeight = h + "px";
   pageCue();
 }

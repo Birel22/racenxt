@@ -608,12 +608,22 @@ async function asJpeg(url: string) {
     return buf.length > 400 && buf.length < 2_500_000 ? b64(buf) : null;
   } catch (_) { return null; }
 }
+// one vision question; the answer is started with "{" so it comes back as JSON, and a bad or empty answer is asked again once
 async function vision(model: string, content: any[]) {
-  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 300, messages: [{ role: "user", content }] }) });
-  const j = await r.json();
-  if (!r.ok) throw new Error(`AI ${r.status}: ${j?.error?.message || ""}`);
-  const u = newUsage(); u.model = model; u.input = j.usage?.input_tokens || 0; u.output = j.usage?.output_tokens || 0; u.cost_usd = Math.round(priceOf(model, u.input, u.output) * 10000) / 10000;
-  return { out: parseJson((j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("")), usage: u };
+  const u = newUsage(); u.model = model;
+  let last = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 300, messages: [{ role: "user", content }, { role: "assistant", content: "{" }] }) });
+      const t = await r.text();
+      const j = t ? JSON.parse(t) : {};
+      if (!r.ok) { last = `AI ${r.status}: ${j?.error?.message || "no answer"}`; await new Promise(x => setTimeout(x, 3000)); continue; }
+      u.input += j.usage?.input_tokens || 0; u.output += j.usage?.output_tokens || 0; u.cost_usd = Math.round(priceOf(model, u.input, u.output) * 10000) / 10000;
+      const text = "{" + (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
+      return { out: JSON.parse(text.slice(0, text.lastIndexOf("}") + 1)), usage: u };
+    } catch (e) { last = String((e as Error).message || e); }
+  }
+  throw new Error(`the AI's answer couldn't be read twice (${last})`);
 }
 const LOGO_PROMPT = (s: any) => `Championship: ${s.name}${s.short_name && s.short_name !== s.name ? ` (${s.short_name})` : ""}
 Official website: ${s.website_url || "unknown"}
@@ -624,6 +634,7 @@ const GENERIC = new Set(["series", "championship", "cup", "the", "fia", "interna
 function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
   const toks = norm(`${series.name || ""} ${series.short_name || ""}`).split(" ").filter((w: string) => w.length >= 4 && !GENERIC.has(w));
   const short = norm(series.short_name || "");
+  const site = host(series.website_url || "");
   const score = (u: string) => {
     const file = norm(decodeURIComponent(u.split("?")[0].split("/").slice(-2).join(" ")));
     const fw = file.split(" ");
@@ -633,6 +644,10 @@ function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
     if (/\blogo\b/.test(file)) n += 1;
     if (fromAi.has(u)) n += 2;
     if (/partner|sponsor|supplier|fournisseur|team|teams|equipe/.test(file)) n -= 4;
+    // an old year in the address (uploads/2024/...) usually means an older logo
+    const yrs = (u.match(/\/(20\d{2})\//g) || []).map(y => +y.slice(1, 5));
+    if (yrs.length && Math.max(...yrs) < new Date().getUTCFullYear() - 1) n -= 1;
+    if (site && host(u) === site) n += 1;
     return n;
   };
   return urls.map((u, i) => ({ u, i, n: score(u) })).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.u);
@@ -656,9 +671,9 @@ async function runLogoTest(c: any, series: any) {
   if (!cands.length) return { score: 0, max: 1, rows: [{ expect: "the official logo", found: "no logo picture found", ok: false, why: "missed" }], usage, trace: { ...trace, candidates: urls } };
   // 2. the AI picks the championship's logo, as in the app (same instructions as logo-detect)
   const content: any[] = [];
-  cands.forEach((x, i) => { content.push({ type: "text", text: `Image ${i + 1}:` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
+  cands.forEach((x, i) => { content.push({ type: "text", text: `Image ${i + 1} (from ${x.url.replace(/^https?:\/\//, "").split("?")[0].slice(0, 140)}):` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
   content.push({ type: "text", text: `These images were found for the motorsport championship "${series.name}"${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}. They are shown on a grey background.
-Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one.
+Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one. When two versions of the logo appear, prefer the one the championship's own website uses today (official site, recent upload) over an older one (e.g. a press area or a file dated years ago).
 Answer with JSON only: {"index": <image number, or 0 if none of them is the championship's logo>}` });
   stage = "picking the logo";
   const p = await vision(FAST, content); addUsage(usage, p.usage);

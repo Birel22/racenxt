@@ -411,7 +411,14 @@ const DEEP = "\nA first search didn't find the timetable. Look harder: search th
 const WATCH_TASK = `Where to watch, for the whole championship (official sources only):
    - "stream_url": the championship's official live stream, i.e. its own streaming service or official live channel (e.g. F1 TV, MotoGP VideoPass, FIA WEC+, the official YouTube live page). null if there is none.
    - "broadcasters_url": the official page that lists the TV broadcasters by country (often called "Where to watch", "Broadcasters", "TV schedule"). null if there is none.`;
-const sameUrl = (a: unknown, b: unknown) => !!a && !!b && String(a).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase() === String(b).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase();
+const sameUrl = (a: unknown, b: unknown) => {
+  if (!a || !b) return false;
+  const c = (u: unknown) => String(u).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase();
+  if (c(a) === c(b)) return true;
+  // the same page under another address shape (fiaformula3.com/About/<id>/... and /en/latest/article/...<id>)
+  const id = (String(a).match(/[A-Za-z0-9]{18,}/) || [""])[0];
+  return !!id && host(String(a)) === host(String(b)) && String(b).includes(id);
+};
 const okUrl = (u: unknown) => typeof u === "string" && /^https?:\/\/[^\s]+$/.test(u);
 // agent 4, where to watch, for one race in race week: only a page made for that race weekend
 function raceWatchPrompt(ev: any, series: any) {

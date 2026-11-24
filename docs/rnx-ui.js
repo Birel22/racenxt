@@ -40,9 +40,15 @@
   .rxt.rxt-lg{background:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
   .rxt .rxt-logo{position:absolute;inset:14% 12%;width:76%;height:72%;object-fit:contain}
   .rxt.rxt-pv .rxt-pvlg{position:absolute;inset:auto;top:8%;left:7%;width:34%;height:26%;object-fit:contain;object-position:left top;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
-  .rxl-warn{display:grid;gap:6px;margin:0 18px 12px;padding:12px 14px;border-radius:14px;border:1px solid #5a4a1a;background:color-mix(in srgb,#f2b20f 9%,transparent);font-size:14px;line-height:1.4;color:#d5d6d9}
-  .rxl-warn b{color:#f2b20f;font-weight:700} .rxl-warn ul{margin:0;padding-left:18px} .rxl-warn li{margin:2px 0}
-  .rxl-wb{justify-self:start;margin-top:4px;height:40px;padding:0 14px;border-radius:12px;border:1px solid #3a3d46;background:#1d2026;color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rxl-warn{display:flex;align-items:flex-start;gap:10px;padding:10px 10px 10px 12px;border-radius:12px;border:1px solid rgba(242,178,15,.28);background:rgba(242,178,15,.06);font-size:13px;line-height:1.4;color:#a9abb2}
+  .rxl-warn[hidden]{display:none}
+  .rxl-warn > svg{width:18px;height:18px;flex:none;margin-top:1px;color:#f2b20f}
+  .rxl-warn > span{flex:1;min-width:0;display:grid;gap:1px} .rxl-warn b{color:#f2f2ef;font-weight:600;font-size:13.5px}
+  .rxl-wb{flex:none;align-self:center;height:32px;padding:0 12px;border-radius:999px;border:1px solid #3a3d46;background:#1d2026;color:#f2f2ef;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+  .rxl-wb:hover{border-color:#50545e}
+  .rxt-btn{display:block;padding:0;border:0;background:none;border-radius:12px;cursor:pointer;flex:none;font:inherit;color:inherit}
+  .rxt-btn:hover .rxt{border-color:#5a5d66} .rxt-btn:hover .rxt-empty{border-color:#5a5d66;color:#c9cbd0}
+  .rxt-btn:focus-visible{outline:2px solid #FF5A1F;outline-offset:3px}
   .rxt-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed #3b3e47;border-radius:inherit;color:#8e919b;font:600 13px Barlow,system-ui,sans-serif;background:#15161b}
   .rxt-empty svg{width:22px;height:22px}
   .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
@@ -137,6 +143,13 @@
     });
   };
   // small preview of the framed photo
+  window.rnxCarThumb = function (src) {
+    style();
+    return src ? `<div class="rxt"><img src="${esc(src)}" alt=""></div>`
+      : `<div class="rxt"><span class="rxt-empty"><svg viewBox="-0.6 0.1 23.4 6.8" style="width:54px;height:18px" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path stroke-width="0.95" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><circle stroke-width="0.95" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.95" cx="18.45" cy="5.15" r="1.4"/></svg>Your car</span></div>`;
+  };
+  // any of these boxes as a button: tapping it opens the picture picker (camera, photos, files)
+  window.rnxThumbBtn = function (html, id, label) { style(); return `<button type="button" class="rxt-btn" id="${id}" aria-label="${esc(label)}">${html}</button>`; };
   window.rnxPhotoThumb = function (src, pos) {
     style();
     const p = pos || { x: 50, y: 35, z: 1 };
@@ -253,7 +266,10 @@
     const solid = border.filter(b => b[3] >= 40), med = j => solid.map(b => b[j]).sort((a, c) => a - c)[solid.length >> 1] || 0;
     const bg = [med(0), med(1), med(2)];
     // a plain background: almost all of the picture's edge is the same colour. Otherwise (photo, gradient, pattern) the cut-out can't be clean.
-    const plain = transparentBg || solid.filter(b => Math.hypot(b[0] - bg[0], b[1] - bg[1], b[2] - bg[2]) < 38).length >= solid.length * 0.8;
+    const dist = (a, c) => Math.hypot(a[0] - c[0], a[1] - c[1], a[2] - c[2]);
+    // or soft shading only: neighbouring edge points almost the same colour (a phone photo of a plain sheet, a JPEG screenshot)
+    const smooth = solid.length > 4 ? solid.filter((b, i) => i && dist(b, solid[i - 1]) < 16).length >= (solid.length - 1) * 0.88 : false;
+    const plain = transparentBg || solid.filter(b => dist(b, bg) < 48).length >= solid.length * 0.75 || smooth;
     let minX = w, minY = h, maxX = -1, maxY = -1;
     for (let i = 0; i < px.length; i += 4) {
       const a = transparentBg ? px[i + 3] : Math.max(0, Math.min(255, (Math.hypot(px[i] - bg[0], px[i + 1] - bg[1], px[i + 2] - bg[2]) - 20) * 4)) * (px[i + 3] / 255);
@@ -295,8 +311,9 @@
           <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
           <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
             ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
+          <div class="rxl-warn" id="rxl-warn" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span><b>The background isn't plain</b>For a clean cut-out, use an SVG, a transparent PNG or your logo on one colour.</span><button type="button" class="rxl-wb" id="rxl-other">Change</button></div>
         </div>
-        <div class="rxl-warn" id="rxl-warn" role="status" hidden><b>The background isn't plain, so we can't cut the logo out cleanly.</b><span>For a clean logo, use one of these instead:</span><ul><li>Your logo file: SVG, or a PNG with a transparent background</li><li>A screenshot of your logo on a plain background, in a single colour</li></ul><button type="button" class="rxl-wb" id="rxl-other">Choose another picture</button></div>
+
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
       const stage = ov.querySelector("#rxl-stage"), lg = stage.querySelector(".lg"), ok = ov.querySelector("#rxl-ok");
@@ -310,7 +327,8 @@
           if (my !== st.seq) return;
           st.out = out; lg.src = URL.createObjectURL(out); lg.hidden = false; busy(""); ok.disabled = false;
           // the picture's background isn't plain: say so, and how to get a clean logo (they can still keep this one)
-          const warn = ov.querySelector("#rxl-warn"); if (warn) warn.hidden = !(opts.file && st.src && st.src.busyBg);
+          if (opts.file && st.whole === undefined) { st.whole = null; try { st.whole = !(await rnxProcessLogo(opts.file, "original")).busyBg; } catch (e) {} }
+          const warn = ov.querySelector("#rxl-warn"); if (warn) warn.hidden = !(opts.file && st.src && st.src.busyBg && !st.whole);
         } catch (e) { if (my === st.seq) busy(e.message === "No logo found in this picture" ? "No logo found here: move the box around your logo" : "Couldn't read this picture. Try another one."); }
         finally { if (my === st.seq) st.busy = false; }
       };
@@ -334,7 +352,7 @@
       const other = ov.querySelector("#rxl-other");
       if (other) other.onclick = () => {
         const i = document.createElement("input"); i.type = "file"; i.accept = "image/*,.svg"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i);
-        i.onchange = () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; opts.file = f; st.src = null; ov.querySelector("#rxl-warn").hidden = true; start(); };
+        i.onchange = () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; opts.file = f; st.src = null; st.whole = undefined; ov.querySelector("#rxl-warn").hidden = true; start(); };
         i.click();
       };
       start();

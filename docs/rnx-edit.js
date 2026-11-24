@@ -202,7 +202,7 @@
   .rx-rd-x{color:#ff6b5b !important;font-weight:600}
   .rx-rd-t{display:grid;min-width:0} .rx-rd-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rx-rd-t small{color:#8e919b;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rx-phrow{display:flex;align-items:center;gap:14px}
-  .rx-phbtns{display:grid;gap:8px}
+  .rx-phbtns{display:grid;gap:8px;width:150px} .rx-phbtns .rx-b{width:100%;justify-content:center}
   .rx-lgrow{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center}
   .rx-lgrow .rx-lgbox{grid-column:1;grid-row:1}
   .rx-lgrow .rx-phbtns{grid-column:2;grid-row:1;justify-self:start}
@@ -477,9 +477,9 @@
     const lgUrl = () => LG.removed ? "" : LG.pending ? (LG.pending.url || (LG.pending.url = URL.createObjectURL(LG.pending.out))) : LG.url;
     const PAL_UNUSED = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></svg>';
     const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-    const lgHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxLogoThumb(lgUrl(), "Your logo", prev, pos)}</div>${lgUrl() ? `<button type="button" class="rx-link rx-lgx" id="rx-lgx">Remove logo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    const lgHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(rnxLogoThumb(lgUrl(), "Your logo", prev, pos), "rx-lgbox", lgUrl() ? "Change logo" : "Add logo")}</div>${lgUrl() ? `<button type="button" class="rx-link rx-lgx" id="rx-lgx">Remove logo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
-    const phHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Your photo</span></div>`}</div>${prev ? `<button type="button" class="rx-link rx-lgx" id="rx-phx">Remove photo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    const phHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Your photo</span></div>`, "rx-phbox", prev ? "Change photo" : "Add photo")}</div>${prev ? `<button type="button" class="rx-link rx-lgx" id="rx-phx">Remove photo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
       <div class="rx-grp2">Photo</div><div id="rx-phw">${phHtml()}</div>
       <div class="rx-grp2">Logo</div><div id="rx-lgw">${lgHtml()}</div><div class="rx-help" style="margin-top:-6px">A logo file, a photo or a screenshot: we find your logo and remove the background.</div>
@@ -491,6 +491,7 @@
       <div><label class="rx-f" for="rx-web">Website</label><input id="rx-web" value="${esc(so.website || "")}" inputmode="url" autocapitalize="off"></div>
       <div><label class="rx-f" for="rx-mail">Contact email</label><input id="rx-mail" type="email" value="${esc(p.contact_email || "")}" inputmode="email"><div class="rx-help">Shown on your page for teams, media and partners.</div></div>`,
       { after() { if (window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#rx-s-" + s.k), s.k, token)); const bind = () => {
+          $("#rx-phbox").onclick = () => $("#rx-ph").click();
           $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; file = f; phRemoved = false; prev = URL.createObjectURL(f); pos = (await rnxPhotoEditor(prev, null, title)) || { x: 50, y: 35, z: 1 }; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
           if ($("#rx-adj")) $("#rx-adj").onclick = async () => { const n = await rnxPhotoEditor(prev, pos, title); if (n) { pos = n; posChanged = true; $("#rx-phw").innerHTML = phHtml(); bind(); } };
           if ($("#rx-phx")) $("#rx-phx").onclick = () => { file = null; prev = ""; pos = null; phRemoved = true; $("#rx-phw").innerHTML = phHtml(); bind(); };
@@ -498,6 +499,7 @@
         };
         const bindLg = () => {
           const ed = o => rnxLogoEditor({ photo: prev, pos, title, getToken: token, ...o });
+          $("#rx-lgbox").onclick = () => $("#rx-lg").click();
           $("#rx-lg").onclick = async () => { const f = await pickFile(); if (!f) return; const r = await ed({ file: f, mode: LG.pending?.mode || LG.mode }); if (r) { LG.pending = r; LG.removed = false; } $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
           if ($("#rx-lgc")) $("#rx-lgc").onclick = async () => { const r = await ed({ src: LG.pending?.src || LG.src || "", current: lgUrl(), mode: LG.pending?.mode || LG.mode }); if (r) LG.pending = { src: LG.pending?.src || null, out: r.out, mode: r.mode }; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
           if ($("#rx-lgx")) $("#rx-lgx").onclick = () => { LG.removed = true; LG.pending = null; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
@@ -607,7 +609,7 @@
     let year = en.year, color = (en.color || COLORS[0]).toUpperCase(), vehicle = en.vehicles || VEH.find(v => v.id === en.vehicle_id) || null;
     let photoFile = null, photoUrl = en.car_photo_url || "", rounds = en.hide ? { year, hide: en.hide, show: [] } : null;
     const vbox = () => vehicle ? `<div class="rx-vchip"><b>${esc(vehicle.name)}</b><button type="button" class="rx-b" id="rx-vchg">Change</button></div>` : `<div id="rx-vpk"></div>`;
-    const phbox = () => `<div class="rx-carph">${photoUrl ? `<img src="${esc(photoUrl)}" alt="">` : `<div class="rx-none">No photo</div>`}<button type="button" class="rx-b" id="rx-ph">${photoUrl ? "Change photo" : "Add photo"}</button></div><div class="rx-help">A photo of your vehicle, with your livery. Shown when fans tap it.</div>`;
+    const phbox = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(rnxCarThumb(photoUrl), "rx-carbox", photoUrl ? "Change photo" : "Add photo")}</div><div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${photoUrl ? "Change photo" : "Add photo"}</button></div></div><div class="rx-help">A photo of your vehicle, with your livery. Shown when fans tap it.</div>`;
     const html = `
       <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><div style="display:grid"><b style="font-size:17px">${esc(s?.name || "")}</b><small style="color:#8e919b">${year} season${(s?.classes || []).length > 1 && en.category ? " · " + esc(en.category) : ""}</small></div></div>
       ${isNew ? "" : `<button type="button" class="rx-full" id="rx-rounds"><span><b>${(s?.classes || []).length > 1 ? "Class and races" : "Races"}</b><small>${(s?.classes || []).length > 1 ? (en.category ? esc(en.category) + " · choose the rounds you do" : "Choose your class") : "Choose the rounds you do"}</small></span>${CHEV}</button>`}
@@ -626,7 +628,7 @@
         l.hidden = false; l.querySelectorAll("[data-v]").forEach(b => b.onmousedown = ev => { ev.preventDefault(); vehicle = VEH.find(v => v.id === b.dataset.v); $("#rx-vbox").innerHTML = vbox(); bindV(); }); };
       q.onfocus = show; q.oninput = show; q.onblur = () => setTimeout(() => l.hidden = true, 120);
     };
-    const bindPh = () => { $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; photoFile = f; photoUrl = URL.createObjectURL(f); $("#rx-phbox").innerHTML = phbox(); bindPh(); }; };
+    const bindPh = () => { $("#rx-carbox").onclick = () => $("#rx-ph").click(); $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; photoFile = f; photoUrl = URL.createObjectURL(f); $("#rx-phbox").innerHTML = phbox(); bindPh(); }; };
     const r = await sheet(isNew ? "Your entry" : "Edit entry", html, { ok: isNew ? "Add to my season" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${s?.name} ${year} from your page?`,
       after() {
         if ($("#rx-rounds")) $("#rx-rounds").onclick = async () => { sheetResolve = null; const sel = await pickRounds(s, en); if (sel) save(async () => { await saveRounds(sel); if (sel.category && sel.category !== en.category) await upd("entries", en.id, { category: sel.category }); }, "Races saved"); else editEntry(en); };
@@ -718,7 +720,7 @@
     const PL = { url: sp ? spLogo(sp) : "", src: sp?.logo_original_url || "", mode: sp?.display || "white", pending: null };
     const plUrl = () => PL.pending ? (PL.pending.url || (PL.pending.url = URL.createObjectURL(PL.pending.out))) : PL.url;
     const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-    const plHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxLogoThumb(plUrl(), "Partner logo")}</div><div class="rx-phbtns"><button type="button" class="rx-b" id="rx-plg">${IMG} ${plUrl() ? "Change logo" : "Add logo"}</button>${plUrl() ? `<button type="button" class="rx-b" id="rx-plc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    const plHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(rnxLogoThumb(plUrl(), "Partner logo"), "rx-plbox", plUrl() ? "Change logo" : "Add logo")}</div><div class="rx-phbtns"><button type="button" class="rx-b" id="rx-plg">${IMG} ${plUrl() ? "Change logo" : "Add logo"}</button>${plUrl() ? `<button type="button" class="rx-b" id="rx-plc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     // the partners bar as fans see it, with this logo in its place
     const others = [...R.sponsors].sort((a, b) => (a.sort || 0) - (b.sort || 0));
     const bar = () => { const l = others.map(x => x.id === sp?.id ? "me" : spLogo(x)).filter(Boolean); if (!l.includes("me")) l.push("me"); return l.slice(0, 6); };
@@ -729,6 +731,7 @@
       <div><label class="rx-f" for="rx-pl">Link</label><input id="rx-pl" value="${esc(sp?.link_url || "")}" inputmode="url" autocapitalize="off" autocomplete="off"><div class="rx-help">Optional. Where fans go when they tap the logo.</div></div>`,
       { ok: isNew ? "Add partner" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${sp?.name || "this partner"} from your page?`,
         after() { const bind = () => {
+          $("#rx-plbox").onclick = () => $("#rx-plg").click();
           $("#rx-plg").onclick = async () => { const f = await pickFile(); if (!f) return; const x = await ed({ file: f, mode: PL.pending?.mode || PL.mode }); if (x) PL.pending = x; $("#rx-plw").innerHTML = plHtml(); bind(); };
           if ($("#rx-plc")) $("#rx-plc").onclick = async () => { const x = await ed({ src: PL.pending?.src || PL.src || "", current: plUrl(), mode: PL.pending?.mode || PL.mode }); if (x) PL.pending = { src: PL.pending?.src || null, out: x.out, mode: x.mode }; $("#rx-plw").innerHTML = plHtml(); bind(); };
         }; bind(); },

@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-233204"></script>
-<script src="rnx-social.js?v=20261124-233204"></script>
-<script src="rnx-auth.js?v=20261124-233204"></script>
-<script src="rnx-ui.js?v=20261124-233204"></script>
+<script src="config.js?v=20261124-234202"></script>
+<script src="rnx-social.js?v=20261124-234202"></script>
+<script src="rnx-auth.js?v=20261124-234202"></script>
+<script src="rnx-ui.js?v=20261124-234202"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -181,7 +181,7 @@
   @media (prefers-reduced-motion:reduce){ .cls-ov,.cls-box{animation:none} }
   .tile[aria-checked="true"]{border-color:var(--acc);background:rgba(255,90,31,.08)}
   .tile[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;line-height:22px;font-weight:700}
-.ob-lgrow{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center}.ob-lgbox{grid-column:1;grid-row:1}.ob-lgbtns{grid-column:2;grid-row:1;display:grid;gap:8px;justify-self:start}.ob-lgx{grid-column:1;grid-row:2;justify-self:center;background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
+.ob-lgrow{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center}.ob-lgbox{grid-column:1;grid-row:1}.ob-lgbtns{grid-column:2;grid-row:1;display:grid;gap:8px;justify-self:start;width:132px}.ob-lgbtns .btn{width:100%}.ob-lgx{grid-column:1;grid-row:2;justify-self:center;background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
 </style>
 </head>
 <body>
@@ -382,7 +382,7 @@ function obStep(){
     <div><h1 class="ob-h">${titles[n-1]}</h1><div class="dim" style="margin-top:6px">${subs[n-1]}</div></div>`;
   let body = "";
   if (n === 1) body = `
-    ${OB.photoUrl ? `<div class="field"><label class="f">Your photo</label><div style="display:flex;align-items:center;gap:14px">${rnxPhotoThumb(OB.photoUrl, OB.pos)}<div style="display:grid;gap:8px"><button type="button" class="btn sm" id="ob-photo">Change photo</button><button type="button" class="btn sm" id="ob-adj">Adjust</button></div></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
+    ${OB.photoUrl ? `<div class="field"><label class="f">Your photo</label><div class="ob-lgrow"><div class="ob-lgbox">${rnxThumbBtn(rnxPhotoThumb(OB.photoUrl, OB.pos), "ob-phbox", "Change photo")}</div><div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-photo">Change photo</button><button type="button" class="btn sm" id="ob-adj">Adjust</button></div></div></div>` : `<button type="button" class="ob-photo" id="ob-photo"><span class="ob-empty">${CAM}<b>Add your photo</b><small>A landscape photo works best</small></span></button>`}
     <div class="field"><label class="f">Your logo <span class="muted" style="font-weight:500">· optional</span></label><div id="ob-lgw"></div><div class="help">A logo file, a photo or a screenshot: we find your logo and remove the background.</div></div>
     <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
     <div class="field"><label class="f" for="o-slug">Your page link</label><div class="link" style="max-width:none;padding:0 0 0 14px"><code style="flex:none;color:var(--mute)">${esc(PAGE_BASE.replace(/^https?:\/\//, ""))}</code><input id="o-slug" value="${esc(OB.slug)}" style="border:0;background:none;padding-left:2px" autocapitalize="off" autocomplete="off" spellcheck="false"></div><div class="help" id="o-avail">Letters, numbers and dashes.</div></div>`;
@@ -413,6 +413,7 @@ function obStep(){
     if (OB.slug) check();
     obLogo();
     $("#ob-photo").onclick = () => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = async () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; obSave(); OB.photo = f; OB.photoUrl = URL.createObjectURL(f); OB.pos = (await rnxPhotoEditor(OB.photoUrl, null, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`)) || { x:50, y:35, z:1 }; obStep(); }; i.click(); };
+    if ($("#ob-phbox")) $("#ob-phbox").onclick = () => $("#ob-photo").click();
     if ($("#ob-adj")) $("#ob-adj").onclick = async () => { obSave(); const n = await rnxPhotoEditor(OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`); if (n){ OB.pos = n; obStep(); } };
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
@@ -458,9 +459,10 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxLogoThumb(url, "Your logo", OB.photoUrl, OB.pos)}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
+  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxThumbBtn(rnxLogoThumb(url, "Your logo", OB.photoUrl, OB.pos), "ob-lgbox", url ? "Change logo" : "Add logo")}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
   const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) OB.logo = { src: r.src, out: r.out, mode: r.mode }; obLogo(); };
+  $("#ob-lgbox").onclick = () => $("#ob-lg").click();
   if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgx")) $("#ob-lgx").onclick = () => { OB.logo = null; obLogo(); };
 }
@@ -568,10 +570,12 @@ function champSetup(ser, d0){
           <div class="field"><label class="f" for="cs-team">Team</label><input id="cs-team" autocomplete="off" data-form-type="other" value="${esc(d.team || "")}" enterkeyhint="next"></div></div>
           <div class="field"><label class="f" for="cs-mates">Teammates</label><input id="cs-mates" autocomplete="off" data-form-type="other" value="${esc((d.teammates || []).join(", "))}" enterkeyhint="done"><div class="help">Separate names with commas.</div></div>
           ${d.newCar ? `<label class="cs-sug"><input type="checkbox" id="cs-sug"${d.suggest ? " checked" : ""}><span><b>Suggest this car for the Racenxt library</b><small>We'll review it and add it for everyone. Standard cars only, not modified ones. Either way, it's on your page right away.</small></span></label>` : ""}
-          <div class="field"><label class="f">Car photo</label><div class="cs-ph">${d.photo ? `<img src="${esc(d.photoUrl)}" alt="">` : `<span class="muted">No photo</span>`}<button type="button" class="btn sm" id="cs-pic">${d.photo ? "Change photo" : "Add photo"}</button></div><div class="help">Your car with your livery. Fans see it when they tap your car.</div></div>`;
+          <div class="field"><label class="f">Car photo</label><div class="ob-lgrow"><div class="ob-lgbox">${rnxThumbBtn(rnxCarThumb(d.photo ? d.photoUrl : ""), "cs-picbox", d.photo ? "Change car photo" : "Add car photo")}</div>${d.photo ? `<button type="button" class="ob-lgx" id="cs-picx">Remove photo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="cs-pic">${d.photo ? "Change photo" : "Add photo"}</button></div></div><div class="help">Your car with your livery. Fans see it when they tap your car.</div></div>`;
         f.innerHTML = foot("Skip, do it later", "Done");
         const save = () => { if (b.querySelector("#cs-sug")) d.suggest = b.querySelector("#cs-sug").checked; d.car_number = b.querySelector("#cs-num").value.trim(); d.team = b.querySelector("#cs-team").value.trim(); d.teammates = b.querySelector("#cs-mates").value.split(",").map(x => x.trim()).filter(Boolean); };
         b.querySelector("#cs-pic").onclick = async () => { save(); const fl = await obPick(); if (!fl) return; d.photo = fl; d.photoUrl = URL.createObjectURL(fl); draw(); };
+        b.querySelector("#cs-picbox").onclick = () => b.querySelector("#cs-pic").click();
+        if (b.querySelector("#cs-picx")) b.querySelector("#cs-picx").onclick = () => { save(); delete d.photo; delete d.photoUrl; draw(); };
         f.querySelector("#cs-ok").onclick = () => { save(); next(); };
         f.querySelector("#cs-skip").onclick = () => next();
         b.querySelector("#cs-num").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); b.querySelector("#cs-team").focus(); } };

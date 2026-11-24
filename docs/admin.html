@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
 <script src="config.js?v=20261123-214128"></script>
 <script src="rnx-auth.js?v=20261123-214128"></script>
+<script src="rnx-ui.js?v=20261124-1300"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -231,6 +232,10 @@
   .drop .pv img{max-width:124px;max-height:52px;object-fit:contain}
   .drop .pv span{font-size:11px;color:var(--mute)}
   .drop u{color:var(--text)}
+  .lg-row{display:flex;flex-wrap:wrap;gap:8px}
+  .lg-c{width:96px;height:52px;padding:6px;border-radius:8px;border:1px solid var(--line);background:#7f7f7f;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .lg-c:hover,.lg-c:focus-visible{border-color:var(--acc)}
+  .lg-c img{max-width:100%;max-height:100%;object-fit:contain}
   .sw{display:flex;align-items:center;gap:8px;cursor:pointer}
   .sw input{width:auto;min-height:0}
 .ck{margin:0 0 10px}
@@ -372,7 +377,6 @@ async function pollRun(id){
   try { [run] = await api(`check_runs?id=eq.${id}&select=result,summary,error,usage`); } catch(e){}
   if ((!run || run.result === "running") && Date.now() - meta.t0 < 6 * 60e3) return pollRun(id);
   delete RUNS[id]; showRuns();
-  if (meta.discover && run && run.result !== "error") await finalizeLogo(meta.key);
   if (meta.hooks.done && meta.hooks.done(run)) return;
   if (!run || run.result === "running") aiNotice(`${meta.label}: no answer after 6 minutes. Try again in a moment.`);
   else if (run.result === "error") aiNotice(`${meta.label} didn't work: ${run.error || "unknown error"}`);
@@ -461,7 +465,7 @@ async function loadDisciplines(){
 }
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url&order=name"),
+    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode&order=name"),
     api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
@@ -582,7 +586,6 @@ let SEASON = {};
 async function championshipPage(slug, openId){
   const s = D.series.find(x => x.slug === slug);
   if (!s){ $("#main").innerHTML = `<p class="dim">Championship not found.</p>`; return; }
-  if (s.logo_url && s.logo_url.includes("-agent-") && !aiBusy(s.id)) finalizeLogo(s.id).then(ok => { if (ok){ const im = $(".head-card img"); const n = D.series.find(x => x.id === s.id); if (im && n) im.src = n.logo_url; } });
   const [src] = await api(`series_sources?series_id=eq.${s.id}&select=*`);
   const evs = await api(`event_overview?series_id=eq.${s.id}&select=*&order=start_date`);
   const upcoming = evs.filter(e => e.end_date >= TODAY), past = evs.filter(e => e.end_date < TODAY).reverse();
@@ -636,7 +639,7 @@ async function editRace(s, e, yr){
   const venue = e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
   const busy = aiBusy(e.id);
   const html = `
-    <section class="fs"><div class="rc-meta"><span><b>${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}</b></span>${venue ? `<span>${esc(venue.name)}${venue.country ? ", " + esc(venue.country) : ""}</span>` : `<span class="chip warn">No circuit</span>`}${e.round ? `<span>Round ${esc(String(e.round))}</span>` : ""}${e.duration_label ? `<span>${esc(e.duration_label)}</span>` : ""}</div>
+    <section class="fs"><div class="rc-meta"><span><b>${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}</b></span>${venue ? `<span>${esc(venue.name)}${venue.country ? ", " + esc(venue.country) : ""}</span>` : `<span class="chip warn">No circuit</span>`}${e.round ? `<span>${e.round_to > e.round ? `Rounds ${e.round}–${e.round_to}` : `Round ${esc(String(e.round))}`}</span>` : ""}${e.duration_label ? `<span>${esc(e.duration_label)}</span>` : ""}</div>
       ${e.note ? `<div class="dim" style="font-size:14px">Note on the card: ${esc(e.note)}</div>` : ""}
       <div><button type="button" class="btn sm" id="rc-edit">Edit race details</button></div></section>
     <section class="fs"><h4><i></i>Schedule ${venue ? `<small>Local time · ${esc(venue.timezone)}</small>` : ""}</h4>
@@ -667,7 +670,8 @@ async function editRaceDetails(s, e, yr){
     { html: venueList() },
     { section:"Race", items:[
       { k:"name", l:"Race name", req:true },
-      { row:[{ k:"round", l:"Round", type:"number" }, { k:"duration_label", l:"Race length", help:"For example 4h or 24h" }] } ] },
+      { row:[{ k:"round", l:"Round", type:"number" }, { k:"round_to", l:"Last round", type:"number", help:"Double header only: e.g. rounds 6–7 on one weekend" }] },
+      { k:"duration_label", l:"Race length", help:"For example 4h or 24h" } ] },
     { section:"Dates & circuit", items:[
       { row:[{ k:"start_date", l:"First day", type:"date", req:true }, { k:"end_date", l:"Last day", type:"date", req:true }] },
       { row:[{ k:"venue_name", l:"Circuit", list:"venues-dl", help:"New circuit? Added with its time zone automatically." }, { k:"country", l:"Country" }] } ] },
@@ -682,7 +686,7 @@ async function editRaceDetails(s, e, yr){
   let saved = null;
   const ok = await guard(async () => {
     const venue_id = r.venue_name ? await ensureVenue(r.venue_name, r.country) : (e?.venue_id || null);
-    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, note: r.note, updated_at: new Date().toISOString() };
+    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, round_to: r.round_to && r.round && +r.round_to > +r.round ? r.round_to : null, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, note: r.note, updated_at: new Date().toISOString() };
     if (e){ await upd("events", e.id, row); saved = { ...e, ...row }; }
     else { row.ext_key = extKey(s, row); [saved] = await ins("events", row); }
   }, e ? "Race saved" : "Race added");
@@ -771,120 +775,90 @@ async function importCalendar(s, yr, existing){
   }, `${rows.length} races imported`);
 }
 
-// Logos: every championship logo ends up the same way: the logo alone (AI finds it), background cut out,
-// pure white, trimmed tight and saved at one standard size (transparent PNG)
-const LOGO_H = 240, LOGO_W = 800;
-function loadImg(src){ return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = () => rej(new Error("image")); im.src = src; }); }
-async function imgOf(file){ return loadImg(typeof file === "string" ? file : URL.createObjectURL(file)); }
-// a small JPEG on grey (so white and dark logos both show) for the AI to look at
-function aiThumb(img, max = 640){
-  const iw = img.naturalWidth || img.width || 600, ih = img.naturalHeight || img.height || 300;
-  const sc = Math.min(max / Math.max(iw, ih), /svg/i.test(img.src) ? 4 : 1);
-  const cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(iw * sc)); cv.height = Math.max(1, Math.round(ih * sc));
-  const cx = cv.getContext("2d"); cx.fillStyle = "#8a8f98"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
-  return cv.toDataURL("image/jpeg", 0.85).split(",")[1];
-}
-async function logoAI(body){
-  const t = await token();
-  const r = await fetch(`${C.url}/functions/v1/logo-detect`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify(body) });
-  return r.ok ? r.json() : {};
-}
-async function processLogo(file, opt = {}){
-  const img = await imgOf(file);
-  const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
-  const scale = /svg/i.test(img.src) || (file && /svg/.test(file.type || "")) ? 1400 / Math.max(iw, ih) : Math.min(1, 1600 / Math.max(iw, ih));
-  let w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
-  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-  let cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(img, 0, 0, w, h);
-  // keep only the logo the AI pointed at (with a little margin)
-  const b = opt.box;
-  if (b && (b[2] - b[0] < 0.97 || b[3] - b[1] < 0.97)){
-    const m = 0.015, x0 = Math.max(0, Math.floor((b[0] - m) * w)), y0 = Math.max(0, Math.floor((b[1] - m) * h)), x1 = Math.min(w, Math.ceil((b[2] + m) * w)), y1 = Math.min(h, Math.ceil((b[3] + m) * h));
-    const c2 = document.createElement("canvas"); c2.width = x1 - x0; c2.height = y1 - y0;
-    c2.getContext("2d").drawImage(cv, x0, y0, x1 - x0, y1 - y0, 0, 0, x1 - x0, y1 - y0);
-    cv.width = w = c2.width; cv.height = h = c2.height; cx = cv.getContext("2d", { willReadFrequently:true }); cx.drawImage(c2, 0, 0);
-  }
-  const d = cx.getImageData(0, 0, w, h), px = d.data;
-  // background = most common colour around the border (or transparent)
-  const border = []; const at = (x, y) => { const k = (y * w + x) * 4; border.push([px[k], px[k+1], px[k+2], px[k+3]]); };
-  for (let x = 0; x < w; x += Math.max(1, w >> 7)){ at(x, 0); at(x, h - 1); }
-  for (let y = 0; y < h; y += Math.max(1, h >> 7)){ at(0, y); at(w - 1, y); }
-  const transparentBg = border.filter(q => q[3] < 40).length > border.length * 0.5;
-  const solid = border.filter(q => q[3] >= 40);
-  const med = i => solid.map(q => q[i]).sort((a, c) => a - c)[solid.length >> 1] || 0;
-  const bg = [med(0), med(1), med(2)];
-  const A = new Float32Array(w * h);
-  for (let i = 0, k = 0; i < A.length; i++, k += 4){
-    A[i] = transparentBg ? px[k+3] : Math.max(0, Math.min(255, (Math.hypot(px[k] - bg[0], px[k+1] - bg[1], px[k+2] - bg[2]) - 22) * 3.2)) * (px[k+3] / 255);
-  }
-  // badge logos (name cut out of a filled shape): the shape becomes white and the name is cut out, like official white versions
-  if (opt.badge){
-    const hist = new Map();
-    for (let i = 0, k = 0; i < A.length; i++, k += 4) if (A[i] > 230){ const q = (px[k] >> 4) << 8 | (px[k+1] >> 4) << 4 | (px[k+2] >> 4); hist.set(q, (hist.get(q) || 0) + 1); }
-    const tot = [...hist.values()].reduce((a, c) => a + c, 0), top = [...hist.entries()].sort((a, c) => c[1] - a[1]);
-    const col = q => [((q >> 8) & 15) * 16 + 8, ((q >> 4) & 15) * 16 + 8, (q & 15) * 16 + 8];
-    if (top.length > 1 && top[0][1] > tot * 0.35){
-      const P = col(top[0][0]);
-      const sec = top.slice(1).find(e => { const c = col(e[0]); return Math.hypot(c[0] - P[0], c[1] - P[1], c[2] - P[2]) > 90; });
-      if (sec && sec[1] > tot * 0.02){
-        const S = col(sec[0]);
-        for (let i = 0, k = 0; i < A.length; i++, k += 4){
-          const dp = Math.hypot(px[k] - P[0], px[k+1] - P[1], px[k+2] - P[2]), ds = Math.hypot(px[k] - S[0], px[k+1] - S[1], px[k+2] - S[2]);
-          A[i] *= Math.max(0, Math.min(1, (ds / (dp + ds + 1e-6) - 0.3) * 2.5));
-        }
-      }
-    }
-  }
-  let minX = w, minY = h, maxX = -1, maxY = -1;
-  for (let i = 0, k = 0; i < A.length; i++, k += 4){
-    px[k] = px[k+1] = px[k+2] = 255; px[k+3] = A[i];
-    if (A[i] > 28){ const x = i % w, y = (i / w) | 0; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
-  }
-  cx.putImageData(d, 0, 0);
-  if (maxX < minX) throw new Error("No logo found in this image");
-  // standard size: trimmed tight, fitted in LOGO_W × LOGO_H, small even margin
-  const cw = maxX - minX + 1, ch = maxY - minY + 1;
-  const k = Math.min(LOGO_W / cw, LOGO_H / ch), pad = Math.round(LOGO_H * 0.03);
-  const ow = Math.round(cw * k) + pad * 2, oh = Math.round(ch * k) + pad * 2;
-  const out = document.createElement("canvas"); out.width = ow; out.height = oh;
-  const ox = out.getContext("2d"); ox.imageSmoothingQuality = "high";
-  ox.drawImage(cv, minX, minY, cw, ch, pad, pad, ow - pad * 2, oh - pad * 2);
-  return await new Promise(res => out.toBlob(res, "image/png"));
-}
-window.rnxLogo = { processLogo, loadImg }; // for checks in the browser console
-// a picture the admin added (file, drop or screenshot): the AI finds the logo in it first
-async function logoFromPicture(file){
-  let box = null, badge = false;
-  try { const im = await imgOf(file); const r = await logoAI({ image: aiThumb(im, 1024) }); if (r.found){ box = r.box; badge = r.badge; } } catch(e){}
-  return processLogo(file, { box, badge });
-}
+// Logos: the official logo, cut out of its background and trimmed, in its own colours unless you choose white or black.
+// The same editor as partner logos: frame it (the AI finds it first and never cuts it), pick the colour, preview it.
+// The cut-out original is kept too, so the colour can be changed later without losing anything.
 async function uploadMedia(blob, path){
   const t = await token();
   const r = await fetch(`${C.url}/storage/v1/object/media/${path}`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type": blob.type || "image/png" }, body: blob });
   if (!r.ok){ let m = ""; try { m = (await r.json()).message || ""; } catch(e){} throw new Error(`upload failed (${r.status}${m ? ": " + m : ""})`); }
   return `${C.url}/storage/v1/object/public/media/${path}`;
 }
-function logoPicker(current, series, onFound){
-  const st = { file:null, blob:null };
-  const html = `<div><div class="drop" id="lg-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="pv" id="lg-pv">${current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"}</div><div style="font-size:14px"><b>Drop a logo here</b><div class="dim">or paste a screenshot (Cmd/Ctrl+V), or <u>choose a file</u></div></div><input type="file" id="lg-file" accept="image/*" hidden></div>
-    <div class="bar" style="margin:8px 0 0">${series ? `<button type="button" class="btn sm ai" id="lg-ai">Find logo with AI</button>` : ""}<span class="help" style="margin:0">The logo is found in the picture, cut out, made white and sized like every other logo.</span></div></div>`;
-  const run = async () => { if (!st.file) return; $("#lg-pv").innerHTML = "<span>Processing…</span>"; try { st.blob = await logoFromPicture(st.file); $("#lg-pv").innerHTML = `<img src="${URL.createObjectURL(st.blob)}" alt="">`; } catch(e){ $("#lg-pv").innerHTML = "<span>Couldn't read this image</span>"; st.blob = null; } };
-  const take = f => { if (f && f.type.startsWith("image/")){ st.file = f; run(); } };
-  const onPaste = e => { if (!$("#lg-drop") || (document.body.classList.contains("drawer-on") && !$("#dr-b #lg-drop"))) return; const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it){ e.preventDefault(); take(it.getAsFile()); } };
-  return { html, st, after(){
-    const dz = $("#lg-drop"), fi = $("#lg-file");
-    dz.onclick = () => fi.click(); dz.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fi.click(); } };
-    fi.onchange = () => take(fi.files[0]);
-    if ($("#lg-ai")) $("#lg-ai").onclick = async () => {
-      const bt = $("#lg-ai"); bt.disabled = true; bt.textContent = "Looking…"; $("#lg-pv").innerHTML = "<span>Searching the official site…</span>";
-      try { await refindLogo(series); const n = D.series.find(x => x.id === series.id); st.file = st.blob = null; $("#lg-pv").innerHTML = `<img src="${esc(n.logo_url)}" alt="">`; toast("Logo found and saved"); onFound && onFound(n); }
-      catch(e){ $("#lg-pv").innerHTML = current ? `<img src="${esc(current)}" alt="">` : "<span>No logo</span>"; alert(e.message); }
-      bt.disabled = false; bt.textContent = "Find logo with AI";
-    };
-    dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
-    dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
-    document.removeEventListener("paste", window.__rnxPaste || (() => {})); window.__rnxPaste = onPaste; document.addEventListener("paste", onPaste);
-  } };
+async function asBlob(url){
+  const r = await fetch(url); if (!r.ok) throw new Error("This picture can't be opened");
+  const b = await r.blob();
+  return /\.svg(\?|$)/i.test(url) && !/svg/.test(b.type) ? new Blob([b], { type:"image/svg+xml" }) : b;
+}
+const logoEd = o => rnxLogoEditor({ label:"Championship logo", heading: o.file ? "Frame the logo" : "Adjust the logo", partners:["me"], barLabel:"Calendar", getToken: token, ...o });
+// uploads a logo prepared in the editor and returns the fields to save on the championship
+async function logoFields(slug, L){
+  const t = Date.now();
+  return { logo_url: await uploadMedia(L.out, `series/${slug}-${t}-${L.mode}.png`), logo_src_url: L.src ? await uploadMedia(L.src, `series/${slug}-${t}-src.png`) : (L.srcUrl || null), logo_mode: L.mode };
+}
+// Logo box: drop a file, paste a screenshot or choose one; Adjust (frame + colour); Remove; Find with AI.
+// opts: { pfx (unique id prefix), cands (pictures found by the AI), auto (picture to prepare right away), review (no Remove / Find buttons) }
+function logoPicker(s, opts = {}){
+  const P = opts.pfx || "lg", st = { L:null, file:null, remove:false, cands: opts.cands || [], busy:false };
+  const url = () => st.L ? URL.createObjectURL(st.L.out) : st.remove ? "" : (opts.review ? "" : s.logo_url || "");
+  const html = `<div><div class="drop" id="${P}-drop" tabindex="0" role="button" aria-label="Add a logo"><div class="pv" id="${P}-pv"></div><div style="font-size:14px"><b>Drop a logo here</b><div class="dim">or paste a screenshot (Cmd/Ctrl+V), or <u>choose a file</u></div></div><input type="file" id="${P}-file" accept="image/*" hidden></div>
+    <div class="bar" style="margin:8px 0 0;flex-wrap:wrap"><button type="button" class="btn sm" id="${P}-adj">Adjust</button>${opts.review ? "" : `<button type="button" class="btn sm" id="${P}-rm">Remove logo</button><button type="button" class="btn sm ai" id="${P}-ai">Find logo with AI</button>`}<span class="help" style="margin:0">Cut out of its background, in its own colours. Pick white or black in Adjust if it reads better on the dark pages.</span></div>
+    <div class="lg-cands" id="${P}-cands"></div></div>`;
+  const draw = (msg) => {
+    const u = url();
+    $(`#${P}-pv`).innerHTML = msg ? `<span>${esc(msg)}</span>` : u ? `<img src="${esc(u)}" alt="Logo">` : "<span>No logo</span>";
+    $(`#${P}-adj`).disabled = st.busy || !(st.file || st.L || (!st.remove && s.logo_url && !opts.review));
+    if ($(`#${P}-rm`)) $(`#${P}-rm`).disabled = st.busy || !(st.L || (!st.remove && s.logo_url));
+    $(`#${P}-cands`).innerHTML = st.cands.length > 1 ? `<div class="muted" style="font-size:12px;margin:10px 0 6px">Pictures found on the official site: click another one to use it</div><div class="lg-row">${st.cands.map((c, i) => `<button type="button" class="lg-c" data-i="${i}" title="Use this picture"><img src="${esc(c)}" alt="Picture ${i + 1}"></button>`).join("")}</div>` : "";
+    $$(`#${P}-cands .lg-c`).forEach(b => b.onclick = () => useUrl(st.cands[+b.dataset.i], true));
+  };
+  const edit = async o => { const r = await logoEd(o); if (r){ st.L = { src: r.src || st.L?.src || null, srcUrl: r.src ? null : (st.L?.srcUrl ?? null), out: r.out, mode: r.mode }; st.remove = false; } draw(); return r; };
+  const take = async f => { if (!f || !f.type.startsWith("image/")) return; st.file = f; await edit({ file: f, mode: st.L?.mode || "original" }); };
+  // a picture found online: prepared automatically (framed by the AI, cut out, own colours); Adjust to change it
+  const useUrl = async (u, open) => {
+    st.busy = true; draw("Preparing the logo…");
+    try {
+      st.file = await asBlob(u);
+      if (open){ st.busy = false; await edit({ file: st.file, mode: st.L?.mode || "original" }); return; }
+      const r = await rnxAutoLogo(st.file, token, "original"); st.L = { src: r.src, srcUrl: null, out: r.out, mode: r.mode }; st.remove = false;
+    } catch(e){ st.file = null; draw("Couldn't read this picture"); st.busy = false; return; }
+    st.busy = false; draw();
+  };
+  const adjust = () => {
+    if (st.file) return edit({ file: st.file, mode: st.L?.mode || "original" });
+    if (st.L) return edit({ src: st.L.src || st.L.srcUrl, mode: st.L.mode });
+    if (s.logo_url) return logoEd({ src: s.logo_src_url || s.logo_url, mode: s.logo_mode || "original" }).then(r => { if (r){ st.L = { src: null, srcUrl: s.logo_src_url || null, out: r.out, mode: r.mode }; draw(); } });
+  };
+  const onPaste = e => { if (!$(`#${P}-drop`) || (document.body.classList.contains("drawer-on") && !$(`#dr-b #${P}-drop`))) return; const it = [...(e.clipboardData?.items || [])].find(x => x.type.startsWith("image/")); if (it){ e.preventDefault(); take(it.getAsFile()); } };
+  return { html, st, adjust,
+    ready: () => !st.busy && !!st.L,
+    // the fields to save: {} if nothing changed
+    async fields(){ if (st.L) return logoFields(s.slug, st.L); if (st.remove) return { logo_url:null, logo_src_url:null, logo_mode:"original" }; return {}; },
+    after(){
+      const dz = $(`#${P}-drop`), fi = $(`#${P}-file`);
+      dz.onclick = () => fi.click(); dz.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); fi.click(); } };
+      fi.onchange = () => { take(fi.files[0]); fi.value = ""; };
+      dz.ondragover = e => { e.preventDefault(); dz.classList.add("over"); }; dz.ondragleave = () => dz.classList.remove("over");
+      dz.ondrop = e => { e.preventDefault(); dz.classList.remove("over"); take(e.dataTransfer.files[0]); };
+      $(`#${P}-adj`).onclick = adjust;
+      if ($(`#${P}-rm`)) $(`#${P}-rm`).onclick = () => { st.L = null; st.file = null; st.remove = true; draw(); };
+      if ($(`#${P}-ai`)) $(`#${P}-ai`).onclick = async () => {
+        const bt = $(`#${P}-ai`); bt.disabled = true; bt.textContent = "Looking…"; draw("Searching the official site…");
+        try {
+          const t = await token();
+          const r = await fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify({ action:"logo", series_id:s.id }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.error || "no answer");
+          if (!(j.candidates || []).length) throw new Error(s.website_url ? "No logo found on the official site. Drop one here instead." : "Add the official website in AI settings first, or drop a logo here.");
+          st.cands = j.candidates;
+          await useUrl(j.picked || j.candidates[0], true);
+          if (!j.picked) toast("The AI wasn't sure: check the pictures below");
+        } catch(e){ draw(); alert(e.message); }
+        bt.disabled = false; bt.textContent = "Find logo with AI";
+      };
+      document.removeEventListener("paste", window.__rnxPaste || (() => {})); window.__rnxPaste = onPaste; document.addEventListener("paste", onPaste);
+      draw();
+      if (opts.auto) useUrl(opts.auto, false);
+    } };
 }
 // Discipline picker: compact searchable list, scales to many disciplines; "+ New discipline" draws an icon with AI
 function sportPicker(cur){
@@ -970,7 +944,7 @@ function aiSetup(n){
   const m = document.createElement("div");
   m.className = "ai-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "ai-h");
   m.innerHTML = `<div class="ai-box"><div class="spin"></div><h2 id="ai-h">Setting up ${esc(label)}</h2><div class="dim">Usually about 30–60 seconds · <span class="t" id="ai-t">0s</span></div>
-    <ul><li>Official website</li><li>Logo, turned white for the pages</li><li>Season calendar and circuits</li><li>Where to watch</li></ul>
+    <ul><li>Official website</li><li>Logo</li><li>Season calendar and circuits</li><li>Where to watch</li></ul>
     <div class="bar" style="justify-content:center;margin:0"><button class="btn" id="ai-bg">Keep working, notify me</button></div></div>`;
   document.body.appendChild(m);
   const t0 = Date.now(), tick = setInterval(() => { const el = $("#ai-t"); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
@@ -995,40 +969,9 @@ function aiSetup(n){
     }
   });
 }
-// The agent saves the logo candidates it found; here the AI picks the championship's own logo,
-// then it is cut out, made white and saved at the standard size
-async function finalizeLogo(sid){
-  const [x] = await api(`series?id=eq.${sid}&select=id,slug,name,short_name,logo_url,logo_candidates`);
-  if (!x) return false;
-  const cands = (x.logo_candidates || []).length ? x.logo_candidates : (x.logo_url?.includes("-agent-") ? [x.logo_url] : []);
-  if (!cands.length || (x.logo_url && !x.logo_url.includes("-agent-"))) return false;
-  try {
-    const imgs = (await Promise.all(cands.map(u => loadImg(u).catch(() => null))));
-    const ok = imgs.map((im, i) => im ? i : -1).filter(i => i >= 0);
-    if (!ok.length) throw new Error("no image");
-    const r = await logoAI({ images: ok.map(i => aiThumb(imgs[i])), name: x.name, short: x.short_name });
-    if (!(r.index >= 0)){ await upd("series", x.id, { logo_url: null, logo_candidates: null }); await loadRef(); return true; }
-    const white = await processLogo(cands[ok[r.index]], { box: r.box, badge: r.badge });
-    const url = await uploadMedia(white, `series/${x.slug}-${Date.now()}.png`);
-    await upd("series", x.id, { logo_url: url, logo_candidates: null });
-    await loadRef();
-    return true;
-  } catch(e){ return false; }
-}
-// "Find logo with AI": fresh candidates from the official site, then the same pick-and-clean
-async function refindLogo(s){
-  const t = await token();
-  const r = await fetch(`${C.url}/functions/v1/agent`, { method:"POST", headers:{ apikey:C.key, Authorization:`Bearer ${t}`, "Content-Type":"application/json" }, body: JSON.stringify({ action:"logo", series_id:s.id }) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || "no answer");
-  if (!(j.candidates || []).length) throw new Error("No logo found on the official site. Add one by hand.");
-  await upd("series", s.id, { logo_url: j.candidates[0], logo_candidates: j.candidates });
-  if (!(await finalizeLogo(s.id))) throw new Error("Couldn't prepare the logo. Add one by hand.");
-  if (!D.series.find(x => x.id === s.id)?.logo_url) throw new Error("None of the pictures on the official site is this championship's logo. Add one by hand.");
-}
 async function editSeries(s, src){
   if (!s) return addSeries();
-  const lp = logoPicker(s.logo_url, s);
+  const lp = logoPicker(s, { pfx:"lg" });
   const sp = sportPicker(s.sport || "");
   const r = await drawer(`Edit ${s.short_name || s.name}`, [
     { section:"Championship", items:[
@@ -1055,7 +998,7 @@ async function editSeries(s, src){
   const list = (urls || "").split("\n").map(u => u.trim()).filter(Boolean);
   const domains = [...new Set([...list, row.website_url || ""].map(u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return null; } }).filter(Boolean))];
   await guard(async () => {
-    if (lp.st.blob) row.logo_url = await uploadMedia(lp.st.blob, `series/${s.slug}-${Date.now()}.png`);
+    Object.assign(row, await lp.fields());
     await upd("series", s.id, row);
     await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id:s.id, urls:list.map(url => ({ url })), allowed_domains:domains, agent_instructions: instr || "" }) });
     await loadRef();
@@ -1066,10 +1009,9 @@ async function editSeries(s, src){
 // ---------- Review queue ----------
 async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
-  if (only?.logo_url?.includes("-agent-") && await finalizeLogo(only.id)) only = D.series.find(x => x.slug === slug);
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)" };
+  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1077,7 +1019,6 @@ async function review(slug){
   const inGroup = new Set(grouped.flat().map(p => p.id));
   const single = ps.filter(p => !inGroup.has(p.id));
   $("#main").innerHTML = (only ? `<a class="back" href="#/review">${I.back}Whole review queue</a>` : "") + `<div class="ph"><h1>${only ? `Review ${esc(only.short_name || only.name)}` : "Review queue"}</h1>${only ? `<a class="btn" href="#/championships/${esc(only.slug)}">Open championship</a>` : `<button class="btn" id="rv-new">+ Create a change by hand</button>`}</div>` +
-    (only ? `<div id="logo-card"></div>` : "") +
     grouped.map((g, gi) => `<div class="card" style="margin-bottom:12px" data-g="${gi}">
       <div class="bar"><div class="grow"><span class="chip warn">Event broadcast</span> <b>${esc(ser[g[0].series_id]?.short_name || "")} · same link for ${g.length} races</b><div class="muted" style="font-size:13px">Agent · ${ago(g[g.length - 1].created_at)}</div></div></div>
       <div style="font-size:15px;margin:2px 0 10px">${linkHtml(g[0].payload.watch_url)}</div>
@@ -1088,11 +1029,12 @@ async function review(slug){
       ${p.evidence?.url ? `<div style="font-size:13px;margin-bottom:8px">Source: <a href="${esc(p.evidence.url)}" target="_blank" rel="noopener">${esc(p.evidence.url)}</a></div>` : ""}
       ${p.evidence?.excerpt ? `<blockquote class="dim" style="margin:0 0 10px;padding-left:10px;border-left:3px solid var(--line);font-size:13px">${esc(p.evidence.excerpt)}</blockquote>` : ""}
       ${checkBox(p.evidence?.check)}
-      ${p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
+      ${p.kind === "logo" ? `<div id="lgrv-${p.id}-box"></div>`
+        : p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
         : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
-      <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject</button><button class="btn" data-act="edit">Edit</button><button class="btn good" data-act="approve">Approve</button></div></div>`).join("")
+      <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject</button><button class="btn" data-act="edit">${p.kind === "logo" ? "Adjust" : "Edit"}</button><button class="btn good" data-act="approve">Approve</button></div></div>`).join("")
     : `<div class="card empty">Nothing to review. Agents' findings will appear here for approval.</div>`);
   grouped.forEach((g, gi) => {
     const box = document.querySelector(`[data-g="${gi}"]`);
@@ -1101,6 +1043,7 @@ async function review(slug){
   });
   for (const p of single){
     const box = document.querySelector(`[data-p="${p.id}"]`);
+    if (p.kind === "logo"){ logoProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     current(p).then(t => { const n = box.querySelector(".now"); if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
     box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (p.kind === "new_season" || p.kind === "new_event") { findTimetables(p.series_id, true); } if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
@@ -1111,7 +1054,19 @@ async function review(slug){
     };
   }
   if ($("#rv-new")) $("#rv-new").onclick = manualProposal;
-  if (only) logoCard(only);
+}
+// a logo the agent found: prepared right away (framed, cut out, own colours); Reject / Adjust / Approve like everything else
+function logoProposal(p, box, only){
+  const s = D.series.find(x => x.id === p.series_id) || { id:p.series_id, slug:"logo" };
+  const cands = p.payload?.candidates || [];
+  const lp = logoPicker(s, { pfx:`lgrv-${p.id}`, cands, auto: p.payload?.picked || cands[0], review:true });
+  box.querySelector(`#lgrv-${p.id}-box`).innerHTML = lp.html; lp.after();
+  box.querySelector('[data-act="edit"]').onclick = () => lp.adjust();
+  box.querySelector('[data-act="approve"]').onclick = () => {
+    if (!lp.ready()) return alert(lp.st.busy ? "The logo is still being prepared." : "Pick a picture or drop a logo first.");
+    guard(async () => { const f = await lp.fields(); await rpc("apply_proposal", { p_id:p.id, p_payload:{ ...f, candidates:cands } }); await loadRef(); if (only) location.hash = `#/championships/${only.slug}`; else route(); }, "Logo saved");
+  };
+  box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions; you can add a logo by hand in Edit championship)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
 }
 const endOf = (start, min) => { const d = new Date(String(start).replace(" ", "T").slice(0,16) + ":00Z"); d.setUTCMinutes(d.getUTCMinutes() + (+min || 60)); return d.toISOString().slice(11,16); };
 const linkHtml = u => /^https?:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>` : esc(u || "");
@@ -1130,7 +1085,7 @@ function pretty(p){
   if (p.kind === "event_change") return [pl.start_date && `${fmtRange(pl.start_date, pl.end_date || pl.start_date)} ${pl.start_date.slice(0,4)}`, pl.name, pl.duration_label, pl.circuit?.name].filter(Boolean).join("\n");
   return JSON.stringify(pl, null, 2);
 }
-const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<details class="tt-peek" open><summary><span class="chip good">Timetable · ${e.sessions.length} sessions</span></summary><div class="tt-box">${sessionList(e.sessions)}</div>${e.timetable_note ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(e.timetable_note)}</div>` : ""}</details>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
+const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}${e.round_to > e.round ? `–${esc(String(e.round_to))}` : ""}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<details class="tt-peek" open><summary><span class="chip good">Timetable · ${e.sessions.length} sessions</span></summary><div class="tt-box">${sessionList(e.sessions)}</div>${e.timetable_note ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(e.timetable_note)}</div>` : ""}</details>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
 async function current(p){
   if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}`).join("\n") : "No sessions yet"; }
   if (p.kind === "series_links") return seriesLinks(D.series.find(x => x.id === p.series_id) || {});
@@ -1150,24 +1105,6 @@ async function manualProposal(){
   if (!r) return; let pl; try { pl = JSON.parse(r.payload || "{}"); } catch(e){ return alert("That's not valid JSON."); }
   const e = evs.find(x => x.id === r.event_id);
   guard(async () => { await ins("proposals", { kind:r.kind, event_id:r.event_id, series_id:e.series_id, payload:pl, evidence:{ url:r.url || "" } }); route(); }, "Added to the queue");
-}
-
-// Logo check on a championship's review page: confirm the AI's logo, or add one (file, drop or screenshot)
-const LOGO_OK = new Set();
-function logoCard(s){
-  const box = $("#logo-card"); if (!box) return;
-  if (s.logo_url && LOGO_OK.has(s.id)){ box.innerHTML = `<div class="card head-card" style="margin-bottom:12px"><img src="${esc(s.logo_url)}" alt=""><span class="chip good">Logo confirmed</span><span class="grow"></span><button class="btn sm" id="lg-change">Change</button></div>`; $("#lg-change").onclick = () => { LOGO_OK.delete(s.id); logoCard(s); }; return; }
-  const lp = logoPicker(s.logo_url, s, n => { LOGO_OK.add(s.id); logoCard(n); });
-  box.innerHTML = `<section class="fs" style="margin-bottom:14px"><h4><i></i>Logo <small>${s.logo_url ? "Found by the AI, cut out and made white. Is it the right one?" : "The AI couldn't find a logo. Add one: drop a file, choose one, or paste a screenshot."}</small></h4>${lp.html}
-    <div class="bar" style="justify-content:flex-end;margin:0">${s.logo_url ? `<button class="btn good" id="lg-ok">Keep this logo</button>` : ""}<button class="btn pri" id="lg-save" disabled>Save new logo</button></div></section>`;
-  lp.after();
-  const save = $("#lg-save"), watch = setInterval(() => { if (!document.body.contains(save)) return clearInterval(watch); save.disabled = !lp.st.blob; }, 300);
-  if ($("#lg-ok")) $("#lg-ok").onclick = () => { LOGO_OK.add(s.id); logoCard(s); };
-  save.onclick = () => guard(async () => {
-    const url = await uploadMedia(lp.st.blob, `series/${s.slug}-${Date.now()}.png`);
-    await upd("series", s.id, { logo_url: url }); await loadRef();
-    const n = D.series.find(x => x.id === s.id); LOGO_OK.add(s.id); logoCard(n);
-  }, "Logo saved");
 }
 
 // ---------- Agent: what it's told, your rules, and what it did on each run ----------

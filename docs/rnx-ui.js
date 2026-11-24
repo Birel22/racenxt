@@ -145,23 +145,48 @@
     const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas");
     cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
     const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
-    return { img, data: cv.toDataURL("image/jpeg", .85).split(",")[1] };
+    return { img, cv, data: cv.toDataURL("image/jpeg", .85).split(",")[1] };
   }
   window.rnxLogoCropper = async function (box, file, getToken) {
     style();
-    const { img, data } = await small(file, 1024);
+    const { img, cv, data } = await small(file, 1024);
     const url = URL.createObjectURL(file);
     box.innerHTML = `<div class="rxc"><div class="rxc-stage"><img src="${url}" alt=""><div class="rxc-box" hidden><i class="rxc-h tl"></i><i class="rxc-h tr"></i><i class="rxc-h bl"></i><i class="rxc-h br"></i></div></div><div class="rxc-msg"><span class="rxc-dot"></span>Finding the logo…</div></div>`;
     const stage = box.querySelector(".rxc-stage"), frame = box.querySelector(".rxc-box"), msg = box.querySelector(".rxc-msg");
     const b = { l: .05, t: .05, r: .95, b: .95 };
     const draw = () => { frame.style.left = b.l * 100 + "%"; frame.style.top = b.t * 100 + "%"; frame.style.width = (b.r - b.l) * 100 + "%"; frame.style.height = (b.b - b.t) * 100 + "%"; };
     let changed = () => {};
+    // the AI's box is approximate: push each side out until it no longer cuts through the logo
+    const snap = () => {
+      try {
+        const W = cv.width, H = cv.height, px = cv.getContext("2d").getImageData(0, 0, W, H).data;
+        const at = (x, y) => (y * W + x) * 4, edge = [];
+        for (let x = 0; x < W; x += Math.max(1, W >> 6)) edge.push(at(x, 0), at(x, H - 1));
+        for (let y = 0; y < H; y += Math.max(1, H >> 6)) edge.push(at(0, y), at(W - 1, y));
+        const med = c => edge.map(i => px[i + c]).sort((a, z) => a - z)[edge.length >> 1];
+        const bg = [med(0), med(1), med(2)];
+        const ink = i => Math.abs(px[i] - bg[0]) + Math.abs(px[i + 1] - bg[1]) + Math.abs(px[i + 2] - bg[2]) > 60;
+        let L = Math.floor(b.l * W), T = Math.floor(b.t * H), R = Math.min(W - 1, Math.ceil(b.r * W)), B = Math.min(H - 1, Math.ceil(b.b * H));
+        const colHas = x => { for (let y = T; y <= B; y++) if (ink(at(x, y))) return true; return false; };
+        const rowHas = y => { for (let x = L; x <= R; x++) if (ink(at(x, y))) return true; return false; };
+        const maxGrow = Math.round(Math.max(W, H) * 0.25);
+        for (let k = 0, moved = true; moved && k < 4; k++) {
+          moved = false;
+          for (let n = 0; n < maxGrow && L > 0 && colHas(L); n++) { L--; moved = true; }
+          for (let n = 0; n < maxGrow && R < W - 1 && colHas(R); n++) { R++; moved = true; }
+          for (let n = 0; n < maxGrow && T > 0 && rowHas(T); n++) { T--; moved = true; }
+          for (let n = 0; n < maxGrow && B < H - 1 && rowHas(B); n++) { B++; moved = true; }
+        }
+        const m = 2;
+        Object.assign(b, { l: clamp((L - m) / W, 0, 1), t: clamp((T - m) / H, 0, 1), r: clamp((R + 1 + m) / W, 0, 1), b: clamp((B + 1 + m) / H, 0, 1) });
+      } catch (e) { /* keep the AI's box */ }
+    };
     // ask the AI where the logo is
     try {
       const tok = await getToken();
       const r = await fetch(`${C.url}/functions/v1/logo-detect`, { method: "POST", headers: { apikey: C.key, Authorization: `Bearer ${tok}`, "Content-Type": "application/json" }, body: JSON.stringify({ image: data }) });
       const j = r.ok ? await r.json() : null;
-      if (j && j.found && Array.isArray(j.box)) { const [l, t, rr, bb] = j.box.map(Number); if (rr > l && bb > t) { const pad = .015; Object.assign(b, { l: clamp(l - pad, 0, 1), t: clamp(t - pad, 0, 1), r: clamp(rr + pad, 0, 1), b: clamp(bb + pad, 0, 1) }); } msg.innerHTML = "Logo found. Adjust the box if needed."; }
+      if (j && j.found && Array.isArray(j.box)) { const [l, t, rr, bb] = j.box.map(Number); if (rr > l && bb > t) { const pad = .015; Object.assign(b, { l: clamp(l - pad, 0, 1), t: clamp(t - pad, 0, 1), r: clamp(rr + pad, 0, 1), b: clamp(bb + pad, 0, 1) }); snap(); } msg.innerHTML = "Logo found. Adjust the box if needed."; }
       else msg.innerHTML = "Move the box around the logo.";
     } catch (e) { msg.innerHTML = "Move the box around the logo."; }
     frame.hidden = false; draw();
@@ -180,19 +205,28 @@
       onChange(fn) { changed = fn; },
       // the cropped part, full resolution
       async crop() {
-        const W = img.naturalWidth, H = img.naturalHeight, sx = Math.round(b.l * W), sy = Math.round(b.t * H), sw = Math.max(1, Math.round((b.r - b.l) * W)), sh = Math.max(1, Math.round((b.b - b.t) * H));
-        const cv = document.createElement("canvas"); cv.width = sw; cv.height = sh;
-        cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        const W = img.naturalWidth, H = img.naturalHeight, sx = b.l * W, sy = b.t * H, sw = Math.max(1, (b.r - b.l) * W), sh = Math.max(1, (b.b - b.t) * H);
+        // drawings (SVG) are redrawn sharp at a good size instead of their small native size
+        const up = /svg/.test(file.type || "") ? Math.max(1, 1600 / Math.max(sw, sh)) : 1;
+        const cv = document.createElement("canvas"); cv.width = Math.round(sw * up); cv.height = Math.round(sh * up);
+        cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         return await new Promise(r => cv.toBlob(r, "image/png"));
       }
     };
   };
 
+  // ---------- a logo prepared without the editor: the AI frames it (never cutting it), then cut out and trimmed ----------
+  window.rnxAutoLogo = async function (file, getToken, mode) {
+    mode = mode || "original";
+    const c = await window.rnxLogoCropper(document.createElement("div"), file, getToken);
+    const src = await window.rnxProcessLogo(await c.crop(), "original");
+    return { src, out: mode === "original" ? src : await window.rnxProcessLogo(src, mode), mode };
+  };
   // ---------- logos: cut out (background removed), trimmed, in original colours, white or black ----------
   window.rnxProcessLogo = async function (file, mode) {
     const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = rej; im.src = typeof file === "string" ? file : URL.createObjectURL(file); });
     const iw = img.naturalWidth || img.width || 900, ih = img.naturalHeight || img.height || 300;
-    const k = /svg/.test((file && file.type) || "") ? 1200 / Math.max(iw, ih) : Math.min(1, 1200 / Math.max(iw, ih));
+    const k = /svg/.test((file && file.type) || "") || (typeof file === "string" && /\.svg(\?|$)/i.test(file)) ? 1200 / Math.max(iw, ih) : Math.min(1, 1200 / Math.max(iw, ih));
     const w = Math.max(1, Math.round(iw * k)), h = Math.max(1, Math.round(ih * k));
     const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
     const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, w, h);
@@ -240,7 +274,7 @@
           ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame ${opts.partners ? "the" : "your"} logo</div><div id="rxl-crop"></div></div>` : ""}
           <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
           <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
-            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>Partners</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
+            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
         </div>
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));

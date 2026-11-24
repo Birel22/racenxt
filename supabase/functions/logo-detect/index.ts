@@ -9,7 +9,7 @@ const AKEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const PROMPT = `This picture contains a company or brand logo (it may be a screenshot with other things around it).
-Find the main logo and give a tight bounding box around the whole logo: the symbol and its wordmark/name if they belong together, nothing else (no app interface, no other text, no photos).
+Find the main logo and give a bounding box around the WHOLE logo: the symbol together with its name or wordmark when they are shown together (e.g. a letter mark next to "FORMULA ... CHAMPIONSHIP"), nothing else (no app interface, no separate sponsor or partner logos beside it, no photos). Never cut any part of the logo: if unsure, make the box slightly larger.
 Answer with JSON only: {"found": true, "box": [left, top, right, bottom], "badge": true|false} using fractions of the image width and height between 0 and 1. "badge" is true if the logo is text or symbols cut out of / printed on a solid filled shape (a plate, box, circle or shield that is part of the logo). If there is no logo, answer {"found": false}.`;
 
 Deno.serve(async (req) => {
@@ -51,7 +51,7 @@ async function pick(body: any) {
 Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo.
 Prefer the most complete version (symbol + name together) and a clean one.
 Answer with JSON only: {"index": <image number, or 0 if none of them is the championship's logo>, "box": [left, top, right, bottom], "badge": true|false}
-- box: tight bounding box around the logo inside that image, as fractions (0 to 1) of its width and height.
+- box: bounding box around the WHOLE logo inside that image (symbol and name together, never cutting any part; slightly larger if unsure; no separate sponsor logos beside it), as fractions (0 to 1) of its width and height.
 - badge: true if the logo is text or symbols cut out of / printed on a solid filled shape (a plate, box, circle or shield that is part of the logo), false otherwise.` });
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {

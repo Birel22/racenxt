@@ -370,14 +370,14 @@ Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
 Task: the race calendar, nothing else.
 1. Find the official website of this championship. It may be published by its organiser together with other championships (e.g. a "Cup Series" running several classes): then use the organiser's calendar and keep only this championship's rounds.
-2. Read the official calendar for ${year} and ${year + 1} (only seasons officially published; skip rounds already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
-3. For each race weekend: round number, the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
+2. Read the official calendar for ${year} and ${year + 1} (only seasons officially published). Give EVERY round of ${year}, also the ones already raced: we need the whole season. Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
+3. For each race weekend: round number (if one weekend holds two or more championship rounds, a "double header" e.g. Formula E rounds 6 and 7 on the same weekend: "round" is the first and "round_to" the last; otherwise "round_to" is null), the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
 4. Test days, prologues and other events that are not races of this championship are not rounds: leave them out.
 5. A round without a confirmed date (TBC, or only a month) goes in "tbc" with what is known. Never invent or copy a date from another championship.
 6. If official sources disagree on a date, use the most recent one and say so in "doubts".
 JSON schema:
 {"website_url": string|null, "calendar_url": string|null,
- "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
+ "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}],
  "tbc": [{"year": number, "round": number|null, "name": string|null, "circuit": string|null, "when": string|null}],
  "doubts": [string], "notes": string}`;
@@ -473,7 +473,7 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     const same = await unchanged(`series_id=eq.${series.id}&event_id=is.null`, 90);
     if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
   }
-  const known = await db(`events?series_id=eq.${series.id}&select=id,year,round,name,start_date,end_date,duration_label,venues(name)`);
+  const known = await db(`events?series_id=eq.${series.id}&select=id,year,round,round_to,name,start_date,end_date,duration_label,venues(name)`);
   const { out, usage, trace, found } = await computeCalendar(series, src);
   const site = out.website_url || series.website_url;
   const domain = host(site || "");
@@ -486,19 +486,24 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   const upd: any = {};
   if (!series.website_url && site) upd.website_url = site;
 
-  // logo: copied to our storage when the championship has none yet (the admin turns it white and asks for confirmation)
+  // logo: when the championship has none yet, the best pictures go to the Review queue (Reject / Adjust / Approve)
   let logoNote = "";
-  if (!series.logo_url) {
+  const [logoPending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.logo&status=eq.pending&select=id&limit=1`);
+  if (!series.logo_url && !logoPending) {
     // agent 2, logo: its own search (the calendar agent doesn't look for logos any more)
     let logos: string[] = [];
     try {
       const f = await findLogo({ ...series, website_url: site }, null, `${series.slug}-svg`);
       addUsage(usage, f.usage);
-      // the pick alone when the AI picked one, otherwise the best candidates
-      logos = await storeLogos(series.slug, (f.picked >= 0 ? [f.cands[f.picked]] : f.cands.slice(0, 5)).map(x => ({ url: x.url })));
+      // the AI's pick first, then the next best candidates (the admin can switch to another one)
+      const order = f.picked >= 0 ? [f.cands[f.picked], ...f.cands.filter((_, i) => i !== f.picked)] : f.cands;
+      logos = await storeLogos(series.slug, order.slice(0, 5).map(x => ({ url: x.url })));
+      if (logos.length) {
+        await ins("proposals", { run_id: runId, series_id: series.id, kind: "logo", payload: { candidates: logos, picked: f.picked >= 0 ? logos[0] : null }, evidence: { url: site || "", excerpt: f.picked >= 0 ? "The official logo, picked by the AI among the pictures on the official site." : "The AI wasn't sure which picture is the official logo: pick one." } });
+        props.push("logo");
+      }
     } catch (_) { /* no logo this time */ }
-    // the admin page cuts it out, makes it white and standard size
-    if (logos.length) { upd.logo_url = logos[0]; upd.logo_candidates = logos; } else logoNote = " No logo found: add one on the review page.";
+    if (!logos.length) logoNote = " No logo found: add one in Edit championship.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
   // agent 4, where to watch: when the championship is added or checked by hand, or when a link is missing
@@ -536,16 +541,17 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
         props.push(`timetable: ${match.name}`);
       }
     }
-    if (match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date)) {
+    const newRoundTo = e.round_to && e.round && e.round_to > e.round && match.round === e.round && match.round_to !== e.round_to;
+    if (match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date) || newRoundTo) {
       await ins("proposals", { run_id: runId, series_id: series.id, event_id: match.id, kind: "event_change",
-        payload: { start_date: e.start_date, end_date: e.end_date || e.start_date, ...(e.duration_label ? { duration_label: e.duration_label } : {}) },
+        payload: { start_date: e.start_date, end_date: e.end_date || e.start_date, ...(e.duration_label ? { duration_label: e.duration_label } : {}), ...(newRoundTo ? { round: e.round, round_to: e.round_to } : {}) },
         evidence: { url: out.calendar_url || site, excerpt: `${e.name}: ${e.start_date} → ${e.end_date}`, check: proofOf(e) } });
-      props.push(`date change: ${match.name}`);
+      props.push(newRoundTo && match.start_date === e.start_date ? `double header: ${match.name}` : `date change: ${match.name}`);
     }
   }
   if (fresh.length) {
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
-      payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
+      payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
       evidence: { url: out.calendar_url || site, excerpt: [out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
@@ -978,11 +984,10 @@ Deno.serve(async (req) => {
     if (!s) return json({ error: "not found" }, 404);
     if (!s.website_url) return json({ candidates: s.logo_candidates || [] });
     const [full] = await db(`series?id=eq.${body.series_id}&select=*`);
-    const f = await findLogo(full, [], `${s.slug}-svg`);
-    const logos = await storeLogos(s.slug, (f.picked >= 0 ? [f.cands[f.picked]] : f.cands.slice(0, 6)).map(x => ({ url: x.url })), 6);
-    const all = (f.picked >= 0 ? logos : [...logos, ...(s.logo_candidates || [])]).slice(0, 8);
-    await patch("series", `id=eq.${s.id}`, { logo_candidates: all });
-    return json({ candidates: all });
+    const f = await findLogo(full, null, `${s.slug}-svg`);
+    const order = f.picked >= 0 ? [f.cands[f.picked], ...f.cands.filter((_, i) => i !== f.picked)] : f.cands;
+    const logos = await storeLogos(s.slug, order.slice(0, 6).map(x => ({ url: x.url })), 6);
+    return json({ candidates: logos, picked: f.picked >= 0 && logos.length ? logos[0] : null });
   }
   if (body.action === "discover" || body.action === "links") {
     [series] = await db(`series?id=eq.${body.series_id}&select=*`);

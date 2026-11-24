@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-212536"></script>
-<script src="rnx-social.js?v=20261124-212536"></script>
-<script src="rnx-auth.js?v=20261124-212536"></script>
-<script src="rnx-ui.js?v=20261124-212536"></script>
+<script src="config.js?v=20261124-215209"></script>
+<script src="rnx-social.js?v=20261124-215209"></script>
+<script src="rnx-auth.js?v=20261124-215209"></script>
+<script src="rnx-ui.js?v=20261124-215209"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -138,6 +138,32 @@
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
   .tile{position:relative;display:grid;gap:10px;justify-items:center;align-content:center;min-height:118px;padding:14px 10px;border-radius:16px;border:1.5px solid var(--line2);background:var(--panel);cursor:pointer;text-align:center}
   .tile .lg{height:40px} .tile .tn{font-size:14px;font-weight:600;line-height:1.25}
+  .oc-sw{position:relative}
+  .oc-q{position:relative;display:flex;align-items:center} .oc-q svg{position:absolute;left:14px;color:var(--mute);pointer-events:none} .oc-q input{padding-left:42px;width:100%}
+  .oc-list{display:grid;gap:6px} .oc-list[hidden]{display:none}
+  .oc-sug{margin-top:8px;padding:6px;border:1px solid #2c2f37;border-radius:16px;background:#16181d}
+  .oc-h{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);margin:14px 0 6px}
+  .oc-l{font:700 11px Barlow;letter-spacing:.12em;color:var(--mute);padding:8px 4px 2px;border-top:1px solid #23252b;margin-top:4px}
+  .oc-row,.oc-mine{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:6px 12px;border-radius:14px;border:1px solid #2a2d35;background:#1d2026;color:var(--text);text-align:left;cursor:pointer;font:inherit}
+  .oc-row:hover{background:#23262d;border-color:#3a3d46}
+  .oc-row[aria-checked="true"]{border-color:var(--acc);background:rgba(255,90,31,.08)}
+  .oc-lg{width:44px;height:30px;flex:none;display:grid;place-items:center} .oc-lg img{max-width:44px;max-height:30px;object-fit:contain}
+  .oc-lg span{font:700 11px 'Barlow Condensed',sans-serif;color:var(--dim)}
+  .oc-t{flex:1;min-width:0;display:grid;gap:1px} .oc-t b{font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .oc-t small{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .oc-ck{width:22px;height:22px;border-radius:50%;border:1.5px solid #3a3d46;flex:none}
+  .oc-row[aria-checked="true"] .oc-ck{background:var(--acc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/14px no-repeat;border-color:var(--acc)}
+  .oc-mine{cursor:default;border-color:var(--acc);background:rgba(255,90,31,.06)} .oc-mine .btn{height:36px}
+  .oc-x{width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:var(--text);display:grid;place-items:center;cursor:pointer;flex:none}
+  .oc-none{padding:12px;color:var(--dim);font-size:14px}
+  .cs-dots{display:flex;gap:6px;margin:0 0 12px} .cs-dots i{flex:1;height:4px;border-radius:2px;background:#2a2d35} .cs-dots i.on{background:var(--acc)}
+  .cs-p{margin:0 0 12px;font-size:14.5px}
+  .cs-f{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap} .cs-f .btn{flex:1;min-height:48px} .cs-skip{color:var(--dim)}
+  .cls-row.on{border-color:var(--acc);background:rgba(255,90,31,.08)}
+  .cls-row{display:flex;align-items:center;justify-content:space-between;gap:10px} .cls-row small{color:var(--dim);font-size:13px;font-weight:500}
+  .cs-add{color:var(--acc);flex-wrap:wrap} .cs-add small{flex-basis:100%;margin-top:-2px}
+  .cs-q{margin-bottom:10px} .cs-cars{max-height:46dvh;overflow-y:auto}
+  .cs-two{display:grid;grid-template-columns:110px 1fr;gap:10px}
+  .cs-ph{display:flex;align-items:center;gap:12px} .cs-ph img{width:120px;aspect-ratio:16/10;object-fit:cover;border-radius:10px}
   .tile .tc{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);min-height:0} .tile .tc:empty{display:none}
   .cls-ov{position:fixed;inset:0;z-index:60;background:rgba(5,6,8,.62);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;animation:clsF .25s ease}
   .cls-box{width:100%;max-width:520px;max-height:85dvh;overflow-y:auto;background:#16181d;border:1px solid #2c2f37;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:clsU .32s cubic-bezier(.2,.85,.25,1)}
@@ -331,7 +357,7 @@ async function heroPhoto(file){
   cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
   return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
 }
-const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set(), cls:{} };
+const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set(), det:{} };
 let FRAMER = null;
 async function onboarding(another){
   if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set() });
@@ -363,12 +389,14 @@ function obStep(){
     <div class="field"><label class="f" for="o-web">Website</label><input id="o-web" value="${esc(OB.website)}" inputmode="url" autocomplete="url" autocapitalize="off"></div>
     <div class="field"><label class="f" for="o-mail">Contact email</label><input id="o-mail" value="${esc(OB.email)}" type="email" inputmode="email" autocomplete="email"><div class="help">Shown on your page so teams, media and partners can reach you.</div></div></div>`;
   if (n === 3){
-    const groups = Object.keys(SPORT).map(k => [k, ST.series.filter(s => s.sport === k)]).filter(g => g[1].length);
-    body = `<div class="field"><label class="f" for="o-q">Search</label><input id="o-q" type="search" autocomplete="off"></div>
-      <div id="o-champs">${groups.map(([k, list]) => `<div class="grp" data-g>${esc(SPORT[k].l)}</div><div class="tiles">${list.map(s => `<button type="button" class="tile" role="checkbox" aria-checked="${OB.picked.has(s.id)}" data-s="${s.id}"><span class="lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s.short_name.slice(0,5))}</span>`}</span><span class="tn">${esc(s.name)}</span><span class="tc" data-tc="${s.id}">${OB.cls[s.id] ? esc(OB.cls[s.id]) : ""}</span></button>`).join("")}</div>`).join("")}</div>
+    body = `<div class="field oc-sw"><label class="f" for="o-q">Search championships</label>
+        <div class="oc-q">${'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'}<input id="o-q" type="search" autocomplete="off" enterkeyhint="search" placeholder="e.g. ELMS, IMSA, WSK" aria-controls="o-sug"></div>
+        <div id="o-sug" class="oc-list oc-sug" role="listbox" hidden></div></div>
+      <div id="o-mine"></div>
+      <div id="o-all"></div>
       <div class="muted" style="font-size:14px;text-align:center">Can't find yours? Write to us and we'll add it.</div>`;
   }
-  const next = n < 3 ? `<button class="btn pri block" id="o-next">Continue</button>` : `<button class="btn pri block" id="o-next">${OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"}</button>`;
+  const next = n < 3 ? `<button class="btn pri block" id="o-next">Continue</button>` : `<button class="btn pri block" id="o-next">${nextLabel()}</button>`;
   shell(`<div class="ob">${head}<div class="ob-body">${body}</div><div class="ob-foot">${next}${n > 1 ? `<button class="btn ghost block" id="o-back">Back</button>` : OB.another ? `<button class="btn ghost block" id="o-back">Cancel</button>` : ""}</div></div>`);
   if ($("#o-back")) $("#o-back").onclick = () => { if (n > 1){ obSave(); OB.step--; obStep(); } else history.back(); };
   if (n === 1){
@@ -386,20 +414,7 @@ function obStep(){
     if ($("#ob-adj")) $("#ob-adj").onclick = async () => { obSave(); const n = await rnxPhotoEditor(OB.photoUrl, OB.pos, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`); if (n){ OB.pos = n; obStep(); } };
   }
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
-  if (n === 3){
-    $("#o-q").oninput = e => { const q = e.target.value.trim().toLowerCase(); $$("#o-champs .tile").forEach(b => { const s = ST.series.find(x => x.id === b.dataset.s); b.hidden = q && !(s.name + " " + s.short_name).toLowerCase().includes(q); }); $$("#o-champs [data-g]").forEach(g => { const any = [...g.nextElementSibling.children].some(b => !b.hidden); g.hidden = !any; g.nextElementSibling.hidden = !any; }); };
-    // a championship with classes (karting categories, IMSA/WEC classes): the athlete's class is asked right away,
-    // because their page and calendar only show that class's races and sessions
-    $$("#o-champs .tile").forEach(b => b.onclick = async () => {
-      const id = b.dataset.s, ser = ST.series.find(x => x.id === id), cls = (ser?.classes || []).length > 1 ? ser.classes : null;
-      if (OB.picked.has(id)) { OB.picked.delete(id); delete OB.cls[id]; }
-      else if (cls) { const c = await pickClass(ser, cls); if (!c) return; OB.picked.add(id); OB.cls[id] = c; }
-      else OB.picked.add(id);
-      b.setAttribute("aria-checked", OB.picked.has(id));
-      const tc = b.querySelector("[data-tc]"); if (tc) tc.textContent = OB.cls[id] || "";
-      $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub";
-    });
-  }
+  if (n === 3) obChamps();
   $("#o-next").onclick = async () => {
     obSave();
     if (n === 1){
@@ -420,7 +435,12 @@ function obStep(){
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){
         let yr = YEAR; try { const up = await api(`events?series_id=eq.${sid}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
-        await ins("entries", { profile_id:id, series_id:sid, year:yr, category: OB.cls[sid] || null, color: COLORS[ci++ % COLORS.length] });
+        const d = OB.det[sid] || {};
+        let vehicle_id = d.vehicle?.id || null;
+        if (!vehicle_id && d.newCar) { try { const [v] = await ins("vehicles", { name: d.newCar, status: "pending", created_by_profile: id }); vehicle_id = v.id; } catch(e){} }
+        let car_photo_url = null;
+        if (d.photo) { try { car_photo_url = await upload(await carPic(d.photo), `cars/${id}-${Date.now()}.jpg`); } catch(e){} }
+        await ins("entries", { profile_id:id, series_id:sid, year:yr, category: d.category || null, vehicle_id, car_number: d.car_number || null, team: d.team || null, teammates: d.teammates?.length ? d.teammates : null, car_photo_url, color: COLORS[ci++ % COLORS.length] });
       }
       localStorage.setItem(CUR, id);
       location.replace(PAGE_BASE + OB.slug);
@@ -431,29 +451,140 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxLogoThumb(url)}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
+  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxLogoThumb(url, "Your logo", OB.photoUrl, OB.pos)}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
   const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) OB.logo = { src: r.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgx")) $("#ob-lgx").onclick = () => { OB.logo = null; obLogo(); };
 }
-// "Your class in WSK Super Master Series": one tap. Resolves with the class, or null if closed.
-function pickClass(ser, classes){
-  return new Promise(res => {
-    const back = document.activeElement;
+// ---------- "Your championships": search with suggestions, your picks, popular, then A–Z ----------
+let POP = null, VEHS = null;
+const nextLabel = () => OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub";
+const lgMini = s => `<span class="oc-lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc((s.short_name || s.name).slice(0, 5))}</span>`}</span>`;
+function detLine(id){
+  const d = OB.det[id] || {}, bits = [d.category, d.vehicle?.name || d.newCar, d.car_number ? "#" + d.car_number : "", d.team].filter(Boolean);
+  return bits.join(" · ");
+}
+const ocRow = s => { const on = OB.picked.has(s.id); return `<button type="button" class="oc-row" role="checkbox" aria-checked="${on}" data-s="${s.id}">${lgMini(s)}<span class="oc-t"><b>${esc(s.name)}</b><small>${esc(on && detLine(s.id) ? detLine(s.id) : [s.short_name !== s.name ? s.short_name : "", SPORT[s.sport]?.l].filter(Boolean).join(" · "))}</small></span><i class="oc-ck" aria-hidden="true"></i></button>`; };
+async function obChamps(){
+  if (!POP) { POP = {}; try { (await rpc("series_popular")).forEach(r => POP[r.series_id] = r.athletes); } catch(e){} }
+  const byName = [...ST.series].sort((a, b) => a.name.localeCompare(b.name));
+  const fav = [...ST.series].sort((a, b) => (POP[b.id] || 0) - (POP[a.id] || 0) || a.name.localeCompare(b.name)).slice(0, 3);
+  const drawAll = () => {
+    let last = "", az = "";
+    for (const s of byName) { const l = (s.name[0] || "#").toUpperCase(); if (l !== last) { az += `<div class="oc-l" aria-hidden="true">${esc(l)}</div>`; last = l; } az += ocRow(s); }
+    $("#o-all").innerHTML = `<div class="oc-h">Popular</div><div class="oc-list">${fav.map(ocRow).join("")}</div><div class="oc-h">All championships · A–Z</div><div class="oc-list">${az}</div>`;
+    const mine = byName.filter(s => OB.picked.has(s.id));
+    $("#o-mine").innerHTML = mine.length ? `<div class="oc-h">Your championships</div><div class="oc-list">${mine.map(s => `<div class="oc-mine">${lgMini(s)}<span class="oc-t"><b>${esc(s.name)}</b><small>${esc(detLine(s.id) || "Tap Edit to add your class, car and number")}</small></span><button type="button" class="btn sm" data-ed="${s.id}">Edit</button><button type="button" class="oc-x" data-rm="${s.id}" aria-label="Remove ${esc(s.name)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join("")}</div>` : "";
+    bind();
+  };
+  const drawSug = () => {
+    const q = $("#o-q").value.trim().toLowerCase(), box = $("#o-sug");
+    if (!q) { box.hidden = true; box.innerHTML = ""; $("#o-all").hidden = false; return; }
+    const hits = byName.filter(s => (s.name + " " + (s.short_name || "")).toLowerCase().includes(q))
+      .sort((a, b) => ((b.short_name || "").toLowerCase().startsWith(q) || b.name.toLowerCase().startsWith(q)) - ((a.short_name || "").toLowerCase().startsWith(q) || a.name.toLowerCase().startsWith(q)));
+    box.innerHTML = hits.length ? hits.slice(0, 12).map(ocRow).join("") : `<div class="oc-none">No championship called “${esc($("#o-q").value.trim())}” yet. Write to us and we'll add it.</div>`;
+    box.hidden = false; $("#o-all").hidden = true; bind();
+  };
+  const toggle = async id => {
+    const ser = ST.series.find(x => x.id === id);
+    if (OB.picked.has(id)) { const r = await champSetup(ser, OB.det[id] || {}); if (r) OB.det[id] = r; }
+    else { const r = await champSetup(ser, {}); if (!r) return; OB.picked.add(id); OB.det[id] = r; }
+    $("#o-q").value = ""; drawSug(); drawAll(); $("#o-next").textContent = nextLabel();
+  };
+  function bind(){
+    $$("[data-s]").forEach(b => b.onclick = () => toggle(b.dataset.s));
+    $$("[data-ed]").forEach(b => b.onclick = () => toggle(b.dataset.ed));
+    $$("[data-rm]").forEach(b => b.onclick = () => { OB.picked.delete(b.dataset.rm); delete OB.det[b.dataset.rm]; drawAll(); $("#o-next").textContent = nextLabel(); });
+  }
+  $("#o-q").oninput = drawSug;
+  $("#o-q").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#o-sug [data-s]")?.click(); } };
+  drawAll();
+}
+
+// ---------- adding a championship: class → car → number, team, teammates, car photo. Every step can be skipped. ----------
+// resolves with { category, vehicle | newCar, car_number, team, teammates, photo } or null if closed
+function champSetup(ser, d0){
+  return new Promise(async res => {
+    const d = { ...d0 }, back = document.activeElement;
+    const CL = (ser.classes || []).length > 1 ? ser.classes : null;
+    if (!VEHS) { try { VEHS = await api("vehicles?status=eq.approved&select=id,name,manufacturer,category&order=name"); } catch(e){ VEHS = []; } }
+    let mine = []; try { mine = (await api(`series_vehicles?series_id=eq.${ser.id}&select=vehicle_id,classes`)); } catch(e){}
+    const steps = [...(CL ? ["class"] : []), "car", "details"];
+    let at = 0;
     const ov = document.createElement("div"); ov.className = "cls-ov";
-    ov.innerHTML = `<div class="cls-box" role="dialog" aria-modal="true" aria-labelledby="cls-h">
-      <div class="cls-top"><div><div class="cls-k">${esc(ser.short_name || "")}</div><h2 id="cls-h">Your class</h2></div><button type="button" class="cls-x" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-      <p class="muted" style="margin:0 0 12px;font-size:14.5px">${ser.class_format === "separate" ? "Each class has its own sessions: your page shows only yours." : "Your page shows the races and sessions of your class."}</p>
-      <div class="cls-list">${classes.map(c => `<button type="button" class="cls-row" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>`;
+    ov.innerHTML = `<div class="cls-box" role="dialog" aria-modal="true" aria-labelledby="cls-h"><div class="cls-top"><div><div class="cls-k">${esc(ser.short_name || ser.name)}</div><h2 id="cls-h"></h2></div><button type="button" class="cls-x" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="cs-dots" aria-hidden="true">${steps.map(() => "<i></i>").join("")}</div><div id="cs-b"></div><div class="cs-f" id="cs-f"></div></div>`;
     const close = v => { ov.remove(); document.removeEventListener("keydown", key); document.body.style.overflow = ""; back?.focus?.(); res(v); };
-    const key = e => { if (e.key === "Escape") close(null); if (e.key === "Tab"){ const f = [...ov.querySelectorAll("button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); } } };
-    ov.onclick = e => { if (e.target === ov) close(null); };
-    ov.querySelector(".cls-x").onclick = () => close(null);
-    ov.querySelectorAll(".cls-row").forEach(b => b.onclick = () => close(b.dataset.c));
+    const key = e => { if (e.key === "Escape") quit(); if (e.key === "Tab"){ const f = [...ov.querySelectorAll("button:not([disabled]),input")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); } } };
+    // closing after a first answer keeps what's chosen (adding), closing right away adds nothing
+    const quit = () => close(at > 0 || Object.keys(d0).length ? d : null);
+    ov.onclick = e => { if (e.target === ov) quit(); };
+    ov.querySelector(".cls-x").onclick = quit;
+    const next = () => { at++; if (at >= steps.length) close(d); else draw(); };
+    const prev = () => { if (at > 0) { at--; draw(); } };
+    const foot = (skip, main) => `${at > 0 ? `<button type="button" class="btn" id="cs-back">Back</button>` : ""}<button type="button" class="btn cs-skip" id="cs-skip">${skip}</button>${main ? `<button type="button" class="btn pri" id="cs-ok">${main}</button>` : ""}`;
+    function draw(){
+      const st = steps[at], b = ov.querySelector("#cs-b"), f = ov.querySelector("#cs-f");
+      ov.querySelectorAll(".cs-dots i").forEach((x, i) => x.classList.toggle("on", i <= at));
+      if (st === "class"){
+        ov.querySelector("#cls-h").textContent = "Your class";
+        b.innerHTML = `<p class="muted cs-p">${ser.class_format === "separate" ? "Each class has its own sessions: your page shows only yours." : "Your page shows the races and sessions of your class."}</p><div class="cls-list">${CL.map(c => `<button type="button" class="cls-row${d.category === c ? " on" : ""}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
+        f.innerHTML = foot("Skip, do it later");
+        b.querySelectorAll("[data-c]").forEach(x => x.onclick = () => { d.category = x.dataset.c; next(); });
+        f.querySelector("#cs-skip").onclick = () => { delete d.category; close(d); };
+      }
+      if (st === "car"){
+        ov.querySelector("#cls-h").textContent = "Your car";
+        const ids = new Set(mine.filter(m => !d.category || !(m.classes || []).length || m.classes.includes(d.category)).map(m => m.vehicle_id));
+        b.innerHTML = `<div class="oc-q cs-q">${'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'}<input id="cs-q" type="search" autocomplete="off" placeholder="Search cars, e.g. ORECA 07" aria-label="Search cars"></div><div class="cls-list cs-cars" id="cs-cars"></div>`;
+        const list = () => {
+          const q = b.querySelector("#cs-q").value.trim().toLowerCase();
+          const m = VEHS.filter(v => !q || (v.name + " " + (v.manufacturer || "")).toLowerCase().includes(q));
+          const top = m.filter(v => ids.has(v.id)), rest = m.filter(v => !ids.has(v.id));
+          const row = v => `<button type="button" class="cls-row${d.vehicle?.id === v.id ? " on" : ""}" data-v="${v.id}"><span>${esc(v.name)}</span>${v.category ? `<small>${esc(v.category)}</small>` : ""}</button>`;
+          b.querySelector("#cs-cars").innerHTML = (top.length ? `<div class="oc-h">In ${esc(ser.short_name || ser.name)}${d.category ? " · " + esc(d.category) : ""}</div>${top.map(row).join("")}` : "")
+            + (rest.length ? `${top.length ? `<div class="oc-h">All cars</div>` : ""}${rest.slice(0, q ? 30 : 12).map(row).join("")}` : "")
+            + (q ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: we check it and add its specs</small></button>` : "");
+          b.querySelectorAll("[data-v]").forEach(x => x.onclick = () => { d.vehicle = VEHS.find(v => v.id === x.dataset.v); delete d.newCar; next(); });
+          const add = b.querySelector("#cs-add"); if (add) add.onclick = () => { d.newCar = b.querySelector("#cs-q").value.trim(); delete d.vehicle; next(); };
+        };
+        b.querySelector("#cs-q").oninput = list; list();
+        f.innerHTML = foot("Skip, do it later");
+        f.querySelector("#cs-skip").onclick = () => { delete d.vehicle; delete d.newCar; at = steps.length; close(d); };
+        setTimeout(() => b.querySelector("#cs-q").focus({ preventScroll: true }), 50);
+      }
+      if (st === "details"){
+        ov.querySelector("#cls-h").textContent = "Your entry";
+        const car = d.vehicle?.name || d.newCar;
+        b.innerHTML = `<p class="muted cs-p">${car ? esc(car) : "Your car"}${d.category ? " · " + esc(d.category) : ""}</p>
+          <div class="cs-two"><div class="field"><label class="f" for="cs-num">Car number</label><input id="cs-num" inputmode="numeric" autocomplete="off" value="${esc(d.car_number || "")}" enterkeyhint="next"></div>
+          <div class="field"><label class="f" for="cs-team">Team</label><input id="cs-team" autocomplete="off" data-form-type="other" value="${esc(d.team || "")}" enterkeyhint="next"></div></div>
+          <div class="field"><label class="f" for="cs-mates">Teammates</label><input id="cs-mates" autocomplete="off" data-form-type="other" value="${esc((d.teammates || []).join(", "))}" enterkeyhint="done"><div class="help">Separate names with commas.</div></div>
+          <div class="field"><label class="f">Car photo</label><div class="cs-ph">${d.photo ? `<img src="${esc(d.photoUrl)}" alt="">` : `<span class="muted">No photo</span>`}<button type="button" class="btn sm" id="cs-pic">${d.photo ? "Change photo" : "Add photo"}</button></div><div class="help">Your car with your livery. Fans see it when they tap your car.</div></div>`;
+        f.innerHTML = foot("Skip, do it later", "Done");
+        const save = () => { d.car_number = b.querySelector("#cs-num").value.trim(); d.team = b.querySelector("#cs-team").value.trim(); d.teammates = b.querySelector("#cs-mates").value.split(",").map(x => x.trim()).filter(Boolean); };
+        b.querySelector("#cs-pic").onclick = async () => { save(); const fl = await obPick(); if (!fl) return; d.photo = fl; d.photoUrl = URL.createObjectURL(fl); draw(); };
+        f.querySelector("#cs-ok").onclick = () => { save(); next(); };
+        f.querySelector("#cs-skip").onclick = () => next();
+        b.querySelector("#cs-num").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); b.querySelector("#cs-team").focus(); } };
+        b.querySelector("#cs-team").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); b.querySelector("#cs-mates").focus(); } };
+        b.querySelector("#cs-mates").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); next(); } };
+      }
+      const bk = f.querySelector("#cs-back"); if (bk) bk.onclick = prev;
+    }
     document.addEventListener("keydown", key); document.body.style.overflow = "hidden";
-    document.body.appendChild(ov); ov.querySelector(".cls-row").focus();
+    document.body.appendChild(ov); draw();
+    (ov.querySelector(".cls-row, #cs-q, #cs-num") || ov.querySelector(".cls-x")).focus({ preventScroll: true });
   });
+}
+// a car photo, resized for the page
+async function carPic(file){
+  try {
+    const img = await new Promise((r, j) => { const im = new Image(); im.onload = () => r(im); im.onerror = j; im.src = URL.createObjectURL(file); });
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), cv = document.createElement("canvas");
+    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    return await new Promise(r => cv.toBlob(r, "image/jpeg", .86));
+  } catch(e){ return file; }
 }
 const obPick = () => new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = () => { res(i.files[0] || null); setTimeout(() => i.remove(), 1000); }; i.click(); });
 function obSave(){

@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-212536"></script>
-<script src="rnx-auth.js?v=20261124-212536"></script>
-<script src="rnx-ui.js?v=20261124-212536"></script>
+<script src="config.js?v=20261124-215209"></script>
+<script src="rnx-auth.js?v=20261124-215209"></script>
+<script src="rnx-ui.js?v=20261124-215209"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -1099,6 +1099,8 @@ async function editSeries(s, src){
   row.classes = cls.length > 1 ? cls : null;
   if (row.class_format !== "none" && !row.classes){ alert("List at least two classes, or choose One class."); return editSeries(s, src); }
   if (!row.classes) row.class_format = "none";
+  // saving without classes would wipe them (and the class of every athlete's sessions): ask first
+  if ((s.classes || []).length > 1 && !row.classes && !confirm(`Remove the classes of ${s.short_name || s.name} (${s.classes.join(", ")})? Athletes' pages will show every class's sessions.`)) return editSeries(s, src);
   const fmt = Object.fromEntries([["practice", fmt_practice], ["qualifying", fmt_qualifying], ["race", fmt_race]].filter(([, v]) => v !== "" && v != null && +v >= 0).map(([k, v]) => [k, Math.round(+v)]));
   row.weekend_format = Object.keys(fmt).length ? fmt : null;
   for (const k of ["stream_url", "broadcasters_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }

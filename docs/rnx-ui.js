@@ -39,6 +39,10 @@
   .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .rxt.rxt-lg{background:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
   .rxt .rxt-logo{position:absolute;inset:14% 12%;width:76%;height:72%;object-fit:contain}
+  .rxt.rxt-pv .rxt-pvlg{position:absolute;inset:auto;top:8%;left:7%;width:34%;height:26%;object-fit:contain;object-position:left top;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
+  .rxl-warn{display:grid;gap:6px;margin:0 18px 12px;padding:12px 14px;border-radius:14px;border:1px solid #5a4a1a;background:color-mix(in srgb,#f2b20f 9%,transparent);font-size:14px;line-height:1.4;color:#d5d6d9}
+  .rxl-warn b{color:#f2b20f;font-weight:700} .rxl-warn ul{margin:0;padding-left:18px} .rxl-warn li{margin:2px 0}
+  .rxl-wb{justify-self:start;margin-top:4px;height:40px;padding:0 14px;border-radius:12px;border:1px solid #3a3d46;background:#1d2026;color:#f2f2ef;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
   .rxt-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed #3b3e47;border-radius:inherit;color:#8e919b;font:600 13px Barlow,system-ui,sans-serif;background:#15161b}
   .rxt-empty svg{width:22px;height:22px}
   .rxl-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:14px;background:#0d0e11;border:1px solid #2a2d35}
@@ -248,6 +252,8 @@
     const transparentBg = border.filter(b => b[3] < 40).length > border.length * 0.5;
     const solid = border.filter(b => b[3] >= 40), med = j => solid.map(b => b[j]).sort((a, c) => a - c)[solid.length >> 1] || 0;
     const bg = [med(0), med(1), med(2)];
+    // a plain background: almost all of the picture's edge is the same colour. Otherwise (photo, gradient, pattern) the cut-out can't be clean.
+    const plain = transparentBg || solid.filter(b => Math.hypot(b[0] - bg[0], b[1] - bg[1], b[2] - bg[2]) < 38).length >= solid.length * 0.8;
     let minX = w, minY = h, maxX = -1, maxY = -1;
     for (let i = 0; i < px.length; i += 4) {
       const a = transparentBg ? px[i + 3] : Math.max(0, Math.min(255, (Math.hypot(px[i] - bg[0], px[i + 1] - bg[1], px[i + 2] - bg[2]) - 20) * 4)) * (px[i + 3] / 255);
@@ -262,13 +268,16 @@
     const ox = Math.max(0, minX - pad), oy = Math.max(0, minY - pad), ow = Math.min(w, maxX + pad + 1) - ox, oh = Math.min(h, maxY + pad + 1) - oy;
     const out = document.createElement("canvas"); out.width = ow; out.height = oh;
     out.getContext("2d").drawImage(cv, ox, oy, ow, oh, 0, 0, ow, oh);
-    return await new Promise(r => out.toBlob(r, "image/png"));
+    const blob = await new Promise(r => out.toBlob(r, "image/png"));
+    if (blob && !plain) blob.busyBg = true;
+    return blob;
   };
 
   // ---------- personal logo: small box like the photo, and a full editor (frame it, colour, phone / computer preview) ----------
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
-  window.rnxLogoThumb = function (logo, label) {
+  window.rnxLogoThumb = function (logo, label, photo, pos) {
     style(); label = label || "Your logo";
+    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}"></div>`; }
     return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="${esc(label)}"></div>`
       : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>${esc(label)}</span></div>`;
   };
@@ -287,6 +296,7 @@
           <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
             ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
         </div>
+        <div class="rxl-warn" id="rxl-warn" role="status" hidden><b>The background isn't plain, so we can't cut the logo out cleanly.</b><span>For a clean logo, use one of these instead:</span><ul><li>Your logo file: SVG, or a PNG with a transparent background</li><li>A screenshot of your logo on a plain white or black background</li></ul><button type="button" class="rxl-wb" id="rxl-other">Choose another picture</button></div>
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
       const stage = ov.querySelector("#rxl-stage"), lg = stage.querySelector(".lg"), ok = ov.querySelector("#rxl-ok");
@@ -299,6 +309,8 @@
           const out = await rnxProcessLogo(base, st.mode);
           if (my !== st.seq) return;
           st.out = out; lg.src = URL.createObjectURL(out); lg.hidden = false; busy(""); ok.disabled = false;
+          // the picture's background isn't plain: say so, and how to get a clean logo (they can still keep this one)
+          const warn = ov.querySelector("#rxl-warn"); if (warn) warn.hidden = !(opts.file && st.src && st.src.busyBg);
         } catch (e) { if (my === st.seq) busy(e.message === "No logo found in this picture" ? "No logo found here: move the box around your logo" : "Couldn't read this picture. Try another one."); }
         finally { if (my === st.seq) st.busy = false; }
       };
@@ -314,10 +326,18 @@
       ov.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; ov.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
       ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); stage.classList.toggle("desk", b.dataset.v === "desk"); });
       ov.querySelector(".rxe-x").focus({ preventScroll: true });
-      (async () => {
+      const start = async () => {
         if (opts.file && window.rnxLogoCropper) { st.cropper = await rnxLogoCropper(ov.querySelector("#rxl-crop"), opts.file, opts.getToken); st.cropper.onChange(render); }
         render();
-      })();
+      };
+      // another picture without leaving the editor
+      const other = ov.querySelector("#rxl-other");
+      if (other) other.onclick = () => {
+        const i = document.createElement("input"); i.type = "file"; i.accept = "image/*,.svg"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i);
+        i.onchange = () => { const f = i.files[0]; setTimeout(() => i.remove(), 1000); if (!f) return; opts.file = f; st.src = null; ov.querySelector("#rxl-warn").hidden = true; start(); };
+        i.click();
+      };
+      start();
     });
   };
 

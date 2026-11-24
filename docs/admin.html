@@ -574,7 +574,7 @@ async function loadList(){
   const folCell = s => { const x = FOL[s.id]; return x?.published ? `<b>${x.published}</b>${x.total > x.published ? ` <span class="muted">+${x.total - x.published}</span>` : ""}` : x?.total ? `<span class="muted">0 +${x.total}</span>` : `<span class="muted">0</span>`; };
   const status = s => s.last_check_result === "error" ? ["bad","Agent error"] : s.pending_proposals > 0 ? ["warn", `${s.pending_proposals} to review`] : s.missing_soon > 0 ? ["warn","Schedule missing"] : s.last_check_at ? ["good","Up to date"] : ["","Not checked yet"];
   const col = { good:"var(--good)", warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" };
-  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:80px">Discipline</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th class="nowrap" title="Athletes with a published page racing in it (+ pages not published yet). The agents only search timetables for races with at least one published athlete.">Athletes</th><th>Status</th></tr>
+  $("#c-list").innerHTML = rows.length ? `<div class="tbl"><table><tr><th style="width:52px"></th><th>Championship</th><th style="width:80px">Discipline</th><th class="nowrap">Races ${YEAR}</th><th class="nowrap">Races ${YEAR+1}</th><th class="nowrap" title="Athletes with a published page racing in it this season or next (+ pages not published yet)">Active users</th><th>Status</th></tr>
     ${rows.map(s => { const st = status(s); return `<tr class="click" data-slug="${esc(s.slug)}"><td>${s.logo_url ? `<img class="logo-sm" src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph">${esc(s.short_name.slice(0,4))}</div>`}</td><td><b>${esc(s.name)}</b>${s.short_name && s.short_name !== s.name ? ` <span class="dim">(${esc(s.short_name)})</span>` : ""}</td><td>${sportIcon(s.sport)}</td><td>${s.races_this_year}</td><td>${s.races_next_year}</td><td class="nowrap">${folCell(s)}</td><td class="nowrap"><span class="light" style="background:${col[st[0]]}"></span>${st[1]}</td></tr>`; }).join("")}</table></div>
     <div class="pager">${from + 1}–${Math.min(from + PAGE, total)} of ${total} <button class="btn sm" id="pg-prev"${CQ.page ? "" : " disabled"}>‹</button><button class="btn sm" id="pg-next"${from + PAGE < total ? "" : " disabled"}>›</button></div>`
     : `<div class="card empty">No championship found.</div>`;
@@ -985,7 +985,7 @@ async function editSeries(s, src){
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
-    { section:"Race weekend", sub:"What a full weekend usually has. Learned from the first timetable you approve; the agents keep searching until each kind is published.", items:[
+    { section:"Usual race weekend", sub:"Only a hint for the AI (formats often change): learned from the first timetable you approve. It never blocks or stops a search.", items:[
       { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
     { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
       { k:"stream_url", l:"Official stream", type:"url", help:"The championship's own live stream, e.g. F1 TV, MotoGP VideoPass, FIA WEC+, an official YouTube live page." },

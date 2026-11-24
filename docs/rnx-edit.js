@@ -493,7 +493,7 @@
   }
   let DISC = [];
   async function loadLists() {
-    if (!SERIES.length) [SERIES, VEH, DISC] = await Promise.all([api("series?select=id,slug,name,short_name,sport,logo_url&order=name"), api("vehicles?select=*&order=name"), api("disciplines?select=key,name&order=sort,name").catch(() => [])]);
+    if (!SERIES.length) [SERIES, VEH, DISC] = await Promise.all([api("series?select=id,slug,name,short_name,sport,logo_url,classes&order=name"), api("vehicles?select=*&order=name"), api("disciplines?select=key,name&order=sort,name").catch(() => [])]);
   }
   async function addChampionship() {
     await loadLists();
@@ -509,11 +509,18 @@
     if (!r) return;
     const pick = await pickRounds(r, null);
     if (!pick) return;
-    editEntry({ series_id: r.id, series: r, year: pick.year, hide: pick.hide, color: COLORS.find(c => !R.entries.some(e => (e.color || "").toUpperCase() === c)) || COLORS[0] });
+    editEntry({ series_id: r.id, series: r, year: pick.year, hide: pick.hide, category: pick.category || null, color: COLORS.find(c => !R.entries.some(e => (e.color || "").toUpperCase() === c)) || COLORS[0] });
   }
   // which races you do: the whole season is ticked, untick the ones you skip. The season is asked only when two are published.
   async function pickRounds(s, en) {
-    const evs = await api(`events?series_id=eq.${s.id}&${en ? `year=eq.${en.year}` : `end_date=gte.${TODAY}`}&select=id,year,round,name,start_date,end_date,venues(name,country)&order=start_date`);
+    const evs = await api(`events?series_id=eq.${s.id}&${en ? `year=eq.${en.year}` : `end_date=gte.${TODAY}`}&select=id,year,round,name,start_date,end_date,classes,venues(name,country)&order=start_date`);
+    // shared calendar (e.g. IMSA): the athlete's class decides which races are theirs
+    const ck = c => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const CLS = (s.classes || []).length > 1 ? s.classes : [];
+    let cls = CLS.find(c => ck(c) === ck(en?.category)) || null;
+    const forCls = e => !CLS.length || !cls || !(e.classes || []).length || e.classes.some(c => ck(c) === ck(cls));
+    const clsSeg = () => CLS.length ? `<div><label class="rx-f" id="rx-kl">Your class</label><div class="rx-seg rx-seg-wrap" role="radiogroup" aria-labelledby="rx-kl" id="rx-ks">${CLS.map(c => `<button type="button" role="radio" data-k="${esc(c)}" aria-checked="${c === cls}">${esc(c)}</button>`).join("")}</div><div class="rx-help">${esc(s.short_name)} classes don't all race at every round: your page only shows your class's races.</div></div>` : "";
+    const needCls = () => { if (CLS.length && !cls) { alert("Choose your class."); return true; } return false; };
     const taken = new Set(R.entries.filter(e => e.series_id === s.id && e.id !== en?.id).map(e => e.year));
     const years = [...new Set(evs.map(e => e.year))].filter(y => !taken.has(y));
     let year = en ? en.year : years[0];
@@ -521,16 +528,19 @@
     if (en) { const ov = await api(`event_overrides?profile_id=eq.${R.profile.id}&hidden=eq.true&select=event_id`); hidden = new Set(ov.map(o => o.event_id)); }
     if (evs.length && year == null && !en) { alert(`${s.short_name} is already in your season. Tap it in "Your season" to change it.`); return null; }
     if (!evs.length || year == null) {
-      if (en) return { year: en.year, hide: [] };
-      let y = YEAR; while (taken.has(y)) y++;
-      const ok = await sheet(`${s.short_name} ${y}`, `<div class="rx-help" style="font-size:15px;color:#d5d6d9">The ${esc(s.name)} calendar isn't published yet. Your races will appear on your page as soon as it is.</div>`, { ok: "Continue" });
-      return ok ? { year: y, hide: [] } : null;
+      let y = en ? en.year : YEAR; while (!en && taken.has(y)) y++;
+      if (en && !CLS.length) return { year: en.year, hide: [] };
+      const ok = await sheet(`${s.short_name} ${y}`, `${clsSeg()}<div class="rx-help" style="font-size:15px;color:#d5d6d9">The ${esc(s.name)} calendar isn't published yet. Your races will appear on your page as soon as it is.</div>`, { ok: en ? "Save" : "Continue",
+        after() { $$("#rx-ks button").forEach(b => b.onclick = () => { cls = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); }); },
+        collect() { return needCls() ? null : true; } });
+      return ok ? { year: y, hide: [], category: cls } : null;
     }
     const fmt = (a, b) => { const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), m = x => x.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }); return A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
-    const list = () => evs.filter(e => e.year === year);
-    const rows = () => list().map(e => `<button type="button" class="rx-rd" role="checkbox" data-ev="${e.id}" aria-checked="${!hidden.has(e.id)}"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", "))}</small></span></button>`).join("");
+    const list = () => evs.filter(e => e.year === year && forCls(e));
+    const rows = () => CLS.length && !cls ? `<div class="rx-help" style="text-align:center;padding:14px 0">Choose your class to see its races.</div>` : list().map(e => `<button type="button" class="rx-rd" role="checkbox" data-ev="${e.id}" aria-checked="${!hidden.has(e.id)}"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", "))}</small></span></button>`).join("");
     const count = () => { const l = list(); return l.filter(e => !hidden.has(e.id)).length + " of " + l.length; };
     const r = await sheet(`Your ${s.short_name} season`, `
+      ${clsSeg()}
       ${!en && years.length > 1 ? `<div><label class="rx-f" id="rx-yl">Which season?</label><div class="rx-seg" role="radiogroup" aria-labelledby="rx-yl" id="rx-ys">${years.map(y => `<button type="button" role="radio" data-y="${y}" aria-checked="${y === year}">${y}</button>`).join("")}</div></div>` : ""}
       <button type="button" class="rx-full" id="rx-full" role="switch"><span><b>Full season</b><small id="rx-cnt">${count()} races</small></span><i class="rx-tog"></i></button>
       <div class="rx-help" style="margin-top:-6px">Not doing every round? Untick the races you skip.</div>
@@ -539,12 +549,13 @@
         const sync = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); $("#rx-full").setAttribute("aria-checked", all); $("#rx-cnt").textContent = count() + " races"; };
         const bind = () => $$("#rx-rds .rx-rd").forEach(b => b.onclick = () => { const id = b.dataset.ev; hidden.has(id) ? hidden.delete(id) : hidden.add(id); b.setAttribute("aria-checked", !hidden.has(id)); sync(); });
         $("#rx-full").onclick = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); l.forEach(e => all ? hidden.add(e.id) : hidden.delete(e.id)); $("#rx-rds").innerHTML = rows(); bind(); sync(); };
+        $$("#rx-ks button").forEach(b => b.onclick = () => { cls = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
         $$("#rx-ys button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#rx-ys button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
         bind(); sync();
-      }, collect() { if (!list().some(e => !hidden.has(e.id))) { alert("Keep at least one race."); return null; } return true; } });
+      }, collect() { if (needCls()) return null; if (list().length && !list().some(e => !hidden.has(e.id))) { alert("Keep at least one race."); return null; } return true; } });
     if (!r) return null;
     const ids = list().map(e => e.id);
-    return { year, hide: ids.filter(id => hidden.has(id)), show: ids.filter(id => !hidden.has(id)) };
+    return { year, hide: ids.filter(id => hidden.has(id)), show: ids.filter(id => !hidden.has(id)), category: cls };
   }
   async function saveRounds(sel) {
     const rows = [...sel.hide.map(id => ({ profile_id: R.profile.id, event_id: id, hidden: true })), ...(sel.show || []).map(id => ({ profile_id: R.profile.id, event_id: id, hidden: false }))];
@@ -558,8 +569,8 @@
     const vbox = () => vehicle ? `<div class="rx-vchip"><b>${esc(vehicle.name)}</b><button type="button" class="rx-b" id="rx-vchg">Change</button></div>` : `<div id="rx-vpk"></div>`;
     const phbox = () => `<div class="rx-carph">${photoUrl ? `<img src="${esc(photoUrl)}" alt="">` : `<div class="rx-none">No photo</div>`}<button type="button" class="rx-b" id="rx-ph">${photoUrl ? "Change photo" : "Add photo"}</button></div><div class="rx-help">A photo of your vehicle, with your livery. Shown when fans tap it.</div>`;
     const html = `
-      <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><div style="display:grid"><b style="font-size:17px">${esc(s?.name || "")}</b><small style="color:#8e919b">${year} season</small></div></div>
-      ${isNew ? "" : `<button type="button" class="rx-full" id="rx-rounds"><span><b>Races</b><small>Choose the rounds you do</small></span>${CHEV}</button>`}
+      <div style="display:flex;align-items:center;gap:14px"><div class="rx-lg" style="width:76px">${s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc(s?.short_name || "")}</span>`}</div><div style="display:grid"><b style="font-size:17px">${esc(s?.name || "")}</b><small style="color:#8e919b">${year} season${(s?.classes || []).length > 1 && en.category ? " · " + esc(en.category) : ""}</small></div></div>
+      ${isNew ? "" : `<button type="button" class="rx-full" id="rx-rounds"><span><b>${(s?.classes || []).length > 1 ? "Class and races" : "Races"}</b><small>${(s?.classes || []).length > 1 ? (en.category ? esc(en.category) + " · choose the rounds you do" : "Choose your class") : "Choose the rounds you do"}</small></span>${CHEV}</button>`}
       <div class="rx-two" style="grid-template-columns:120px 1fr"><div><label class="rx-f" for="rx-num">Car number</label><input id="rx-num" value="${esc(en.car_number || "")}" inputmode="numeric" autocomplete="off"></div><div><label class="rx-f" for="rx-team">Team</label><input id="rx-team" value="${esc(en.team || "")}" autocomplete="off"></div></div>
       <div><label class="rx-f" for="rx-mates">Teammates</label><input id="rx-mates" value="${esc((en.teammates || []).join(", "))}" autocomplete="off"><div class="rx-help">Separate names with commas.</div></div>
       <div><label class="rx-f">Vehicle</label><div id="rx-vbox">${vbox()}</div></div>
@@ -578,7 +589,7 @@
     const bindPh = () => { $("#rx-ph").onclick = async () => { const f = await pickFile(); if (!f) return; photoFile = f; photoUrl = URL.createObjectURL(f); $("#rx-phbox").innerHTML = phbox(); bindPh(); }; };
     const r = await sheet(isNew ? "Your entry" : "Edit entry", html, { ok: isNew ? "Add to my season" : "Save", del: !isNew && ROLE === "owner" ? "Remove" : null, delText: `Remove ${s?.name} ${year} from your page?`,
       after() {
-        if ($("#rx-rounds")) $("#rx-rounds").onclick = async () => { sheetResolve = null; const sel = await pickRounds(s, en); if (sel) save(() => saveRounds(sel), "Races saved"); else editEntry(en); };
+        if ($("#rx-rounds")) $("#rx-rounds").onclick = async () => { sheetResolve = null; const sel = await pickRounds(s, en); if (sel) save(async () => { await saveRounds(sel); if (sel.category && sel.category !== en.category) await upd("entries", en.id, { category: sel.category }); }, "Races saved"); else editEntry(en); };
         $$("#rx-cs button").forEach(b => b.onclick = () => { color = b.dataset.c; $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", x === b)); });
         $("#rx-cc").oninput = e => { color = e.target.value.toUpperCase(); $$("#rx-cs button").forEach(x => x.setAttribute("aria-checked", "false")); };
         bindV(); bindPh();
@@ -590,7 +601,7 @@
     if (r.__delete) return save(() => api(`entries?id=eq.${en.id}`, { method: "DELETE" }), "Removed");
     save(async () => {
       if (photoFile) r.car_photo_url = await upload(await safePicture(photoFile, false, 1600), `cars/${R.profile.id}-${Date.now()}.jpg`);
-      if (isNew) { await ins("entries", { profile_id: R.profile.id, series_id: en.series_id, ...r }); if (rounds) await saveRounds(rounds); }
+      if (isNew) { await ins("entries", { profile_id: R.profile.id, series_id: en.series_id, ...(en.category ? { category: en.category } : {}), ...r }); if (rounds) await saveRounds(rounds); }
       else await upd("entries", en.id, r);
     }, isNew ? "Added to your season" : "Saved");
   }
@@ -1042,7 +1053,7 @@
     const lg = s => s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="rx-lgt">${esc(s?.short_name || "")}</span>`;
     const strip = document.createElement("section"); strip.className = "rx-season rx-only"; strip.id = "rx-season";
     strip.innerHTML = `<div class="rx-season-h"><div><b>Your season</b><span>${R.entries.length ? `${R.entries.length} championship${R.entries.length > 1 ? "s" : ""}` : "Add the championships you race in"}</span></div><button class="rx-b pri" id="rx-add">${PLUS} Add</button></div>
-      ${R.entries.length ? `<div class="rx-rows">${R.entries.map(e => { const d = [e.car_number ? "#" + esc(e.car_number) : "", esc(e.team || ""), esc(e.vehicles?.name || "")].filter(Boolean); return `<button class="rx-row" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><span class="rx-row-lg">${lg(e.series)}</span><span class="rx-row-t"><b>${esc(e.series?.name || "")}</b><small class="${d.length ? "" : "warn"}">${d.length ? d.join(" · ") : "Add your number, team and car"}</small></span><span class="rx-row-y">${e.year}</span>${CHEV}</button>`; }).join("")}</div>` : ""}`;
+      ${R.entries.length ? `<div class="rx-rows">${R.entries.map(e => { const d = [(e.series?.classes || []).length > 1 && e.category ? esc(e.category) : "", e.car_number ? "#" + esc(e.car_number) : "", esc(e.team || ""), esc(e.vehicles?.name || "")].filter(Boolean); return `<button class="rx-row" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><span class="rx-row-lg">${lg(e.series)}</span><span class="rx-row-t"><b>${esc(e.series?.name || "")}</b><small class="${d.length ? "" : "warn"}">${d.length ? d.join(" · ") : "Add your number, team and car"}</small></span><span class="rx-row-y">${e.year}</span>${CHEV}</button>`; }).join("")}</div>` : ""}`;
     const anchor = $("#cd") || $("#ffdd") || $("#list");
     anchor.parentNode.insertBefore(strip, anchor);
     $("#rx-add").onclick = addChampionship;

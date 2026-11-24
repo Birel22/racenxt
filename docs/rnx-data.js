@@ -57,8 +57,14 @@
     const byEvent = {};
     for (const s of sessions) (byEvent[s.event_id] = byEvent[s.event_id] || []).push(s);
     const EVENTS = [], TT = {};
+    // shared calendars (e.g. IMSA): only the races where the athlete's class races
+    const ck = c => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const myCls = {};
+    for (const en of entries) if (en.category && (en.series?.classes || []).some(c => ck(c) === ck(en.category))) myCls[en.series_id + "|" + en.year] = ck(en.category);
     for (const e of events) {
       if (hidden.has(e.id)) continue;
+      const mc = e.series_id && myCls[e.series_id + "|" + e.year];
+      if (mc && (e.classes || []).length && !e.classes.some(c => ck(c) === mc)) continue;
       const sl = e.series_id ? slugOfSeries[e.series_id] : "x-" + (e.kind || "other");
       if (!sl) continue;
       const v = e.venues || {};

@@ -52,13 +52,18 @@ Deno.serve(async (req) => {
     }
     const [prof] = await get(`profiles?slug=eq.${slug}&published=eq.true&select=id,display_name,first_name`);
     if (!prof) return new Response("Not found", { status: 404 });
-    const entries = await get(`entries?profile_id=eq.${prof.id}&select=series_id,year,series(short_name,website_url)`);
+    const entries = await get(`entries?profile_id=eq.${prof.id}&select=series_id,year,category,series(short_name,website_url,classes)`);
     const overrides = await get(`event_overrides?profile_id=eq.${prof.id}&hidden=eq.true&select=event_id`);
     const hidden = new Set(overrides.map((o: any) => o.event_id));
     const ors = entries.map((e: any) => `and(series_id.eq.${e.series_id},year.eq.${e.year})`);
     ors.push(`owner_profile_id.eq.${prof.id}`);
-    const events = (await get(`events?or=(${ors.join(",")})&select=id,series_id,name,start_date,end_date,venues(name,city,country)&order=start_date`))
-      .filter((e: any) => !hidden.has(e.id));
+    // shared calendars (e.g. IMSA): only the races where the athlete's class races
+    const ck = (c: any) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const myCls: Record<string, string> = {};
+    for (const en of entries) if (en.category && (en.series?.classes || []).some((c: any) => ck(c) === ck(en.category))) myCls[en.series_id + "|" + en.year] = ck(en.category);
+    const events = (await get(`events?or=(${ors.join(",")})&select=id,series_id,year,classes,name,start_date,end_date,venues(name,city,country)&order=start_date`))
+      .filter((e: any) => !hidden.has(e.id))
+      .filter((e: any) => { const mc = e.series_id && myCls[e.series_id + "|" + e.year]; return !(mc && (e.classes || []).length && !e.classes.some((c: any) => ck(c) === mc)); });
     const evById = Object.fromEntries(events.map((e: any) => [e.id, e]));
     const short = Object.fromEntries(entries.map((e: any) => [e.series_id, e.series?.short_name || ""]));
     const site = Object.fromEntries(entries.map((e: any) => [e.series_id, e.series?.website_url || ""]));

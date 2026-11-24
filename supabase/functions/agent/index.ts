@@ -366,7 +366,7 @@ function discoverPrompt(series: any, src: any, year: number) {
   return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
 Sport category: ${series.sport}
 Known official website: ${series.website_url || "unknown"}
-Today: ${new Date().toISOString().slice(0, 10)}
+${(series.classes || []).length ? `Known classes: ${series.classes.join(", ")}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
 Task: the race calendar, nothing else.
 1. Find the official website of this championship. It may be published by its organiser together with other championships (e.g. a "Cup Series" running several classes): then use the organiser's calendar and keep only this championship's rounds.
@@ -377,9 +377,10 @@ Task: the race calendar, nothing else.
 6. If official sources disagree on a date, use the most recent one and say so in "doubts".
 7. Official announcements often show the calendar only as a picture, which you can't read: give the address of the official page announcing the ${year + 1} calendar in "announcement_url" (we read its pictures), even if its text has no dates.
 8. Fallback, only for rounds whose exact dates the official sites don't give in text: reliable motorsport press or the circuit's own official website (e.g. formula1.com, motorsport.com, autosport.com, the-race.com, racer.com, sportscar365.com, dailysportscar.com, endurance-info.com, speedweek.com). Use such a round only when at least 2 independent sources give the same race day (the last day of the weekend); the first day often differs between sources (some count practice or the Thursday): that is not a disagreement, use the earliest first day given. Then set "source": "press" and list the addresses in "sources". If the race days differ, keep the round in "tbc" with both versions in "when". Rounds read on official pages have "source": "official".
+9. Classes: some championships run several classes with their own classification on one shared calendar, and not every class races at every round (e.g. IMSA: GTP, LMP2, GTD PRO, GTD; some rounds are GT only, others have no LMP2). Then list the classes in "classes" with their official short names${(series.classes || []).length ? " (use the known classes' names)" : ""}, and for each round give "classes": the classes that race there, as shown on the official calendar or the round's official page. If every class races at a round, "classes" is null. If the championship has one class, or all its classes race at every round, "classes" is [] and every round's "classes" is null. Never guess: when the calendar doesn't say which classes race at a round, use null.
 JSON schema:
-{"website_url": string|null, "calendar_url": string|null, "announcement_url": string|null,
- "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
+{"website_url": string|null, "calendar_url": string|null, "announcement_url": string|null, "classes": [string],
+ "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "classes": [string]|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}],
  "tbc": [{"year": number, "round": number|null, "name": string|null, "circuit": string|null, "when": string|null}],
  "doubts": [string], "notes": string}`;
@@ -462,6 +463,15 @@ async function links(series: any, runId: string) {
 
 // ---------- discover: official site, logo, calendar ----------
 // the calendar the AI finds, cleaned up (names, dates, times converted to circuit time). Nothing is filed here.
+const clsKey = (c: string) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+// the classes racing at one round, in the championship's own names; null when it's all of them (or unknown)
+function fixClasses(all: string[], ev: any): string[] | null {
+  if (!Array.isArray(ev)) return null;
+  const keys = new Set(ev.map((x: any) => clsKey(x)));
+  const l = all.filter(a => keys.has(clsKey(a)));
+  return l.length && l.length < all.length ? l : null;
+}
+const sameCls = (a: any, b: any) => (a || []).map(clsKey).sort().join("|") === (b || []).map(clsKey).sort().join("|");
 async function computeCalendar(series: any, src: any) {
   const year = new Date().getUTCFullYear();
   const user = discoverPrompt(series, src, year);
@@ -476,6 +486,10 @@ async function computeCalendar(series: any, src: any) {
       return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
         sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
     });
+  // classes on a shared calendar: the known names win; a round with every class is stored as null (= all)
+  const allCls: string[] = (series.classes || []).length ? series.classes : [...new Map((Array.isArray(out.classes) ? out.classes : []).map((c: any) => String(c || "").trim()).filter(Boolean).map((c: string) => [clsKey(c), c])).values()];
+  for (const e of found) e.classes = allCls.length > 1 ? fixClasses(allCls, e.classes) : null;
+  out.classes = allCls.length > 1 ? allCls : [];
   // the official announcement's calendar picture: read when some rounds are undated or only from the press
   if (out.announcement_url && ((out.tbc || []).length || found.some((e: any) => e.source === "press"))) {
     try {
@@ -528,7 +542,7 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     const same = await unchanged(`series_id=eq.${series.id}&event_id=is.null`, 90);
     if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
   }
-  const known = await db(`events?series_id=eq.${series.id}&select=id,year,round,round_to,name,start_date,end_date,duration_label,venues(name)`);
+  const known = await db(`events?series_id=eq.${series.id}&select=id,year,round,round_to,name,start_date,end_date,duration_label,classes,venues(name)`);
   const { out, usage, trace, found } = await computeCalendar(series, src);
   const site = out.website_url || series.website_url;
   const domain = host(site || "");
@@ -626,9 +640,26 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
       props.push(newRoundTo && match.start_date === e.start_date ? `double header: ${match.name}` : `date change: ${match.name}`);
     }
   }
+  // classes: a shared calendar where not every class races everywhere. Races we already have get one "classes" proposal.
+  // (a round the agent can't tell about keeps the classes we already have)
+  const hasSubsets = found.some((e: any) => e.classes);
+  if (out.classes.length > 1 && (hasSubsets || (series.classes || []).length)) {
+    const thisYear = new Date().getUTCFullYear();
+    const evCh: any[] = [];
+    for (const e of found) {
+      const match = known.find((k: any) => k.year === e.year && ((e.circuit?.name && k.venues?.name && norm(k.venues.name) === norm(e.circuit.name)) || norm(k.name) === norm(e.name) || (e.round && k.round === e.round)));
+      if (match && match.year >= thisYear && (e.classes || !(match.classes || []).length) && !sameCls(match.classes, e.classes) && !evCh.some(x => x.event_id === match.id)) evCh.push({ event_id: match.id, name: match.name, start_date: match.start_date, classes: e.classes });
+    }
+    const [clsPending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.classes&status=eq.pending&select=id&limit=1`);
+    if (!clsPending && (evCh.length || !sameCls(series.classes, out.classes))) {
+      await ins("proposals", { run_id: runId, series_id: series.id, kind: "classes", payload: { classes: out.classes, events: evCh },
+        evidence: { url: out.calendar_url || site, excerpt: `${series.short_name || series.name} runs ${out.classes.length} classes on one calendar and not every class races at every round. Athletes pick their class: their page only shows the races of their class.` } });
+      props.push("classes");
+    }
+  }
   if (fresh.length) {
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
-      payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, ...(e.source && e.source !== "official" ? { source: e.source, sources: (e.sources || []).filter(okUrl).slice(0, 4) } : {}), name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
+      payload: { ...(hasSubsets && !(series.classes || []).length ? { classes: out.classes } : {}), events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, ...(e.classes ? { classes: e.classes } : {}), ...(e.source && e.source !== "official" ? { source: e.source, sources: (e.sources || []).filter(okUrl).slice(0, 4) } : {}), name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
       evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }

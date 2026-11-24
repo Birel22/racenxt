@@ -149,6 +149,8 @@
   .muted{color:var(--mute)} .dim{color:var(--dim)}
   .light{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
   .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:10px;font-size:12px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .clsx{display:flex;flex-wrap:wrap;gap:8px} .clsx button{font:600 14px Barlow;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer}
+  .clsx button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
   .chip.good{color:var(--good);border-color:#2f5a35} .chip.warn{color:var(--warn);border-color:#5a4a1a} .chip.bad{color:var(--bad);border-color:#5a2420}
   .logo-sm{width:34px;height:22px;object-fit:contain;display:block}
   .logo-ph{width:34px;height:22px;border-radius:5px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 9px Barlow;color:var(--mute)}
@@ -469,7 +471,7 @@ async function loadDisciplines(){
 }
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format&order=name"),
+    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format,classes&order=name"),
     api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
@@ -598,7 +600,7 @@ async function championshipPage(slug, openId){
   const watchChip = (w, e) => w === "race" ? '<span class="chip good">Event broadcast</span>' : w === "championship" ? '<span class="chip">Championship</span>' : e.end_date < TODAY ? '<span class="chip">–</span>' : e.start_date <= new Date(Date.now() + 7*864e5).toISOString().slice(0,10) ? '<span class="chip warn">Missing</span>' : '<span class="chip">Race week</span>';
   const schedChip = e => e.session_count ? `<span class="chip good">${e.session_count} sessions</span>` : (e.end_date < TODAY ? '<span class="chip">–</span>' : '<span class="chip warn">Missing</span>');
   const table = list => `<div class="tbl"><table><tr><th>Race</th><th class="hide-m">Circuit</th><th>Dates</th><th>Schedule</th><th class="hide-m">Where to watch</th><th class="hide-m">Last check</th></tr>
-      ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status, e)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
+      ${list.map(e => `<tr class="click${e.id === openId ? " sel" : ""}" data-id="${e.id}"><td><b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${(e.classes || []).length ? ` <span class="chip" title="Only these classes race here">${esc(e.classes.join(" · "))}</span>` : ""}${e.pending_proposals ? ` <span class="chip warn">review</span>` : ""}</td><td class="hide-m dim">${esc(e.venue_name || "")}</td><td class="nowrap">${fmtRange(e.start_date, e.end_date)} <span class="muted">${e.start_date.slice(0,4)}</span></td><td>${schedChip(e)}</td><td class="hide-m">${watchChip(e.watch_status, e)}</td><td class="hide-m muted nowrap">${e.last_check_result === "error" ? '<span class="chip bad">error</span>' : ago(e.last_check_at)}</td></tr>`).join("")}</table></div>`;
   $("#main").innerHTML = `<a class="back" href="#/championships">${I.back}All championships</a>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
@@ -645,7 +647,7 @@ async function editRace(s, e, yr){
   const venue = e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
   const busy = aiBusy(e.id);
   const html = `
-    <section class="fs"><div class="rc-meta"><span><b>${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}</b></span>${venue ? `<span>${esc(venue.name)}${venue.country ? ", " + esc(venue.country) : ""}</span>` : `<span class="chip warn">No circuit</span>`}${e.round ? `<span>${e.round_to > e.round ? `Rounds ${e.round}–${e.round_to}` : `Round ${esc(String(e.round))}`}</span>` : ""}${e.duration_label ? `<span>${esc(e.duration_label)}</span>` : ""}</div>
+    <section class="fs"><div class="rc-meta"><span><b>${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}</b></span>${venue ? `<span>${esc(venue.name)}${venue.country ? ", " + esc(venue.country) : ""}</span>` : `<span class="chip warn">No circuit</span>`}${e.round ? `<span>${e.round_to > e.round ? `Rounds ${e.round}–${e.round_to}` : `Round ${esc(String(e.round))}`}</span>` : ""}${e.duration_label ? `<span>${esc(e.duration_label)}</span>` : ""}${(s.classes || []).length > 1 ? `<span>${(e.classes || []).length ? esc(e.classes.join(" · ")) + " only" : "All classes"}</span>` : ""}</div>
       ${e.note ? `<div class="dim" style="font-size:14px">Note on the card: ${esc(e.note)}</div>` : ""}
       <div><button type="button" class="btn sm" id="rc-edit">Edit race details</button></div></section>
     <section class="fs"><h4><i></i>Schedule ${venue ? `<small>Local time · ${esc(venue.timezone)}</small>` : ""}</h4>
@@ -669,6 +671,10 @@ async function editRace(s, e, yr){
   await p;
 }
 
+// classes on a shared calendar (e.g. IMSA): toggle buttons; all on (or none) = every class races = null
+const clsPick = (all, sel, id) => `<div class="clsx" id="${id}">${all.map(c => `<button type="button" aria-pressed="${!(sel || []).length || sel.includes(c)}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div>`;
+const clsBind = id => $$(`#${id} button`).forEach(b => b.onclick = () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"));
+const clsRead = (id, all) => { const on = $$(`#${id} button[aria-pressed="true"]`).map(b => b.dataset.c); return on.length && on.length < all.length ? on : null; };
 // Race details only (name, dates, circuit)
 async function editRaceDetails(s, e, yr){
   const venue = e && e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
@@ -678,13 +684,15 @@ async function editRaceDetails(s, e, yr){
       { k:"name", l:"Race name", req:true },
       { row:[{ k:"round", l:"Round", type:"number" }, { k:"round_to", l:"Last round", type:"number", help:"Double header only: e.g. rounds 6–7 on one weekend" }] },
       { k:"duration_label", l:"Race length", help:"For example 4h or 24h" } ] },
+    ...((s.classes || []).length > 1 ? [{ section:"Classes at this race", sub:"Tap to switch off the classes that don't race here. All on = every class races.", items:[{ html: clsPick(s.classes, e?.classes, "rd-cls") }] }] : []),
     { section:"Dates & circuit", items:[
       { row:[{ k:"start_date", l:"First day", type:"date", req:true }, { k:"end_date", l:"Last day", type:"date", req:true }] },
       { row:[{ k:"venue_name", l:"Circuit", list:"venues-dl", help:"New circuit? Added with its time zone automatically." }, { k:"country", l:"Country" }] } ] },
     { section:"Note on the race card", items:[{ k:"note", l:"Note", help:"Optional. For example: Official Prologue 8–9 March" }] }
   ], e ? { ...e, venue_name: venue?.name || "", country: venue?.country || "" } : {}, {
     onDelete: !!e, deleteText: "Delete this race and its schedule?", ok: e ? "Save" : "Add race",
-    after(){ $("#f_start_date").addEventListener("change", () => { if (!$("#f_end_date").value) $("#f_end_date").value = $("#f_start_date").value; }); }
+    collect(){ return (s.classes || []).length > 1 ? { classes: clsRead("rd-cls", s.classes) } : {}; },
+    after(){ clsBind("rd-cls"); $("#f_start_date").addEventListener("change", () => { if (!$("#f_end_date").value) $("#f_end_date").value = $("#f_start_date").value; }); }
   });
   if (!r) return e ? editRace(s, e, yr) : null;
   if (r.__delete) return guard(async () => { await del("events", e.id); location.hash = `#/championships/${s.slug}`; route(); }, "Race deleted");
@@ -692,7 +700,7 @@ async function editRaceDetails(s, e, yr){
   let saved = null;
   const ok = await guard(async () => {
     const venue_id = r.venue_name ? await ensureVenue(r.venue_name, r.country) : (e?.venue_id || null);
-    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, round_to: r.round_to && r.round && +r.round_to > +r.round ? r.round_to : null, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, note: r.note, updated_at: new Date().toISOString() };
+    const row = { series_id: s.id, year: +r.start_date.slice(0,4), round: r.round, round_to: r.round_to && r.round && +r.round_to > +r.round ? r.round_to : null, name: r.name, start_date: r.start_date, end_date: r.end_date, duration_label: r.duration_label, venue_id, note: r.note, ...("classes" in r ? { classes: r.classes } : {}), updated_at: new Date().toISOString() };
     if (e){ await upd("events", e.id, row); saved = { ...e, ...row }; }
     else { row.ext_key = extKey(s, row); [saved] = await ins("events", row); }
   }, e ? "Race saved" : "Race added");
@@ -988,6 +996,8 @@ async function editSeries(s, src){
       { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
+    { section:"Classes", sub:"Only when several classes share this calendar and not every class races at every round (e.g. IMSA). Athletes then pick their class, and their page only shows the races of their class.", items:[
+      { k:"classes_txt", l:"Classes", help:"Separate with commas, e.g. GTP, LMP2, GTD PRO, GTD. Leave empty for a one-class championship." } ] },
     { section:"Usual race weekend", sub:"Only a hint for the AI (formats often change): learned from the first timetable you approve. It never blocks or stops a search.", items:[
       { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
     { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
@@ -995,14 +1005,16 @@ async function editSeries(s, src){
       { k:"broadcasters_url", l:"TV broadcasters", type:"url", help:"The official page listing the TV channels by country. Fans see it as “TV broadcast” on every race without an Event broadcast." },
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
-  ], { ...s, fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
+  ], { ...s, classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
     after(){ lp.after(); sp.after(); $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
     collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("series", s.id); location.hash = "#/championships"; route(); }, "Championship deleted");
   if (!sp.st.v){ alert("Choose a discipline."); return editSeries(s, src); }
-  const { urls, instr, fmt_practice, fmt_qualifying, fmt_race, ...row } = r;
+  const { urls, instr, fmt_practice, fmt_qualifying, fmt_race, classes_txt, ...row } = r;
+  const cls = [...new Set((classes_txt || "").split(",").map(x => x.trim()).filter(Boolean))];
+  row.classes = cls.length > 1 ? cls : null;
   const fmt = Object.fromEntries([["practice", fmt_practice], ["qualifying", fmt_qualifying], ["race", fmt_race]].filter(([, v]) => v !== "" && v != null && +v >= 0).map(([k, v]) => [k, Math.round(+v)]));
   row.weekend_format = Object.keys(fmt).length ? fmt : null;
   for (const k of ["stream_url", "broadcasters_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }
@@ -1024,7 +1036,7 @@ async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)" };
+  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1044,6 +1056,7 @@ async function review(slug){
       ${checkBox(p.evidence?.check)}
       ${p.kind === "logo" ? `<div id="lgrv-${p.id}-box"></div>`
         : p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
+        : p.kind === "classes" ? classesView(p.payload) + `<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
         : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
@@ -1098,7 +1111,11 @@ function pretty(p){
   if (p.kind === "event_change") return [pl.start_date && `${fmtRange(pl.start_date, pl.end_date || pl.start_date)} ${pl.start_date.slice(0,4)}`, pl.name, pl.duration_label, pl.circuit?.name].filter(Boolean).join("\n");
   return JSON.stringify(pl, null, 2);
 }
-const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}${e.round_to > e.round ? `–${esc(String(e.round_to))}` : ""}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${e.source === "press" ? ` <span class="chip warn" title="The official site doesn't give these dates yet: at least 2 reliable press sources agree on the race day">Unofficial source</span>` : e.source === "official_image" ? ` <span class="chip" title="Read on the calendar picture of the official announcement">Official calendar picture</span>` : ""}${(e.sources || []).length ? ` <span class="muted" style="font-size:12px">${e.sources.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc((() => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(_){ return "source " + (i + 1); } })())}</a>`).join(" · ")}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<details class="tt-peek" open><summary><span class="chip good">Timetable · ${e.sessions.length} sessions</span></summary><div class="tt-box">${sessionList(e.sessions)}</div>${e.timetable_note ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(e.timetable_note)}</div>` : ""}</details>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
+// a shared calendar: the championship's classes, then the races where only some of them race
+const classesView = pl => `<label class="f">Classes</label><div class="clsx" style="margin-bottom:12px">${(pl.classes || []).map(c => `<span class="chip" style="font-size:14px;padding:4px 10px">${esc(c)}</span>`).join("")}</div>
+  ${(pl.events || []).length ? `<label class="f">Races</label><ul class="evlist">${pl.events.map(e => `<li><span class="nowrap">${e.start_date ? esc(new Date(e.start_date + "T12:00:00Z").toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric", timeZone:"UTC" })) : ""}</span><span><b>${esc(e.name || "")}</b><br>${(e.classes || []).length ? `<span class="dim">Only ${esc(e.classes.join(", "))}</span>` : `<span class="dim">All classes</span>`}</span></li>`).join("")}</ul>` : `<div class="dim" style="font-size:14px">No race to change.</div>`}
+  <div class="muted" style="font-size:13px;margin-top:8px">You can fix a single race later in its Edit race details.</div>`;
+const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><span class="nowrap">${fmtRange(e.start_date, e.end_date || e.start_date)} ${esc(String(e.year || e.start_date.slice(0,4)))}</span><span>${e.round ? `<span class="muted">R${esc(String(e.round))}${e.round_to > e.round ? `–${esc(String(e.round_to))}` : ""}</span> ` : ""}<b>${esc(e.name)}</b>${e.duration_label ? ` <span class="muted">${esc(e.duration_label)}</span>` : ""}${(e.classes || []).length ? ` <span class="chip" title="Only these classes race here">${esc(e.classes.join(" · "))} only</span>` : ""}${e.source === "press" ? ` <span class="chip warn" title="The official site doesn't give these dates yet: at least 2 reliable press sources agree on the race day">Unofficial source</span>` : e.source === "official_image" ? ` <span class="chip" title="Read on the calendar picture of the official announcement">Official calendar picture</span>` : ""}${(e.sources || []).length ? ` <span class="muted" style="font-size:12px">${e.sources.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc((() => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(_){ return "source " + (i + 1); } })())}</a>`).join(" · ")}</span>` : ""}<br><span class="dim">${esc([e.circuit?.name, e.circuit?.country].filter(Boolean).join(", "))}</span>${e.circuit?.timezone ? ` <span class="muted">${esc(e.circuit.timezone)}</span>` : ""}<br>${e.sessions?.length ? `<details class="tt-peek" open><summary><span class="chip good">Timetable · ${e.sessions.length} sessions</span></summary><div class="tt-box">${sessionList(e.sessions)}</div>${e.timetable_note ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(e.timetable_note)}</div>` : ""}</details>` : `<span class="chip" style="margin-top:4px">Timetable checked closer to the race</span>`}</span></li>`).join("")}</ul>`;
 async function current(p){
   if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}`).join("\n") : "No sessions yet"; }
   if (p.kind === "series_links") return seriesLinks(D.series.find(x => x.id === p.series_id) || {});

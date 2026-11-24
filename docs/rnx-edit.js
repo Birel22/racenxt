@@ -18,6 +18,7 @@
   const OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></svg>';
   const CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
   const STAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/></svg>';
+  const GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.8 3.5 5.8 3.5 9s-1 6.2-3.5 9c-2.5-2.8-3.5-5.8-3.5-9s1-6.2 3.5-9z"/></svg>';
   const CAM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
 
   // ---------- session ----------
@@ -99,32 +100,43 @@
   // ---------- styles (prefixed so they never touch the page's own) ----------
   const CSS = `
   body.rx-view .rx-only{display:none!important}
-  .rx-top{position:absolute;top:20px;right:20px;z-index:4;display:flex;align-items:center;gap:8px}
-  .rx-mode{display:flex;padding:3px;border-radius:999px;background:rgba(13,14,17,.62);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-  .rx-mode button{height:32px;padding:0 13px 0 11px;border:0;border-radius:999px;background:none;color:#d5d6d9;display:inline-flex;align-items:center;gap:6px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-  .rx-mode button svg{width:15px;height:15px;flex:none}
-  .rx-mode button[aria-checked="true"]{background:#f4f4f2;color:#0d0e11}
+  .rx-top{position:absolute;top:18px;right:18px;z-index:4;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:rgba(10,11,14,.55);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);box-shadow:0 6px 20px rgba(0,0,0,.28)}
+  .rx-mode{display:flex;gap:2px}
+  .rx-mode button{height:30px;padding:0 12px;border:0;border-radius:999px;background:none;color:rgba(244,244,242,.72);display:inline-flex;align-items:center;gap:6px;font:600 13px Barlow,system-ui,sans-serif;letter-spacing:.01em;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+  .rx-mode button svg{width:14px;height:14px;flex:none}
+  .rx-mode button:hover{color:#fff}
+  .rx-mode button[aria-checked="true"]{background:rgba(255,255,255,.94);color:#0d0e11}
   .rx-mode button[data-m="edit"][aria-checked="true"] svg{color:#FF5A1F}
-  .rx-mode button:focus-visible,.rx-av-b:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
-  body.rx-edit .lang{top:66px}
+  .rx-sep{width:1px;height:18px;background:rgba(255,255,255,.16);margin:0 3px 0 4px}
+  .rx-mode button:focus-visible,.rx-av-b:focus-visible,.rx-edit-b:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
+  body.rx-edit:not(.rx-view) .lang{display:none}
+  body.rx-view .rx-top{display:none}
   .rx-pow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:8px 0 2px;font:600 10.5px Barlow,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,244,242,.68)}
   .rx-pow .rx-brand{font:800 italic 16px 'Barlow Condensed',sans-serif;letter-spacing:-.2px;text-transform:none;color:#f4f4f2}
   .rx-brand .x{background:linear-gradient(90deg,#FF5A1F 50%,#f4f4f2 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:1px}
   .rx-status{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;border:1px solid rgba(242,178,15,.4);background:rgba(13,14,17,.5);color:#f2b20f;font:600 11.5px Barlow,system-ui,sans-serif;letter-spacing:.04em;text-transform:none}
   .rx-status i{width:6px;height:6px;border-radius:50%;background:currentColor}
-  @media (max-width:620px){.rx-top{top:12px;right:12px}body.rx-edit .lang{top:58px}.rx-mode button{height:30px;padding:0 11px 0 9px;font-size:12px;gap:5px}.rx-mode button svg{width:14px;height:14px}.rx-av-b{width:38px;height:38px}}
-  @media (max-width:380px){.rx-mode button{padding:0 10px}.rx-mode button svg{display:none}}
-  .rx-av-b{width:40px;height:40px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.28);box-shadow:0 4px 14px rgba(0,0,0,.35);background:none;cursor:pointer;overflow:hidden}
+  @media (max-width:620px){.rx-top{top:12px;right:12px}}
+  @media (max-width:360px){.rx-mode button svg{display:none}.rx-mode button{padding:0 10px}}
+  .rx-av-b{width:30px;height:30px;padding:0;border-radius:50%;border:1.5px solid transparent;background:none;cursor:pointer;overflow:hidden;flex:none;transition:border-color .15s}
   .rx-av-b[aria-expanded="true"],.rx-av-b:hover{border-color:#FF5A1F}
   .rx-av{display:flex;width:100%;height:100%;border-radius:50%;background:#22242b center/cover no-repeat;align-items:center;justify-content:center;font:700 14px Barlow,system-ui,sans-serif;color:#cfd0d4}
   .rx-av.lg{width:46px;height:46px;flex:none;font-size:16px}
   .rx-exit{display:none;position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;border:1px solid #3b3e47;background:rgba(17,18,22,.9);backdrop-filter:blur(10px);color:#a9abb2;font:500 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap}
   .rx-exit b{color:#FF5A1F;font-weight:700}
   .rx-exit svg{width:17px;height:17px}
-  body.rx-view.rx-topoff .rx-exit{display:inline-flex}
-  .rx-edit-b{position:relative;z-index:6;margin:0 0 12px;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 15px 0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,12,15,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
-  .rx-edit-b svg{width:16px;height:16px;color:#FF5A1F}
-  .rx-edit-b:hover{background:rgba(11,12,15,.8)}
+  body.rx-view .rx-exit{display:inline-flex}
+  .rx-edit-b{position:relative;z-index:6;margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(10,11,14,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#f4f4f2;font:600 13px Barlow,system-ui,sans-serif;letter-spacing:.01em;text-transform:none;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,border-color .15s}
+  .rx-edit-b svg{width:14px;height:14px;color:#FF5A1F}
+  .rx-edit-b:hover{background:rgba(10,11,14,.75);border-color:rgba(255,255,255,.3)}
+  body.rx-edit .hero-text{width:100%}
+  .rx-edit-b.rx-alone{margin:0 0 10px}
+  .rx-mlang{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px}
+  .rx-mlang span{display:flex;align-items:center;gap:12px;color:#f4f4f2}
+  .rx-mlang svg{width:18px;height:18px;color:#a9abb2;flex:none}
+  .rx-mlang .rx-lseg{display:flex;padding:3px;border-radius:999px;background:#0d0e11;border:1px solid #2a2c33}
+  .rx-menu .rx-mlang .rx-lseg button{width:auto;padding:5px 11px;border-radius:999px;font:700 12px Barlow;letter-spacing:.08em;color:#8e919b}
+  .rx-menu .rx-mlang .rx-lseg button[aria-pressed="true"]{background:#f4f4f2;color:#0d0e11}
   .rx-season{margin:18px 0 8px;border-radius:18px;background:#14151a;border:1px solid #2a2c33;overflow:hidden;font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
   .rx-season-h{display:flex;align-items:center;gap:12px;padding:16px}
   .rx-season-h > div{flex:1;display:grid}
@@ -1079,18 +1091,15 @@
     if (hero) {
       if (getComputedStyle(hero).position === "static") hero.style.position = "relative";
       const top = document.createElement("div"); top.className = "rx-top";
-      top.innerHTML = `${MODE}<button type="button" class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button>`;
+      top.innerHTML = `${MODE}<i class="rx-sep" aria-hidden="true"></i><button type="button" class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button>`;
       hero.appendChild(top);
       top.querySelectorAll("[data-m]").forEach(b => b.onclick = () => preview(b.dataset.m === "fan"));
-      // the "Back to editing" pill only once the switch has scrolled out of sight
-      if ("IntersectionObserver" in window) new IntersectionObserver(([en]) => document.body.classList.toggle("rx-topoff", !en.isIntersecting)).observe(top);
-      else document.body.classList.add("rx-topoff");
       if (!photo) { const ph = document.createElement("button"); ph.type = "button"; ph.className = "rx-photo-ph rx-only"; ph.innerHTML = `${CAM}<span>Add your photo</span>`; ph.onclick = editProfile; ph.style.cssText = "position:absolute;inset:0;border-radius:inherit;padding-bottom:18%"; hero.prepend(ph); }
       const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile;
-      // just above "NAME RACE HUB", so the top-left corner stays free for the athlete's logo
-      const ht = hero.querySelector(".hero-text"); if (ht) ht.prepend(eb); else hero.appendChild(eb);
-      // the page shows "Powered by Racenxt" under the name; editors also see when the page is still hidden
-      if (!p.published) { const pw = hero.querySelector(".hero-pow"); const hs = `<span class="rx-status rx-only" title="Only you can see this page for now"><i></i>Hidden</span>`; if (pw) pw.insertAdjacentHTML("beforeend", hs); else hero.querySelector("h1")?.insertAdjacentHTML("afterend", `<div class="rx-pow rx-only">${hs}</div>`); }
+      // on the "Powered by Racenxt" line, at its right end; editors also see when the page is still hidden
+      const ht = hero.querySelector(".hero-text"), pw = hero.querySelector(".hero-pow");
+      if (!p.published) { const hs = `<span class="rx-status rx-only" title="Only you can see this page for now"><i></i>Hidden</span>`; if (pw) pw.insertAdjacentHTML("beforeend", hs); else hero.querySelector("h1")?.insertAdjacentHTML("afterend", `<div class="rx-pow rx-only">${hs}</div>`); }
+      if (pw) pw.appendChild(eb); else { eb.classList.add("rx-alone"); if (ht) ht.prepend(eb); else hero.appendChild(eb); }
     }
 
     // your season
@@ -1157,6 +1166,7 @@
         <button role="menuitem" data-a="partners">${STAR}Partners</button>
         <button role="menuitem" data-a="preview">${EYE}Preview as a fan</button>
         <button role="menuitem" data-a="copy">${LINK}Copy page link</button>
+        ${document.querySelector(".lang [data-lang]") ? `<div class="rx-mlang"><span>${GLOBE}Page language</span><span class="rx-lseg" role="group" aria-label="Page language">${[...document.querySelectorAll(".lang [data-lang]")].map(l => `<button type="button" data-lang="${l.dataset.lang}" aria-pressed="${l.getAttribute("aria-pressed")}">${esc(l.textContent)}</button>`).join("")}</span></div>` : ""}
         <hr>${others.length ? `<div class="rx-menu-l">Your other pages</div>${others.map(x => `<button role="menuitem" data-slug="${esc(x.profiles.slug)}" data-id="${x.profiles.id}">${USER}${esc(x.profiles.display_name)}</button>`).join("")}` : ""}
         <button role="menuitem" data-a="new">${PLUS}Create another page</button>
         <hr><button role="menuitem" data-a="pw">${KEY}Security</button>
@@ -1165,7 +1175,9 @@
       { const r = $("#rx-me").getBoundingClientRect(); m.style.top = (r.bottom + window.scrollY + 8) + "px"; m.style.right = Math.max(14, document.documentElement.clientWidth - r.right) + "px"; }
       m.querySelector("button")?.focus();
       m.onclick = async e2 => {
-        const b = e2.target.closest("button"); if (!b) return; closeMenu();
+        const b = e2.target.closest("button"); if (!b) return;
+        if (b.dataset.lang) { document.querySelector(`.lang [data-lang="${b.dataset.lang}"]`)?.click(); m.querySelectorAll("[data-lang]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); return; }
+        closeMenu();
         if (b.dataset.slug) { localStorage.setItem("rnx_profile", b.dataset.id); location.href = (window.RNX_BASE || "/") + b.dataset.slug; return; }
         const a = b.dataset.a;
         if (a === "profile") editProfile();

@@ -339,7 +339,7 @@ const SKIPPED = "Official pages unchanged since the last check: AI not needed.";
 
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
-- Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
+- Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers, unless the task explicitly allows reliable press as a fallback (then follow its conditions; Wikipedia, fan sites and forums never count).
 - Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". IMPORTANT: only when the page really shows a switch such as "My time / Track time" or "Your time / Local time" are you reading the reader's time; as a program your time zone is UTC, so then write "UTC". Never assume a switch you can't see. If the page doesn't say which zone its times are in, write "unknown". Also copy, in "zone_label", the exact words on the page that tell the zone (e.g. "GMT", "Local time", "My time / Track time"), or null if there are none. Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
 - A timetable is only published when the page shows real times. If it shows "TBC", "TBA" or "TBD", it is NOT published, even if the page's hidden data contains times (those are placeholders).
 - For each session give the start and, when the timetable shows it, the end time (local_end). Use the session names as the official timetable writes them.
@@ -375,9 +375,11 @@ Task: the race calendar, nothing else.
 4. Test days, prologues and other events that are not races of this championship are not rounds: leave them out.
 5. A round without a confirmed date (TBC, or only a month) goes in "tbc" with what is known. Never invent or copy a date from another championship.
 6. If official sources disagree on a date, use the most recent one and say so in "doubts".
+7. Official announcements often show the calendar only as a picture, which you can't read: give the address of the official page announcing the ${year + 1} calendar in "announcement_url" (we read its pictures), even if its text has no dates.
+8. Fallback, only for rounds whose exact dates the official sites don't give in text: reliable motorsport press or the circuit's own official website (e.g. formula1.com, motorsport.com, autosport.com, the-race.com, racer.com, sportscar365.com, dailysportscar.com, endurance-info.com, speedweek.com). Use such a round only when at least 2 independent sources give the same race day (the last day of the weekend); the first day often differs between sources (some count practice or the Thursday): that is not a disagreement, use the earliest first day given. Then set "source": "press" and list the addresses in "sources". If the race days differ, keep the round in "tbc" with both versions in "when". Rounds read on official pages have "source": "official".
 JSON schema:
-{"website_url": string|null, "calendar_url": string|null,
- "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
+{"website_url": string|null, "calendar_url": string|null, "announcement_url": string|null,
+ "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}],
  "tbc": [{"year": number, "round": number|null, "name": string|null, "circuit": string|null, "when": string|null}],
  "doubts": [string], "notes": string}`;
@@ -467,7 +469,52 @@ async function computeCalendar(series: any, src: any) {
       return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
         sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
     });
+  // the official announcement's calendar picture: read when some rounds are undated or only from the press
+  if (out.announcement_url && ((out.tbc || []).length || found.some((e: any) => e.source === "press"))) {
+    try {
+      const img = await readCalendarImages(series, out.announcement_url, year + 1);
+      if (img) {
+        addUsage(usage, img.usage);
+        for (const x of img.events) {
+          if (!okDate(x.start_date) || !okDate(x.end_date || x.start_date)) continue;
+          const yr = +String(x.start_date).slice(0, 4);
+          const ex = found.find((e: any) => e.year === yr && sameCircuit(`${e.circuit?.name || ""} ${e.circuit?.city || ""} ${e.name || ""}`, `${x.circuit?.name || ""} ${x.circuit?.city || ""} ${x.name || ""}`));
+          if (ex && ex.source !== "press") continue; // the official text wins
+          const ev = { ...(ex || {}), round: x.round ?? ex?.round ?? null, round_to: x.round_to ?? ex?.round_to ?? null, name: ex?.name || cleanName(x.name || x.circuit?.city || "", series), year: yr,
+            start_date: x.start_date, end_date: x.end_date || x.start_date, duration_label: ex?.duration_label || null, circuit: ex?.circuit || x.circuit || null,
+            source: "official_image", sources: [out.announcement_url], zoneNote: "", sessions: [] };
+          if (ex) Object.assign(ex, ev); else if (ev.name) found.push(ev);
+          out.tbc = (out.tbc || []).filter((t: any) => !(+t.year === yr && sameCircuit(`${t.circuit || ""} ${t.name || ""}`, `${x.circuit?.name || ""} ${x.circuit?.city || ""} ${x.name || ""}`)));
+        }
+        trace.opened.push(...img.images);
+      }
+    } catch (_) { /* pictures unreadable: keep what we have */ }
+  }
   return { out, usage, trace, found };
+}
+// the pictures of an official announcement page, read by the AI (calendars are often published as an image)
+async function readCalendarImages(series: any, url: string, year: number) {
+  const r = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15000) });
+  if (!r.ok) return null;
+  const html = (await r.text()).slice(0, 2_000_000);
+  const base = r.url || url;
+  const urls: string[] = [];
+  const og = (html.match(/<meta\b[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) || [])[1]; if (og) urls.push(abs(og, base));
+  for (const tag of html.match(/<img\b[^>]*>/gi) || []) {
+    const src = (tag.match(/\bsrcset=["']([^"']+)["']/i) || [])[1]?.split(",").pop()?.trim().split(/\s+/)[0] || (tag.match(/\b(?:data-src|src)=["']([^"']+)["']/i) || [])[1];
+    if (!src || src.startsWith("data:") || /\.svg(\?|$)|logo|icon|avatar|sprite|flag/i.test(src)) continue;
+    urls.push(abs(src, base));
+  }
+  const pics: { url: string; data: string }[] = [];
+  for (const u of [...new Set(urls.filter(Boolean))]) { if (pics.length >= 6) break; const data = await asJpeg(u, 1600); if (data) pics.push({ url: u, data }); }
+  if (!pics.length) return null;
+  const content: any[] = [];
+  pics.forEach((p, i) => { content.push({ type: "text", text: `Picture ${i + 1}:` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.data } }); });
+  content.push({ type: "text", text: `These pictures come from the official page announcing the ${series.name} calendar (${url}).
+If one of them shows this championship's race calendar for ${year}, read every round in it: round number, first and last day (YYYY-MM-DD, year ${year} unless the picture says otherwise), race name or town, and the circuit (official name, town, country, ISO two-letter country code, IANA time zone, approximate latitude/longitude). Only rounds of THIS championship (not support series, tests or prologues). Never guess a date that isn't in a picture.
+Answer with JSON only: {"found": boolean, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}` });
+  const v = await vision(STRONG, content);
+  return v.out?.found ? { events: v.out.events || [], usage: v.usage, images: pics.map(p => p.url) } : { events: [], usage: v.usage, images: pics.map(p => p.url) };
 }
 async function discover(series: any, src: any, runId: string, kind = "discover") {
   if (kind === "monthly") {
@@ -521,13 +568,28 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     const match = known.find((k: any) => k.year === e.year && ((e.circuit?.name && k.venues?.name && norm(k.venues.name) === norm(e.circuit.name)) || norm(k.name) === norm(e.name) || (e.round && k.round === e.round)));
     return !match || match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date);
   });
-  let chk: any = tocheck.length ? await checkSource(out.calendar_url || site, tocheck.map(label)) : null;
+  // official rounds against the calendar page; press rounds against their own first source; rounds read on the official picture are marked as such
+  const offi = tocheck.filter((e: any) => e.source !== "press" && e.source !== "official_image");
+  let chk: any = offi.length ? await checkSource(out.calendar_url || site, offi.map(label)) : null;
   if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
   // nothing confirmed: read the page again with the stronger model before anything goes to the Review queue
   if (chk && chk.total > 0 && chk.found === 0) {
-    const c2: any = await checkSource(out.calendar_url || site, tocheck.map(label), [STRONG]);
+    const c2: any = await checkSource(out.calendar_url || site, offi.map(label), [STRONG]);
     if (c2?.usage) { addUsage(usage, c2.usage); delete c2.usage; }
     if (c2) chk = { ...c2, retried: true };
+  }
+  const extraItems: any[] = [];
+  const bySrc = new Map<string, any[]>();
+  for (const e of tocheck.filter((e: any) => e.source === "press" && okUrl(e.sources?.[0]))) bySrc.set(e.sources[0], [...(bySrc.get(e.sources[0]) || []), e]);
+  for (const [u, list] of bySrc) {
+    const c: any = await checkSource(u, list.map(label));
+    if (c?.usage) { addUsage(usage, c.usage); delete c.usage; }
+    for (const it of c?.items || []) extraItems.push({ ...it, src: u, press: true });
+  }
+  for (const e of tocheck.filter((e: any) => e.source === "official_image")) extraItems.push({ item: label(e), found: true, quote: "read from the calendar picture on the official announcement", src: e.sources?.[0] || out.announcement_url });
+  if (extraItems.length) {
+    const items = [...(chk?.items || []), ...extraItems];
+    chk = { ...(chk || { url: out.calendar_url || site, readable: true, checked_at: new Date().toISOString() }), items, found: items.filter((i: any) => i.found).length, total: items.length };
   }
   const proofOf = (e: any) => { const x = chk?.items?.find((i: any) => i.item === label(e)); return x ? { ...chk, items: [x], found: x.found ? 1 : 0, total: 1 } : null; };
   const extra = [(out.tbc || []).length ? `Not dated yet: ${(out.tbc || []).map((t: any) => [t.name || t.circuit, t.when].filter(Boolean).join(" ")).join("; ")}.` : "", (out.doubts || []).length ? `Doubts: ${(out.doubts || []).join(" ")}` : ""].filter(Boolean).join(" ");
@@ -549,6 +611,7 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
       }
     }
     const newRoundTo = e.round_to && e.round && e.round_to > e.round && match.round === e.round && match.round_to !== e.round_to;
+    if (e.source === "press") continue; // a date we already have is only changed by an official source
     if (match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date) || newRoundTo) {
       await ins("proposals", { run_id: runId, series_id: series.id, event_id: match.id, kind: "event_change",
         payload: { start_date: e.start_date, end_date: e.end_date || e.start_date, ...(e.duration_label ? { duration_label: e.duration_label } : {}), ...(newRoundTo ? { round: e.round, round_to: e.round_to } : {}) },
@@ -558,8 +621,8 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   }
   if (fresh.length) {
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
-      payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
-      evidence: { url: out.calendar_url || site, excerpt: [out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
+      payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, round_to: e.round_to ?? null, ...(e.source && e.source !== "official" ? { source: e.source, sources: (e.sources || []).filter(okUrl).slice(0, 4) } : {}), name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
+      evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
@@ -764,9 +827,9 @@ function scoreWatch(c: any, out: any) {
 // ---------- logo test: the app's logo pipeline (homepage + AI search candidates, then the AI picks), compared with a reference picture ----------
 const RAW = "https://raw.githubusercontent.com/Birel22/racenxt/main/";
 // any logo picture -> JPEG on grey (the AI can't read SVG, and white logos vanish on transparency); via a public image proxy
-async function asJpeg(url: string) {
+async function asJpeg(url: string, size = 600) {
   try {
-    const r = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=jpg&bg=7f7f7f&w=600&h=600&fit=inside&we`, { signal: AbortSignal.timeout(15000) });
+    const r = await fetch(`https://images.weserv.nl/?url=${encodeURIComponent(url)}&output=jpg&bg=7f7f7f&w=${size}&h=${size}&fit=inside&we`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) return null;
     const buf = new Uint8Array(await r.arrayBuffer());
     return buf.length > 400 && buf.length < 2_500_000 ? b64(buf) : null;

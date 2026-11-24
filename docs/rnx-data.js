@@ -42,7 +42,7 @@
       if (en.vehicles) {
         // specs from the library, photo = the user's own livery
         carOf[s.slug] = en.id;
-        cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles) };
+        cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles), kind: window.rnxVehKind ? rnxVehKind(en.vehicles, s.sport) : "" };
       }
     }
     // the athlete's own events (no championship), grouped by kind
@@ -71,7 +71,7 @@
       const id = e.ext_key || e.id.slice(0, 8);
       // a custom event can have its own car
       let carKey = "";
-      if (!e.series_id && e.vehicles) { carKey = "e-" + e.id.slice(0, 8); carOf[carKey] = carKey; label[carKey] = e.name; cars[carKey] = { name: e.vehicles.name, img: e.car_photo_url || "", specs: carSpecs(e.vehicles) }; }
+      if (!e.series_id && e.vehicles) { carKey = "e-" + e.id.slice(0, 8); carOf[carKey] = carKey; label[carKey] = e.name; cars[carKey] = { name: e.vehicles.name, img: e.car_photo_url || "", specs: carSpecs(e.vehicles), kind: window.rnxVehKind ? rnxVehKind(e.vehicles, "") : "" }; }
       EVENTS.push({
         s: e.start_date, e: e.end_date, series: sl, id, uuid: e.id, name: e.name, dur: e.duration_label || "",
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),

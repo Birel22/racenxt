@@ -39,7 +39,7 @@
   .rxt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .rxt.rxt-lg{background:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
   .rxt .rxt-logo{position:absolute;inset:14% 12%;width:76%;height:72%;object-fit:contain}
-  .rxt.rxt-pv .rxt-pvlg{position:absolute;inset:auto;top:8%;left:7%;width:34%;height:26%;object-fit:contain;object-position:left top;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
+  .rxt.rxt-pv .rxt-pvlg{position:absolute;inset:auto;top:6%;left:4.4%;width:25.1%;height:auto;object-fit:contain;object-position:left top;filter:drop-shadow(0 1px 4px rgba(0,0,0,.45))}
   .rxl-warn{display:flex;align-items:flex-start;gap:10px;padding:10px 10px 10px 12px;border-radius:12px;border:1px solid rgba(242,178,15,.28);background:rgba(242,178,15,.06);font-size:13px;line-height:1.4;color:#a9abb2}
   .rxl-warn[hidden]{display:none}
   .rxl-warn > svg{width:18px;height:18px;flex:none;margin-top:1px;color:#f2b20f}
@@ -56,47 +56,41 @@
   .rxl-seg button i{width:16px;height:16px;border-radius:50%;border:1px solid #4a4d56;flex:none}
   .rxl-seg button[aria-checked="true"]{background:#23262d;color:#f2f2ef}
   .rxl-seg button:focus-visible,.rxf-views button:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
-  .rxl-stage{position:relative;height:min(36dvh,330px);width:auto;max-width:100%;margin:0 auto;aspect-ratio:3/4;border-radius:18px;overflow:hidden;background:#1d2026 center/cover no-repeat;border:1px solid #2c2f37}
-  .rxl-stage.desk{height:auto;width:100%;max-height:min(36dvh,330px);aspect-ratio:16/8.6}
-  .rxe-b.rxl-b{gap:14px;padding-top:14px;padding-bottom:14px}
+  /* logo editor: "Logo" (frame it) and "Preview" side by side, same size; colours below; size below */
+  .rxe-b.rxl-b{display:flex;flex-direction:column;gap:14px}
+  .rxl-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .rxl-cell{display:grid;gap:6px;min-width:0;align-content:start}
+  .rxl-cap{display:flex;align-items:center;justify-content:space-between;gap:6px;height:22px;font:700 11px/1 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#9a9ca3}
+  .rxl-box{position:relative;aspect-ratio:5/6;border-radius:14px;overflow:hidden;background:#0b0c0f;border:1px solid #2c2f37;display:grid;place-items:center}
+  .rxl-box.ck{background-color:#0d0e11;background-image:linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%),linear-gradient(45deg,#17191e 25%,transparent 25%,transparent 75%,#17191e 75%);background-size:14px 14px;background-position:0 0,7px 7px}
+  .rxl-box > img.cur{max-width:80%;max-height:60%;object-fit:contain}
+  #rxl-crop{position:absolute;inset:0;display:grid;place-items:center}
+  #rxl-crop .rxc{display:block}
+  #rxl-crop .rxc-stage{display:block;width:auto;border-radius:6px}
+  #rxl-crop .rxc-stage img{width:auto;max-width:none}
+  #rxl-crop .rxc-msg{display:none}
+  .rxl-msg{min-height:24px;font-size:12px;line-height:1.3;color:#a9abb2;text-align:center;display:grid;place-items:center}
+  .rxl-mini{justify-self:center;display:flex;gap:2px;padding:2px;border-radius:999px;background:#0d0e11;border:1px solid #2a2d35}
+  .rxl-mini button{height:22px;padding:0 10px;border:0;border-radius:999px;background:none;color:#8e919b;font:700 10px/1 Barlow,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+  .rxl-mini button[aria-checked="true"]{background:#f2f2ef;color:#0b0c0f}
+  .rxl-mini button:focus-visible{outline:2px solid #FF5A1F;outline-offset:1px}
+  /* the preview is the page at scale: same proportions, same logo size, same title size */
+  .rxl-stage{position:relative;width:100%;aspect-ratio:5/6;overflow:hidden;background:#1d2026;container-type:inline-size}
+  .rxl-stage.desk{aspect-ratio:860/440;border-radius:6px}
   .rxl-stage > img.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-  .rxl-stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),transparent 30%,transparent 60%,rgba(0,0,0,.7))}
-  .rxl-stage .lg{position:absolute;z-index:1;top:4.5%;left:6%;width:calc(24% * var(--lgs,1));max-height:calc(16% * var(--lgs,1));object-fit:contain;object-position:left top;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:width .25s ease}
-  .rxl-stage.desk .lg{width:calc(16% * var(--lgs,1));top:6%;left:3.5%;max-height:calc(22% * var(--lgs,1))}
-  .rxl-stage .nm{position:absolute;z-index:1;left:6%;bottom:5%;font:700 26px/1 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase}
-  .rxl-stage.desk .nm{left:3.5%;font-size:30px}
+  .rxl-stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,14,17,.7) 0%,rgba(13,14,17,0) 30%),linear-gradient(0deg,rgba(13,14,17,.95) 0%,rgba(13,14,17,.55) 45%,rgba(13,14,17,0) 75%)}
+  .rxl-stage.desk::after{background:linear-gradient(90deg,rgba(13,14,17,.92) 0%,rgba(13,14,17,.55) 45%,rgba(13,14,17,0) 75%),linear-gradient(0deg,rgba(13,14,17,.85) 0%,rgba(13,14,17,0) 45%)}
+  .rxl-stage .lg{position:absolute;z-index:1;top:3.2%;left:4.4%;width:calc(25.1% * var(--lgs,1));max-width:38%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+  .rxl-stage.desk .lg{top:5.5%;left:3.3%;width:calc(17.4% * var(--lgs,1));max-width:45%}
+  .rxl-stage .nm{position:absolute;z-index:1;left:4.4%;right:4%;bottom:9%;font:800 10.4cqw/.95 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase}
+  .rxl-stage.desk .nm{left:3.3%;bottom:13%;font-size:8.8cqw}
   .rxl-stage .nm em{font-style:normal;color:#FF5A1F}
-  /* partner logos: preview in the partners bar of the page */
-  .rxl-stage.pt{background:#0b0c0f;display:flex;align-items:center;justify-content:center;padding:0 6%;aspect-ratio:auto;height:min(24dvh,210px);width:72%}
-  .rxl-stage.pt.desk{width:100%;max-height:none;height:min(24dvh,210px)}
-  .rxe-b.rxl-b{display:flex;flex-direction:column;gap:12px}
-  .rxl-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
-  .rxl-row .rxl-stage{margin:0;height:min(40dvh,340px)}
-  .rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(24dvh,210px)}
-  .rxl-side{display:grid;gap:8px;align-content:center;min-width:0}
-  .rxl-side .rxe-lbl{margin:0}
-  .rxl-size{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;font:600 13px Barlow,system-ui,sans-serif;color:#9a9ca3}
-  .rxl-size input{width:100%;min-width:0;accent-color:#FF5A1F;height:28px;margin:0}
-  .rxl-size output{min-width:38px;text-align:right;color:#f2f2ef;font-variant-numeric:tabular-nums}
-  .rxl-row:not(.stack) .rxl-seg button{min-height:36px !important}
-  .rxl-row:not(.stack) .rxl-seg{grid-template-columns:1fr}
-  .rxl-row:not(.stack) .rxl-seg button{justify-content:flex-start;padding:0 12px;min-height:40px}
-  .rxl-side .rxf-views{justify-self:start;margin:4px 0 0}
-  .rxl-side .rxf-views button{height:30px;padding:0 12px;font-size:13px}
-  .rxl-row.stack{grid-template-columns:1fr}
-  .rxl-row.stack .rxl-stage.desk{width:100%;height:auto;max-height:none;aspect-ratio:16/8.6}
-  .rxl-b.fr.dk .rxl-row.stack .rxl-stage.desk{width:auto;height:min(17dvh,180px);max-width:100%;margin:0 auto}
-  .rxl-row.stack .rxl-side{grid-template-columns:1fr}
-  .rxl-row .rxl-stage.pt{height:min(15dvh,130px)}
-  .rxl-row.stack .rxl-side .rxe-lbl{display:none}
-  .rxl-row.stack .rxl-side .rxf-views{margin:0;justify-self:center}
-  .rxl-row.stack .rxl-stage.pt{width:100%}
-  #rxl-crop .rxc{justify-items:center;gap:6px}
-  #rxl-crop .rxc-stage{display:inline-block;width:auto;max-width:100%}
-  #rxl-crop .rxc-stage img{width:auto;max-width:100%;max-height:min(28dvh,260px)}
-  .rxl-b.fr.dk #rxl-crop .rxc-stage img{max-height:min(17dvh,200px)}
-  #rxl-crop .rxc-msg{font-size:13px}
-  @media (min-width:700px){#rxl-crop .rxc-stage img{max-height:min(32dvh,300px)}.rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(28dvh,240px)}}
+  .rxl-stage.pt{aspect-ratio:auto;height:100%;background:#0b0c0f;display:flex;align-items:center;justify-content:center;padding:0 6%}
+  .rxl-stage.pt.desk{height:100%}
+  .rxl-seg button{min-height:42px}
+  .rxl-size{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;font:600 13px Barlow,system-ui,sans-serif;color:#9a9ca3}
+  .rxl-size input{width:100%;min-width:0;margin:0;accent-color:#FF5A1F;height:30px}
+  .rxl-size output{min-width:42px;text-align:right;color:#f2f2ef;font-variant-numeric:tabular-nums}
   .rxl-stage.pt::after{display:none}
   .rxl-stage .pt-bar{width:100%;display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:16px;padding:14px 12px;border:1px solid #23262d;border-radius:12px;background:#121419}
   .rxl-stage .pt-bar span{display:none;font:600 9px 'Barlow Condensed',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#7d808a}
@@ -277,6 +271,24 @@
     const src = await window.rnxProcessLogo(await c.crop(), "original");
     return { src, out: mode === "original" ? src : await window.rnxProcessLogo(src, mode), mode };
   };
+
+  // ---------- vehicle types: the icon fans tap to see a car's specs ----------
+  window.RNX_VK = {
+    proto: { l: "Prototype", svg: '<svg class="car-ic" viewBox="-0.6 0.1 23.4 6.6" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><path stroke-width="0.7" d="M11.6 0.8 L20.4 1.05 M20.2 1.05 L22.3 0.95 M21.9 1 L21.9 2.8 M20.6 1.1 L20.9 2.7"/><path stroke-width="0.6" d="M7.9 2.2 L9.4 1.35 L11.2 1.35"/><circle stroke-width="0.95" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.95" cx="18.45" cy="5.15" r="1.4"/></g></svg>' },
+    gt: { l: "GT", svg: '<svg class="car-ic" viewBox="-0.6 0.1 23.4 6.6" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.4 5.1 L0.6 4.1 Q0.9 3.4 2.1 3.1 L5.4 2.5 Q7.3 1.1 9.6 0.9 L12.4 0.9 Q14.5 1.0 16.2 2.2 L19.7 2.6 Q21.5 2.8 21.8 3.7 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><path stroke-width="0.6" d="M7.3 2.4 Q8.9 1.45 10.6 1.4 L12.9 1.45 Q14.3 1.6 15.2 2.35 Z"/><path stroke-width="0.7" d="M19.4 2.5 L19.7 1.75 M18.9 1.7 L22.1 1.6"/><circle stroke-width="0.95" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.95" cx="18.45" cy="5.15" r="1.4"/></g></svg>' },
+    formula: { l: "Single-seater", svg: '<svg class="car-ic" viewBox="-0.6 0.1 23.6 7.3" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.2 5.4 L2.6 5.4 M2.4 4.6 L6.4 4 L8.8 3.5 L10 2.9 L12.6 2.5 Q15.4 2.3 17.2 3.1 L19.8 4 L19.8 5.1"/><path stroke-width="0.95" d="M6.2 5.3 L16.4 5.3"/><path stroke-width="0.8" d="M9.7 3.1 Q10.8 1.7 12.4 2.5"/><path stroke-width="0.8" d="M19.9 1.2 L22.6 1.2 M22.3 1.2 L22.3 4.7 M20.8 1.2 L21.1 4"/><circle stroke-width="0.95" cx="4.4" cy="5" r="1.65"/><circle stroke-width="0.95" cx="18.1" cy="5" r="1.65"/></svg>' },
+    kart: { l: "Kart", svg: '<svg class="car-ic" viewBox="0.4 1.6 47.4 15.6" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.9"><path d="M1.6 14.6 L1.6 12.9 Q1.9 11.7 3.6 10.9 C7.2 9.2 10.4 6.2 13.2 3.4 Q14 2.8 14.6 3.6 L14.8 4.2 C12 7.2 8.6 10.6 5.6 12.4 Q4.3 13.2 4.3 14.6 Z"/><path d="M12.6 6.6 L14.6 10.8"/><path d="M17.8 12 L21.8 4.6 M18.8 10.4 L20.4 11.2 M20.2 7.8 L21.8 8.6"/><path stroke-width="1.4" d="M19.8 3.4 L24.4 6.2"/><path d="M15.4 15.4 L33 15.4 Q34.2 15.4 34.4 14.2 L34.6 11.8 L17 11.4 Q15.2 11.4 15.2 12.8 Z"/><path d="M17.4 13.4 L32.2 13.6"/><path d="M16.4 10.8 L30.4 10.4"/><path d="M30.4 10.6 L33.6 4.8 Q34.2 4 35 4.4 L35.6 4.8 L33.6 10.4"/><path d="M36.4 7.4 L44 4.6 L44.8 6.4 L37.2 9.2 Z M38.6 6.6 L39.2 8.3 M40.2 6 L40.8 7.7 M41.8 5.4 L42.4 7.1"/><path d="M44.4 11.2 L47 11.2 L47 14.8 L44.8 14.8"/><circle cx="10" cy="12.8" r="3.6"/><path d="M8.4 11.8 A1.9 1.9 0 0 1 11.8 11.9"/><circle cx="40" cy="12.4" r="4.2"/><path d="M38 11.4 A2.3 2.3 0 0 1 42.2 11.5"/></svg>' },
+    bike: { l: "Motorbike", svg: '<svg class="car-ic" viewBox="1.6 3.6 37.6 18.4" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round" stroke-width="0.9"><circle cx="7.6" cy="16.2" r="5.1"/><circle cx="7.6" cy="16.2" r="2.8"/><circle cx="7.6" cy="16.2" r="0.8"/><circle cx="32" cy="16.2" r="5.1"/><circle cx="32" cy="16.2" r="3.4"/><path d="M7.6 16.2 L10.8 9.2"/><path d="M9.2 9.4 L11.6 7.4 L15.6 4.8 L17.4 5.2 L22 5 L24.4 6.8 L34.6 4.4 L35.6 4.8 L28.6 8"/><path d="M9.2 9.4 L10.2 11.6 L12.4 14.6 L15.4 17 L21.2 17 L23.6 15.6 L24.8 9.6"/><path d="M12.2 9.4 L17.6 8.6 L21.4 12.8"/><path d="M10.4 10.4 L13 10 L12.4 11.2 Z"/><path d="M24.2 13.2 L32 16.2"/><path d="M25 14.6 L29.6 12.6 L30.8 12.8"/></svg>' }
+  };
+  // the car's own type, else guessed from its classes, else from the championship's discipline
+  window.rnxVehKind = function (v, sport) {
+    if (v && window.RNX_VK[v.kind]) return v.kind;
+    const t = [v && v.category, ...((v && v.classes) || [])].filter(Boolean).join(" ").toLowerCase();
+    if (/kart/.test(t)) return "kart";
+    if (/lmp|hypercar|gtp|prototype|\bdpi\b/.test(t)) return "proto";
+    if (/(^|[^a-z])(gt|gtd)/.test(t)) return "gt";
+    return { formula: "formula", karting: "kart", motorbikes: "bike" }[sport] || "proto";
+  };
   // ---------- logos: cut out (background removed), trimmed, in original colours, white or black ----------
   window.rnxProcessLogo = async function (file, mode) {
     const img = await new Promise((res, rej) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = rej; im.src = typeof file === "string" ? file : URL.createObjectURL(file); });
@@ -320,7 +332,7 @@
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
   window.rnxLogoThumb = function (logo, label, photo, pos) {
     style(); label = label || "Your logo";
-    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }, ls = +p.lg || 1; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}" style="width:${34 * ls}%;height:${26 * ls}%"></div>`; }
+    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }, ls = +p.lg || 1; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}" style="width:${Math.min(38, 25.1 * ls)}%"></div>`; }
     return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="${esc(label)}"></div>`
       : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>${esc(label)}</span></div>`;
   };
@@ -334,17 +346,14 @@
       const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rxl-h");
       ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead(opts.label || "Your logo", opts.heading || (opts.file ? "Add your logo" : "Adjust your logo")).replace("<b>", '<b id="rxl-h">')}
         <div class="rxe-b rxl-b${opts.file ? " fr" : ""}">
-          ${opts.file ? `<div id="rxl-crop"></div>` : ""}
-          <div class="rxl-warn" id="rxl-warn" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span><b>Background isn't plain</b>Best: an SVG, a PNG without background, or a plain one.</span><button type="button" class="rxl-wb" id="rxl-other">Change</button></div>
-          <div class="rxl-row${opts.partners ? " stack" : ""}" id="rxl-row">
-            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}
-            <div class="rxl-side">
-              <div class="rxe-lbl">Colour</div>
-              <div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>
-              ${opts.partners ? "" : `<label class="rxl-size"><span>Size</span><input type="range" id="rxl-sz" min="60" max="150" step="5" value="${Math.round((opts.size || 1) * 100)}" aria-label="Logo size"><output id="rxl-szv">${Math.round((opts.size || 1) * 100)}%</output></label>`}
-              <div class="rxf-views" role="radiogroup" aria-label="Preview on"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div>
-            </div>
+          <div class="rxl-pair">
+            <div class="rxl-cell"><div class="rxl-cap">Logo</div><div class="rxl-box${opts.file ? "" : " ck"}" id="rxl-lbox">${opts.file ? `<div id="rxl-crop"></div>` : `<img class="cur" id="rxl-cur" alt="">`}</div><div class="rxl-msg" id="rxl-msg">${opts.file ? "" : "Your logo, background removed"}</div></div>
+            <div class="rxl-cell"><div class="rxl-cap">Preview</div>
+              <div class="rxl-box">${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div><span class="rxl-mini" role="radiogroup" aria-label="Preview on"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></span></div>
           </div>
+          <div class="rxl-warn" id="rxl-warn" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span><b>Background isn't plain</b>Best: an SVG, a PNG without background, or a plain one.</span><button type="button" class="rxl-wb" id="rxl-other">Change</button></div>
+          <div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>
+          ${opts.partners ? "" : `<label class="rxl-size"><span>Size</span><input type="range" id="rxl-sz" min="60" max="150" step="1" value="${Math.round((opts.size || 1) * 100)}" aria-label="Logo size"><output id="rxl-szv">${Math.round((opts.size || 1) * 100)}%</output></label>`}
         </div>
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
@@ -357,7 +366,7 @@
           const base = st.src || opts.src || opts.current;
           const out = await rnxProcessLogo(base, st.mode);
           if (my !== st.seq) return;
-          st.out = out; lg.src = URL.createObjectURL(out); lg.hidden = false; busy(""); ok.disabled = false;
+          st.out = out; lg.src = URL.createObjectURL(out); lg.hidden = false; const cur = ov.querySelector("#rxl-cur"); if (cur) cur.src = lg.src; busy(""); ok.disabled = false;
           // the picture's background isn't plain: say so, and how to get a clean logo (they can still keep this one)
           if (opts.file && st.whole === undefined) { st.whole = null; try { st.whole = !(await rnxProcessLogo(opts.file, "original")).busyBg; } catch (e) {} }
           const warn = ov.querySelector("#rxl-warn"); if (warn) warn.hidden = !(opts.file && st.src && st.src.busyBg && !st.whole);
@@ -378,10 +387,18 @@
       const sz = ov.querySelector("#rxl-sz");
       if (sz) sz.oninput = () => { st.size = +sz.value / 100; stage.style.setProperty("--lgs", st.size); ov.querySelector("#rxl-szv").textContent = sz.value + "%"; };
       ov.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; ov.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
-      ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); const dk = b.dataset.v === "desk"; stage.classList.toggle("desk", dk); ov.querySelector("#rxl-row").classList.toggle("stack", dk || !!opts.partners); ov.querySelector(".rxl-b").classList.toggle("dk", dk); });
+      ov.querySelectorAll(".rxl-mini button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxl-mini button").forEach(x => x.setAttribute("aria-checked", x === b)); stage.classList.toggle("desk", b.dataset.v === "desk"); });
       ov.querySelector(".rxe-x").focus({ preventScroll: true });
       const start = async () => {
-        if (opts.file && window.rnxLogoCropper) { st.cropper = await rnxLogoCropper(ov.querySelector("#rxl-crop"), opts.file, opts.getToken); st.cropper.onChange(render); }
+        if (opts.file && window.rnxLogoCropper) {
+          const host = ov.querySelector("#rxl-crop"), slot = ov.querySelector("#rxl-msg");
+          const fit = () => { const im = host.querySelector(".rxc-stage img"), bx = ov.querySelector("#rxl-lbox"); if (!im || !im.naturalWidth || !bx) return; const r = bx.getBoundingClientRect(), k = Math.min((r.width - 16) / im.naturalWidth, (r.height - 16) / im.naturalHeight); im.style.width = Math.max(20, Math.round(im.naturalWidth * k)) + "px"; im.style.height = "auto"; };
+          const watch = new MutationObserver(() => { const m = host.querySelector(".rxc-msg"); if (m) slot.innerHTML = m.innerHTML; const im = host.querySelector(".rxc-stage img"); if (im) { im.complete ? fit() : (im.onload = fit); } });
+          watch.observe(host, { childList: true, subtree: true, characterData: true });
+          window.addEventListener("resize", fit);
+          st.cropper = await rnxLogoCropper(host, opts.file, opts.getToken); st.cropper.onChange(render);
+          const m = host.querySelector(".rxc-msg"); if (m) slot.innerHTML = m.innerHTML; fit();
+        }
         render();
       };
       // another picture without leaving the editor

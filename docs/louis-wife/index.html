@@ -281,7 +281,7 @@
   .series-logo[alt="Le Mans"]{height:30px}
   .dur{display:inline-flex;align-items:center;gap:4px;font:600 13px 'Barlow',sans-serif;letter-spacing:0;text-transform:none;color:var(--muted);margin-left:10px;vertical-align:3px;white-space:nowrap}
   .dur svg{width:13px;height:13px}
-  .cd-car .car-ic{width:34px;height:12px;flex:none}
+  .cd-car .car-ic{width:auto;height:12px;max-width:38px;flex:none}
   .countdown{position:relative}
   .countdown .cd-share{position:absolute;top:-1px;right:-1px;width:38px;height:32px;padding:0 0 1px 1px;border:1px solid var(--line);border-radius:0 12px 0 12px;background:linear-gradient(225deg,rgba(255,255,255,.055),rgba(255,255,255,.015));color:#7d808a;transition:color .15s,background .15s,border-color .15s}
   .countdown .cd-share:hover,.countdown .cd-share:focus-visible{color:var(--c,var(--lm));border-color:#3a3d45;background:linear-gradient(225deg,rgba(255,255,255,.09),rgba(255,255,255,.03))}
@@ -401,7 +401,7 @@
   .ev.ev2 .tt-btn.has{color:var(--text) !important}
   .ev.ev2 .tt-btn svg{width:13px;height:13px}
   .ev.ev2 .car-btn{padding:0 10px}
-  .ev.ev2 .car-btn .car-ic{width:30px;height:11px;flex:none}
+  .ev.ev2 .car-btn .car-ic{width:auto;height:11px;max-width:34px;flex:none}
   .ev.ev2 .car-lbl{display:none;margin:0}
   .ev.ev2 .note{margin:0;font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @media (min-width:621px){ .ev.ev2 .car-lbl{display:inline} .ev.ev2 .car-btn{padding:0 12px 0 10px} }
@@ -512,11 +512,11 @@
 .ff-none{text-align:center;color:var(--muted);padding:40px 16px;font-size:15px}
 @media (prefers-reduced-motion:reduce){.ff-search{animation:none}}
 </style>
-<script src="config.js?v=20261125-002635"></script>
-<script src="rnx-social.js?v=20261125-002635"></script>
-<script src="rnx-ui.js?v=20261125-002635"></script>
-<script src="rnx-edit.js?v=20261125-002635"></script>
-<script src="rnx-data.js?v=20261125-002635"></script>
+<script src="config.js?v=20261125-004931"></script>
+<script src="rnx-social.js?v=20261125-004931"></script>
+<script src="rnx-ui.js?v=20261125-004931"></script>
+<script src="rnx-edit.js?v=20261125-004931"></script>
+<script src="rnx-data.js?v=20261125-004931"></script>
 </head>
 <body>
 <div class="wrap">
@@ -665,7 +665,7 @@ function render(){
             <div class="ev-main">
               <div class="ev-head"><h3 class="ev-name">${esc(L(ev.name))}</h3><span class="ev-meta">${ev.dur ? `<span class="ev-dur" title="${T("raceLength")}">${CLOCK}${esc(ev.dur)}</span>` : ""}${ev===nextEv?`<span class="ev-next">${T("next")}</span>`:''}</span><button class="share-btn" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button></div>
               <a class="where" href="${mapUrl(ev)}" target="_blank" rel="noopener" title="${T("maps")}"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>${esc(L(ev.where))}</a>
-              <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="car-btn" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}" title="${T("carSpecs")}">${CARICON}<span class="car-lbl">${T("carShort")}</span></button>` : ""}${linkBtn(ev)}</div>
+              <div class="ev-actions"><span class="country"><span class="flag" aria-hidden="true">${ev.flag}</span>${esc(L(ev.country))}</span><button class="tt-btn${TIMETABLES[ev.id]?' has':''}" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("schedule")} – ${esc(L(ev.name))}">${TTICON}<span>${T("schedule")}</span></button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="car-btn" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}" title="${T("carSpecs")}">${carIc(ev.carKey || ev.series)}<span class="car-lbl">${T("carShort")}</span></button>` : ""}${linkBtn(ev)}</div>
               ${ev.note?`<div class="note">${esc(L(ev.note))}</div>`:''}
             </div>
           </article>`; }).join("")}
@@ -813,6 +813,8 @@ document.getElementById("list").addEventListener("click", e => { const b = e.tar
 
 
 // ===== Voitures / Cars =====
+// the vehicle's own icon (prototype, GT, single-seater, kart, motorbike), else the default car
+const carIc = k => { const c = CARS[CAR_OF[k]], vk = window.RNX_VK; return vk && c && vk[c.kind] ? vk[c.kind].svg : CARICON; };
 const CARICON = '<svg class="car-ic" viewBox="-0.6 0.1 23.4 6.6" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round"><path stroke-width="0.95" d="M0.3 5.1 L0.8 3.7 Q1.3 2.9 2.6 2.6 Q4.2 2.2 5.6 2.4 L6.7 2.5 L8.7 0.95 Q9.1 0.75 9.8 0.75 L11.4 0.75 Q12.6 0.8 13.6 1.5 L15.6 2.3 Q16.6 2.4 17.6 2.4 L21.9 2.8 L21.9 5.1 L20.5 5.1 A2.05 2.05 0 0 0 16.4 5.1 L7.3 5.1 A2.05 2.05 0 0 0 3.2 5.1 Z"/><path stroke-width="0.7" d="M11.6 0.8 L20.4 1.05 M20.2 1.05 L22.3 0.95 M21.9 1 L21.9 2.8 M20.6 1.1 L20.9 2.7"/><path stroke-width="0.6" d="M7.9 2.2 L9.4 1.35 L11.2 1.35"/><circle stroke-width="0.95" cx="5.25" cy="5.15" r="1.4"/><circle stroke-width="0.95" cx="18.45" cy="5.15" r="1.4"/></g></svg>';
 const CAR_OF = RNX.carOf;
 const TEAM = RNX.team;
@@ -937,7 +939,7 @@ function openWatch(ev, from){
   card.addEventListener("touchend", () => { if (y0 == null) return; card.style.transition = ""; card.style.transform = ""; if (dy > 90) close(); y0 = null; });
 }
 document.addEventListener("click", e => { const b = e.target.closest(".wbtn"); if (b) openWatch(EVENTS[+b.dataset.i], b); });
-const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}">${CARICON}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
+const watchBtn = ev => `<button class="share-btn cd-share" data-i="${EVENTS.indexOf(ev)}" aria-label="${T("share")} – ${esc(L(ev.name))}" title="${T("share")}">${SHAREICON}</button><div class="cd-btns"><button class="watch ghost cd-tt" data-i="${EVENTS.indexOf(ev)}">${TTICON}${T("schedule")}</button>${CARS[CAR_OF[ev.carKey || ev.series]] ? `<button class="watch ghost cd-car" data-series="${ev.carKey || ev.series}" aria-label="${T("carSpecs")} – ${esc(CARS[CAR_OF[ev.carKey || ev.series]].name)}">${carIc(ev.carKey || ev.series)}${T("carShort")}</button>` : ""}${watchLinks(ev)}</div>`;
 
 // Countdown
 // ===== Horloge (avec mode démo : ?demo=pre | next | live | between | race) =====

@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-215209"></script>
-<script src="rnx-social.js?v=20261124-215209"></script>
-<script src="rnx-auth.js?v=20261124-215209"></script>
-<script src="rnx-ui.js?v=20261124-215209"></script>
+<script src="config.js?v=20261124-220159"></script>
+<script src="rnx-social.js?v=20261124-220159"></script>
+<script src="rnx-auth.js?v=20261124-220159"></script>
+<script src="rnx-ui.js?v=20261124-220159"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -163,6 +163,8 @@
   .cs-add{color:var(--acc);flex-wrap:wrap} .cs-add small{flex-basis:100%;margin-top:-2px}
   .cs-q{margin-bottom:10px} .cs-cars{max-height:46dvh;overflow-y:auto}
   .cs-two{display:grid;grid-template-columns:110px 1fr;gap:10px}
+  .cs-sug{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2d35;border-radius:14px;background:#1d2026;cursor:pointer}
+  .cs-sug input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--acc)} .cs-sug span{display:grid;gap:3px} .cs-sug b{font-size:15px;font-weight:600} .cs-sug small{font-size:13px;color:var(--dim);line-height:1.4}
   .cs-ph{display:flex;align-items:center;gap:12px} .cs-ph img{width:120px;aspect-ratio:16/10;object-fit:cover;border-radius:10px}
   .tile .tc{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);min-height:0} .tile .tc:empty{display:none}
   .cls-ov{position:fixed;inset:0;z-index:60;background:rgba(5,6,8,.62);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;animation:clsF .25s ease}
@@ -437,7 +439,7 @@ function obStep(){
         let yr = YEAR; try { const up = await api(`events?series_id=eq.${sid}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
         const d = OB.det[sid] || {};
         let vehicle_id = d.vehicle?.id || null;
-        if (!vehicle_id && d.newCar) { try { const [v] = await ins("vehicles", { name: d.newCar, status: "pending", created_by_profile: id }); vehicle_id = v.id; } catch(e){} }
+        if (!vehicle_id && d.newCar) { try { const [v] = await ins("vehicles", { name: d.newCar, status: "pending", suggested: !!d.suggest, created_by_profile: id }); vehicle_id = v.id; } catch(e){} }
         let car_photo_url = null;
         if (d.photo) { try { car_photo_url = await upload(await carPic(d.photo), `cars/${id}-${Date.now()}.jpg`); } catch(e){} }
         await ins("entries", { profile_id:id, series_id:sid, year:yr, category: d.category || null, vehicle_id, car_number: d.car_number || null, team: d.team || null, teammates: d.teammates?.length ? d.teammates : null, car_photo_url, color: COLORS[ci++ % COLORS.length] });
@@ -544,7 +546,7 @@ function champSetup(ser, d0){
           const row = v => `<button type="button" class="cls-row${d.vehicle?.id === v.id ? " on" : ""}" data-v="${v.id}"><span>${esc(v.name)}</span>${v.category ? `<small>${esc(v.category)}</small>` : ""}</button>`;
           b.querySelector("#cs-cars").innerHTML = (top.length ? `<div class="oc-h">In ${esc(ser.short_name || ser.name)}${d.category ? " · " + esc(d.category) : ""}</div>${top.map(row).join("")}` : "")
             + (rest.length ? `${top.length ? `<div class="oc-h">All cars</div>` : ""}${rest.slice(0, q ? 30 : 12).map(row).join("")}` : "")
-            + (q ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: we check it and add its specs</small></button>` : "");
+            + (q ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: it's yours right away</small></button>` : "");
           b.querySelectorAll("[data-v]").forEach(x => x.onclick = () => { d.vehicle = VEHS.find(v => v.id === x.dataset.v); delete d.newCar; next(); });
           const add = b.querySelector("#cs-add"); if (add) add.onclick = () => { d.newCar = b.querySelector("#cs-q").value.trim(); delete d.vehicle; next(); };
         };
@@ -560,9 +562,10 @@ function champSetup(ser, d0){
           <div class="cs-two"><div class="field"><label class="f" for="cs-num">Car number</label><input id="cs-num" inputmode="numeric" autocomplete="off" value="${esc(d.car_number || "")}" enterkeyhint="next"></div>
           <div class="field"><label class="f" for="cs-team">Team</label><input id="cs-team" autocomplete="off" data-form-type="other" value="${esc(d.team || "")}" enterkeyhint="next"></div></div>
           <div class="field"><label class="f" for="cs-mates">Teammates</label><input id="cs-mates" autocomplete="off" data-form-type="other" value="${esc((d.teammates || []).join(", "))}" enterkeyhint="done"><div class="help">Separate names with commas.</div></div>
+          ${d.newCar ? `<label class="cs-sug"><input type="checkbox" id="cs-sug"${d.suggest ? " checked" : ""}><span><b>Suggest this car for the Racenxt library</b><small>We'll review it and add it for everyone. Standard cars only, not modified ones. Either way, it's on your page right away.</small></span></label>` : ""}
           <div class="field"><label class="f">Car photo</label><div class="cs-ph">${d.photo ? `<img src="${esc(d.photoUrl)}" alt="">` : `<span class="muted">No photo</span>`}<button type="button" class="btn sm" id="cs-pic">${d.photo ? "Change photo" : "Add photo"}</button></div><div class="help">Your car with your livery. Fans see it when they tap your car.</div></div>`;
         f.innerHTML = foot("Skip, do it later", "Done");
-        const save = () => { d.car_number = b.querySelector("#cs-num").value.trim(); d.team = b.querySelector("#cs-team").value.trim(); d.teammates = b.querySelector("#cs-mates").value.split(",").map(x => x.trim()).filter(Boolean); };
+        const save = () => { if (b.querySelector("#cs-sug")) d.suggest = b.querySelector("#cs-sug").checked; d.car_number = b.querySelector("#cs-num").value.trim(); d.team = b.querySelector("#cs-team").value.trim(); d.teammates = b.querySelector("#cs-mates").value.split(",").map(x => x.trim()).filter(Boolean); };
         b.querySelector("#cs-pic").onclick = async () => { save(); const fl = await obPick(); if (!fl) return; d.photo = fl; d.photoUrl = URL.createObjectURL(fl); draw(); };
         f.querySelector("#cs-ok").onclick = () => { save(); next(); };
         f.querySelector("#cs-skip").onclick = () => next();

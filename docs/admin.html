@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-215209"></script>
-<script src="rnx-auth.js?v=20261124-215209"></script>
-<script src="rnx-ui.js?v=20261124-215209"></script>
+<script src="config.js?v=20261124-220159"></script>
+<script src="rnx-auth.js?v=20261124-220159"></script>
+<script src="rnx-ui.js?v=20261124-220159"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -492,7 +492,7 @@ async function loadRef(){
   ]);
 }
 const seriesOpts = () => D.series.map(s => ({ v:s.id, l:`${s.short_name} – ${s.name}` }));
-const vehicleOpts = () => D.vehicles.map(v => ({ v:v.id, l:`${v.name}${v.status === "pending" ? " (pending)" : ""}` }));
+const vehicleOpts = () => D.vehicles.map(v => ({ v:v.id, l:`${v.name}${v.status === "pending" ? (v.suggested ? " (to review)" : " (a user's own)") : ""}` }));
 const venueList = () => `<datalist id="venues-dl">${D.venues.map(v => `<option value="${esc(v.name)}">${esc([v.city, v.country].filter(Boolean).join(", "))}</option>`).join("")}</datalist>`;
 
 // ---------- shell + router ----------
@@ -537,7 +537,7 @@ async function dashboard(){
     api(`event_overview?series_id=not.is.null&end_date=gte.${TODAY}&start_date=lte.${in7}&or=(session_count.eq.0,watch_status.eq.missing)&select=id,series_id,name,start_date,end_date,session_count,watch_status&order=start_date`),
     api(`series_overview?last_check_result=eq.error&select=id,slug,short_name,name,last_check_at`),
     api(`proposals?status=eq.pending&select=id,kind,series_id,created_at,events(name)&order=created_at&limit=8`),
-    api(`vehicles?status=eq.pending&select=id,name`),
+    api(`vehicles?status=eq.pending&suggested=eq.true&select=id,name`),
     api(`profiles?select=id&limit=1`, { headers:{ Prefer:"count=exact", Range:"0-0" }, withCount:true }),
     api(`events?series_id=not.is.null&year=eq.${YEAR}&select=id&limit=1`, { headers:{ Prefer:"count=exact", Range:"0-0" }, withCount:true }),
     api(`events?series_id=not.is.null&year=eq.${YEAR+1}&select=id&limit=1`, { headers:{ Prefer:"count=exact", Range:"0-0" }, withCount:true })
@@ -547,7 +547,7 @@ async function dashboard(){
     ...soon.map(e => ({ lvl:"warn", when:e.start_date, html:`<b>${esc(ser[e.series_id]?.short_name)} ${esc(e.name)}</b> <span class="muted">${fmtRange(e.start_date, e.end_date)}</span>`, tag:[e.session_count ? "" : "No schedule", e.watch_status === "missing" ? "No where to watch" : ""].filter(Boolean).join(" · "), href:`#/championships/${ser[e.series_id]?.slug}/${e.id}` })),
     ...errs.map(s => ({ lvl:"bad", html:`<b>${esc(s.short_name)}</b> agent check failed <span class="muted">${ago(s.last_check_at)}</span>`, tag:"Agent error", href:`#/championships/${s.slug}` })),
     ...props.map(p => ({ lvl:"warn", html:`<b>${esc(ser[p.series_id]?.short_name || "")} ${esc(p.events?.name || "")}</b> <span class="muted">${ago(p.created_at)}</span>`, tag:"Proposal to review", href:"#/review" })),
-    ...pendVeh.map(v => ({ lvl:"", html:`<b>${esc(v.name)}</b> created by a user`, tag:"Vehicle to approve", href:"#/vehicles" }))
+    ...pendVeh.map(v => ({ lvl:"", html:`<b>${esc(v.name)}</b> suggested by a user`, tag:"Vehicle to review", href:"#/vehicles" }))
   ];
   const col = { warn:"var(--warn)", bad:"var(--bad)", "":"var(--mute)" };
   $("#main").innerHTML = `<div class="ph"><h1>Dashboard</h1></div>
@@ -1579,11 +1579,12 @@ const VFIELDS = [
 ];
 const DRIVE = { awd:"AWD", rwd:"RWD", fwd:"FWD" };
 async function vehicles(){
-  const rows = [...D.vehicles].sort((a, b) => (a.status === "pending" ? 0 : 1) - (b.status === "pending" ? 0 : 1) || a.name.localeCompare(b.name));
+  const rank = v => v.status === "approved" ? 1 : v.suggested ? 0 : 2;
+  const rows = [...D.vehicles].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   listPage("Vehicles", rows, [
     { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>` }, { l:"Engine", f:v => `<span class="dim">${esc(v.engine || "")}</span>`, m:1 },
     { l:"Drivetrain", f:v => esc(DRIVE[v.drivetrain] || "–"), m:1 },
-    { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : '<span class="chip warn">Added by a user · to approve</span>' }
+    { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : v.suggested ? '<span class="chip warn">Suggested by a user · to review</span>' : '<span class="chip">A user\'s own car</span>' }
   ], () => editVehicle(), editVehicle, "+ Add vehicle");
 }
 async function editVehicle(v){

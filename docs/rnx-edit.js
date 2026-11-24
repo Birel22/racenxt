@@ -242,6 +242,8 @@
   .rx-sh-f .rx-b.bad{flex:none}
   .rx-sheet label.rx-f{display:block;font-size:14px;font-weight:600;color:#e9e9e6;margin:0 0 6px}
   .rx-sheet .rx-help{font-size:13px;color:#8e919b;margin-top:5px}
+  .rx-sheet .rx-sug{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid #2a2d35;border-radius:14px;background:#1d2026;cursor:pointer}
+  .rx-sheet .rx-sug input{width:20px;height:20px;min-height:0;margin:2px 0 0;flex:none;accent-color:#FF5A1F} .rx-sheet .rx-sug span{display:grid;gap:3px} .rx-sheet .rx-sug b{font-size:15px;font-weight:600;color:#f2f2ef} .rx-sheet .rx-sug small{font-size:13px;color:#8e919b;line-height:1.4}
   .rx-sheet input:not([type=color]){width:100%;min-height:48px;padding:11px 14px;background:#0d0e11;border:1px solid #3b3e47;border-radius:12px;color:#f4f4f2;font:16px Barlow,system-ui,sans-serif;box-sizing:border-box}
   .rx-sheet input:focus,.rx-sheet button:focus-visible{outline:2px solid #FF5A1F;outline-offset:1px}
   .rx-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -661,13 +663,14 @@
   async function newVehicle() {
     let drive = "";
     const fld = ([k, l]) => `<div><label class="rx-f" for="rx-v-${k}">${l}</label><input id="rx-v-${k}" autocomplete="off"></div>`;
-    const r = await sheet("Add your car", `<div class="rx-help" style="margin:0">Fill in what you know. Leave a box empty if it doesn't apply. Our team checks it before it joins the catalogue for everyone.</div>
+    const r = await sheet("Add your car", `<div class="rx-help" style="margin:0">Fill in what you know. Leave a box empty if it doesn't apply. It's on your page right away.</div>
       <div><label class="rx-f" for="rx-v-name">Name</label><input id="rx-v-name" autocomplete="off"></div>
       ${VFIELDS.slice(0, 3).map(fld).join("")}
       <div><label class="rx-f" id="rx-dl">Drivetrain</label><div class="rx-seg" role="radiogroup" aria-labelledby="rx-dl" id="rx-ds">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" aria-checked="false">${l}</button>`).join("")}</div></div>
-      <div class="rx-two">${VFIELDS.slice(3, 5).map(fld).join("")}</div><div class="rx-two">${VFIELDS.slice(5).map(fld).join("")}</div>`,
+      <div class="rx-two">${VFIELDS.slice(3, 5).map(fld).join("")}</div><div class="rx-two">${VFIELDS.slice(5).map(fld).join("")}</div>
+      <label class="rx-sug"><input type="checkbox" id="rx-v-sug"><span><b>Suggest this car for the Racenxt library</b><small>We'll review it and add it for everyone. Standard cars only, not modified ones. Either way, it's on your page right away.</small></span></label>`,
       { ok: "Add car", after() { $$("#rx-ds button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#rx-ds button").forEach(x => x.setAttribute("aria-checked", x.dataset.d === drive)); }); },
-        collect() { if (!need("#rx-v-name", "Give the car a name.")) return null; const row = { name: $("#rx-v-name").value.trim(), drivetrain: drive || null }; VFIELDS.forEach(([k]) => row[k] = $("#rx-v-" + k).value.trim() || null); return row; } });
+        collect() { if (!need("#rx-v-name", "Give the car a name.")) return null; const row = { name: $("#rx-v-name").value.trim(), drivetrain: drive || null }; VFIELDS.forEach(([k]) => row[k] = $("#rx-v-" + k).value.trim() || null); row.suggested = !!$("#rx-v-sug")?.checked; return row; } });
     if (!r) return null;
     try { const [v] = await ins("vehicles", { ...r, status: "pending", created_by_profile: R.profile.id }); VEH.push(v); return v; }
     catch (e) { alert("Couldn't add the car: " + e.message); return null; }

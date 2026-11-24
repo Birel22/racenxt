@@ -209,7 +209,10 @@
   .login .card{text-align:left;display:grid;gap:12px;margin-top:20px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#0b0c0f;padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}
   .toast.on{opacity:1}
-  .ai-dock{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:45;max-width:min(380px,calc(100vw - 36px))}
+  .ai-dock{position:fixed;right:18px;top:18px;display:grid;gap:8px;z-index:45;max-width:min(380px,calc(100vw - 36px))}
+  /* with an edit panel open, the notes sit just left of it (or wait until it closes on small screens) */
+  body.drawer-on .ai-dock{right:calc(min(720px,100vw) + 18px)}
+  @media (max-width:1140px){ body.drawer-on .ai-dock{display:none} }
   .ai-card{background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:flex;gap:10px;align-items:flex-start}
   .ai-card .grow{flex:1}
   .ai-card .x{background:none;border:0;color:var(--mute);font-size:18px;cursor:pointer;line-height:1;padding:0 2px}

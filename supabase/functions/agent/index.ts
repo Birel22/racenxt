@@ -183,31 +183,70 @@ function cleanSessions(list: any[], start: string, end: string) {
 const isTbc = (t: unknown) => /\bTB[CDA]\b|to be (?:confirmed|announced|defined)/i.test(String(t || ""));
 
 // ---------- logo: try the AI's candidates, then logos found in the official homepage's HTML ----------
+function b64(buf: Uint8Array) { let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(s); }
 function abs(u: string, base: string) { try { return new URL(u.trim().replace(/&amp;/g, "&"), base).href; } catch { return ""; } }
-async function logoCandidatesFromHtml(site: string) {
-  const out: { url?: string; svg?: string }[] = [];
-  try {
-    const r = await fetch(site, { headers: { "User-Agent": UA, "Accept": "text/html" }, redirect: "follow" });
-    if (!r.ok) return out;
-    const html = (await r.text()).slice(0, 800000);
-    const base = r.url || site;
-    // <img> tags mentioning "logo" (src, data-src, srcset), header ones first
-    const header = (html.match(/<header[\s\S]*?<\/header>/i) || [""])[0];
-    for (const chunk of [header, html]) {
-      for (const tag of chunk.match(/<img\b[^>]*>/gi) || []) {
-        if (!/logo/i.test(tag)) continue;
-        const src = (tag.match(/\bsrc=["']([^"']+)["']/i) || tag.match(/\bdata-src=["']([^"']+)["']/i) || [])[1]
-          || ((tag.match(/\bsrcset=["']([^"']+)["']/i) || [])[1] || "").split(",").pop()?.trim().split(/\s+/)[0];
-        if (src && !src.startsWith("data:")) out.push({ url: abs(src, base) });
-      }
-      // inline <svg> marked as a logo
-      for (const m of chunk.matchAll(/<(a|div|span)\b[^>]*logo[^>]*>\s*(<svg[\s\S]*?<\/svg>)/gi)) out.push({ svg: m[2] });
-      for (const m of chunk.matchAll(/<svg\b[^>]*logo[^>]*>[\s\S]*?<\/svg>/gi)) out.push({ svg: m[0] });
+type LogoCand = { url?: string; svg?: string; where: string };
+// logo candidates in a page's code. The logo is almost always the first link to the homepage, in the header:
+// those come first ("home"), then the header's images ("header"), then the rest of the page ("page")
+function logoCandidatesFromMarkup(html: string, base: string): LogoCand[] {
+  const out: LogoCand[] = [];
+  html = html.slice(0, 1_500_000);
+  let root: URL | null = null; try { root = new URL(base); } catch (_) { /* bad address */ }
+  const isHome = (href: string) => { try { const u = new URL(href.replace(/&amp;/g, "&"), base); return !!root && u.hostname.replace(/^www\./, "") === root.hostname.replace(/^www\./, "") && /^\/?(?:[a-z]{2}(?:-[a-z]{2})?\/?)?(?:index\.\w+)?$/i.test(u.pathname); } catch { return false; } };
+  const imgsIn = (chunk: string, where: string) => {
+    for (const tag of chunk.match(/<img\b[^>]*>/gi) || []) {
+      const src = (tag.match(/\bsrc=["']([^"']+)["']/i) || tag.match(/\bdata-src=["']([^"']+)["']/i) || [])[1]
+        || ((tag.match(/\bsrcset=["']([^"']+)["']/i) || [])[1] || "").split(",").pop()?.trim().split(/\s+/)[0];
+      if (src && !src.startsWith("data:")) out.push({ url: abs(src, base), where });
     }
-    for (const m of html.matchAll(/<link\b[^>]*rel=["'](?:apple-touch-icon|icon)["'][^>]*>/gi)) { const h = (m[0].match(/href=["']([^"']+)["']/i) || [])[1]; if (h && /\.(svg|png)/i.test(h)) out.push({ url: abs(h, base) }); }
-    const og = (html.match(/<meta\b[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) || [])[1]; if (og) out.push({ url: abs(og, base) });
-  } catch (_) { /* site unreachable */ }
-  return out.slice(0, 10);
+    for (const m of chunk.matchAll(/<svg\b[\s\S]*?<\/svg>/gi)) if (m[0].length > 400) out.push({ svg: m[0], where });
+  };
+  // 1. the first links to the homepage that hold a picture
+  let homes = 0;
+  for (const m of html.matchAll(/<a\b[^>]*href=["']([^"']*)["'][^>]*>([\s\S]{0,20000}?)<\/a>/gi)) {
+    if (homes >= 2) break;
+    if (!isHome(m[1]) || !/<img|<svg/i.test(m[2])) continue;
+    homes++; imgsIn(m[2], "home");
+  }
+  // 2. the header
+  const header = (html.match(/<header[\s\S]*?<\/header>/i) || [""])[0];
+  for (const tag of header.match(/<img\b[^>]*>/gi) || []) { const src = (tag.match(/\bsrc=["']([^"']+)["']/i) || [])[1]; if (src && !src.startsWith("data:")) out.push({ url: abs(src, base), where: "header" }); }
+  // 3. anything named "logo" elsewhere, the site icons and the share picture
+  for (const tag of html.match(/<img\b[^>]*>/gi) || []) {
+    if (!/logo/i.test(tag)) continue;
+    const src = (tag.match(/\bsrc=["']([^"']+)["']/i) || tag.match(/\bdata-src=["']([^"']+)["']/i) || [])[1];
+    if (src && !src.startsWith("data:")) out.push({ url: abs(src, base), where: "page" });
+  }
+  for (const m of html.matchAll(/<svg\b[^>]*logo[^>]*>[\s\S]*?<\/svg>/gi)) out.push({ svg: m[0], where: "page" });
+  for (const m of html.matchAll(/<link\b[^>]*rel=["'](?:apple-touch-icon|icon)["'][^>]*>/gi)) { const h = (m[0].match(/href=["']([^"']+)["']/i) || [])[1]; if (h && /\.(svg|png)/i.test(h)) out.push({ url: abs(h, base), where: "page" }); }
+  const og = (html.match(/<meta\b[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) || [])[1]; if (og) out.push({ url: abs(og, base), where: "page" });
+  return out.filter(x => x.svg || x.url).slice(0, 24);
+}
+async function logoCandidatesFromHtml(site: string): Promise<LogoCand[]> {
+  try {
+    const r = await fetch(site, { headers: { "User-Agent": UA, "Accept": "text/html" }, redirect: "follow", signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return [];
+    return logoCandidatesFromMarkup(await r.text(), r.url || site);
+  } catch (_) { return []; }
+}
+// a real browser (Cloudflare Browser Run): the page as a visitor sees it, after its JavaScript has run.
+// Off until the CF_ACCOUNT_ID and CF_BROWSER_TOKEN secrets are set; the free plan gives 10 minutes a day.
+const CF_ACC = Deno.env.get("CF_ACCOUNT_ID") || "", CF_TOK = Deno.env.get("CF_BROWSER_TOKEN") || "";
+async function cfBrowser(kind: "content" | "screenshot", url: string): Promise<string | null> {
+  if (!CF_ACC || !CF_TOK) return null;
+  const body: any = { url, gotoOptions: { waitUntil: "networkidle2", timeout: 30000 }, viewport: { width: 1280, height: 800 } };
+  if (kind === "screenshot") body.screenshotOptions = { type: "jpeg", quality: 70 };
+  for (const path of ["browser-run", "browser-rendering"]) {
+    try {
+      const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CF_ACC}/${path}/${kind}`, { method: "POST", headers: { Authorization: `Bearer ${CF_TOK}`, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(50000) });
+      if (r.status === 404) continue;
+      if (!r.ok) return null;
+      if (kind === "content") { const t = await r.text(); try { const j = JSON.parse(t); return typeof j.result === "string" ? j.result : null; } catch { return t; } }
+      const buf = new Uint8Array(await r.arrayBuffer());
+      return buf.length > 2000 ? b64(buf) : null;
+    } catch (_) { return null; }
+  }
+  return null;
 }
 async function storeLogos(slug: string, cands: { url?: string; svg?: string }[], max = 5) {
   const out: string[] = [], seen = new Set<string>();
@@ -396,11 +435,15 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   // logo: copied to our storage when the championship has none yet (the admin turns it white and asks for confirmation)
   let logoNote = "";
   if (!series.logo_url) {
-    const aiC = [...(out.logo_urls || []), out.logo_url].filter((u: any) => typeof u === "string" && /^https?:/.test(u)).map((url: string) => ({ url }));
-    const wiki = aiC.filter(c => /wikimedia|wikipedia/.test(c.url)), own = aiC.filter(c => !/wikimedia|wikipedia/.test(c.url));
-    const fromHtml = site ? await logoCandidatesFromHtml(site) : [];
-    const logos = await storeLogos(series.slug, [...own, ...fromHtml, ...wiki]);
-    // the admin page picks the right one with AI, then makes it white and standard size
+    const aiC = [...(out.logo_urls || []), out.logo_url].filter((u: any) => typeof u === "string" && /^https?:/.test(u));
+    let logos: string[] = [];
+    try {
+      const f = await findLogo({ ...series, website_url: site }, aiC, `${series.slug}-svg`);
+      addUsage(usage, f.usage);
+      // the pick alone when the AI picked one, otherwise the best candidates
+      logos = await storeLogos(series.slug, (f.picked >= 0 ? [f.cands[f.picked]] : f.cands.slice(0, 5)).map(x => ({ url: x.url })));
+    } catch (_) { /* no logo this time */ }
+    // the admin page cuts it out, makes it white and standard size
     if (logos.length) { upd.logo_url = logos[0]; upd.logo_candidates = logos; } else logoNote = " No logo found: add one on the review page.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
@@ -598,7 +641,6 @@ function scoreWatch(c: any, out: any) {
 }
 // ---------- logo test: the app's logo pipeline (homepage + AI search candidates, then the AI picks), compared with a reference picture ----------
 const RAW = "https://raw.githubusercontent.com/Birel22/racenxt/main/";
-function b64(buf: Uint8Array) { let s = ""; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000)); return btoa(s); }
 // any logo picture -> JPEG on grey (the AI can't read SVG, and white logos vanish on transparency); via a public image proxy
 async function asJpeg(url: string) {
   try {
@@ -632,7 +674,7 @@ Task: find this championship's own official logo. Give up to 4 direct, absolute 
 JSON schema: {"logo_urls": [string]}`;
 // sorts logo candidates before the AI sees them: pages show many partner logos, so the championship's own come first
 const GENERIC = new Set(["series", "championship", "cup", "the", "fia", "international", "racing", "trophy", "official"]);
-function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
+function rankLogos(urls: string[], series: any, prio: Map<string, number>) {
   const toks = norm(`${series.name || ""} ${series.short_name || ""}`).split(" ").filter((w: string) => w.length >= 4 && !GENERIC.has(w));
   const short = norm(series.short_name || "");
   const site = host(series.website_url || "");
@@ -643,7 +685,7 @@ function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
     if (toks.some((t: string) => fw.some(w => w.length >= 4 && (w.startsWith(t.slice(0, 5)) || t.startsWith(w.slice(0, 5)))))) n += 4;
     if (short && fw.includes(short)) n += 3;
     if (/\blogo\b/.test(file)) n += 1;
-    if (fromAi.has(u)) n += 2;
+    n += prio.get(u) || 0;
     if (/partner|sponsor|supplier|fournisseur|team|teams|equipe/.test(file)) n -= 4;
     // an old year in the address (uploads/2024/...) usually means an older logo
     const yrs = (u.match(/\/(20\d{2})\//g) || []).map(y => +y.slice(1, 5));
@@ -654,31 +696,57 @@ function rankLogos(urls: string[], series: any, fromAi: Set<string>) {
   return urls.map((u, i) => ({ u, i, n: score(u) })).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.u);
 }
 let stage = "";
-async function runLogoTest(c: any, series: any) {
-  stage = "reading the official homepage";
+// ---------- logo finder, shared by "add a championship", "Find logo with AI" and the tests ----------
+// 1. the page as a visitor sees it (Cloudflare browser, when set up) and its raw code; the homepage link in the header first
+// 2. optional: an AI web search for more candidates
+// 3. the AI picks, looking at a screenshot of the top of the official homepage when there is one
+const WHERE_PRIO: Record<string, number> = { home: 6, header: 2, ai: 2, page: 0 };
+async function findLogo(series: any, aiUrls: string[] | null, slugPrefix: string) {
   const usage = newUsage(); const trace: Trace = { searches: [], opened: [] };
-  // 1. candidates: the homepage's HTML (free), then an AI web search
-  const fromHtml = series.website_url ? await logoCandidatesFromHtml(series.website_url) : [];
-  let aiUrls: string[] = [];
-  stage = "searching the web";
-  try { const r = await ask(SYS(), LOGO_PROMPT(series), 4); addUsage(usage, r.usage); addTrace(trace, r.trace); aiUrls = (r.out.logo_urls || []).filter((u: any) => typeof u === "string" && /^https?:/.test(u)); } catch (_) { /* homepage candidates only */ }
-  const svgText = fromHtml.filter(x => x.svg);
-  const hosted = svgText.length ? await storeLogos(`test-${series.slug || "x"}`, svgText, 3) : [];
-  const all = [...new Set([...fromHtml.filter(x => x.url).map(x => x.url!), ...hosted, ...aiUrls.filter(u => !/wiki/.test(u)), ...aiUrls.filter(u => /wiki/.test(u))])];
-  const urls = rankLogos(all, series, new Set(aiUrls));
-  const cands: { url: string; data: string }[] = [];
+  const site = series.website_url || "";
+  let items: LogoCand[] = [], shot: string | null = null, rendered = false;
+  if (site) {
+    stage = "opening the official homepage";
+    const [html, png] = await Promise.all([cfBrowser("content", site), cfBrowser("screenshot", site)]);
+    if (html) { items.push(...logoCandidatesFromMarkup(html, site)); rendered = true; }
+    shot = png;
+    items.push(...await logoCandidatesFromHtml(site));
+  }
+  if (aiUrls === null) {
+    stage = "searching the web";
+    aiUrls = [];
+    try { const r = await ask(SYS(), LOGO_PROMPT(series), 4); addUsage(usage, r.usage); addTrace(trace, r.trace); aiUrls = (r.out.logo_urls || []).filter((u: any) => typeof u === "string" && /^https?:/.test(u)); } catch (_) { /* page candidates only */ }
+  }
+  items.push(...aiUrls.map(url => ({ url, where: /wiki/.test(url) ? "page" : "ai" })));
+  // inline drawings (SVG in the page's code) get an address of their own
+  const prio = new Map<string, number>(); const order: string[] = [];
+  const add = (url: string, where: string) => { if (!url) return; if (!prio.has(url)) order.push(url); prio.set(url, Math.max(prio.get(url) ?? -9, WHERE_PRIO[where] ?? 0)); };
+  const svgs = items.filter(x => x.svg).slice(0, 4);
+  for (const x of svgs) { const [u] = await storeLogos(slugPrefix, [x], 1); if (u) add(u, x.where); }
+  for (const x of items) if (x.url) add(x.url, x.where);
+  const urls = rankLogos(order, series, prio);
   stage = "reading the logo pictures";
+  const cands: { url: string; data: string }[] = [];
   for (const url of urls) { if (cands.length >= 10) break; const data = await asJpeg(url); if (data) cands.push({ url, data }); }
-  if (!cands.length) return { score: 0, max: 1, rows: [{ expect: "the official logo", found: "no logo picture found", ok: false, why: "missed" }], usage, trace: { ...trace, candidates: urls } };
-  // 2. the AI picks the championship's logo, as in the app (same instructions as logo-detect)
-  const content: any[] = [];
-  cands.forEach((x, i) => { content.push({ type: "text", text: `Image ${i + 1} (from ${x.url.replace(/^https?:\/\//, "").split("?")[0].slice(0, 140)}):` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
-  content.push({ type: "text", text: `These images were found for the motorsport championship "${series.name}"${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}. They are shown on a grey background.
-Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one. When two versions of the logo appear, prefer the one the championship's own website uses today (official site, recent upload) over an older one (e.g. a press area or a file dated years ago).
+  let picked = -1;
+  if (cands.length) {
+    const content: any[] = [];
+    if (shot) content.push({ type: "text", text: "Screenshot of the top of the championship's official homepage:" }, { type: "image", source: { type: "base64", media_type: "image/jpeg", data: shot } });
+    cands.forEach((x, i) => { content.push({ type: "text", text: `Image ${i + 1} (from ${x.url.replace(/^https?:\/\//, "").split("?")[0].slice(0, 140)}):` }); content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: x.data } }); });
+    content.push({ type: "text", text: `These images were found for the motorsport championship "${series.name}"${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}. They are shown on a grey background.
+Which image is THIS championship's own official logo? Not the organiser's or promoter's logo, not a sponsor, partner, team, manufacturer, tyre supplier, broadcaster or social-media icon, not a different championship of the same organiser, not a photo. A federation mark (e.g. FIA) only counts if it is part of the championship's logo. Prefer the most complete version (symbol + name together) and a clean one. When two versions of the logo appear, prefer the one the championship's own website uses today (official site, recent upload) over an older one (e.g. a press area or a file dated years ago).${shot ? "\nThe screenshot shows the official homepage as visitors see it: the championship's logo is usually the main logo at the top (often top-left). Pick the image that is that logo." : ""}
 Answer with JSON only: {"index": <image number, or 0 if none of them is the championship's logo>}` });
-  stage = "picking the logo";
-  const p = await vision(FAST, content); addUsage(usage, p.usage);
-  const picked = Math.round(Number(p.out.index)) - 1;
+    stage = "picking the logo";
+    const p = await vision(FAST, content); addUsage(usage, p.usage);
+    const i = Math.round(Number(p.out.index)) - 1;
+    picked = i >= 0 && i < cands.length ? i : -1;
+  }
+  return { cands, picked, urls, usage, trace: { ...trace, candidates: urls, rendered, screenshot: !!shot } };
+}
+async function runLogoTest(c: any, series: any) {
+  const f = await findLogo(series, null, `test-${series.slug || "x"}`);
+  const { cands, picked, usage } = f; const trace = f.trace;
+  if (!cands.length) return { score: 0, max: 1, rows: [{ expect: "the official logo", found: "no logo picture found", ok: false, why: "missed" }], usage, trace };
   // 3. judge against the reference picture (the stronger model, so the score is reliable)
   stage = "comparing with the reference";
   const ref = await fetch(RAW + c.reference + "?t=" + Date.now());
@@ -695,7 +763,7 @@ Answer with JSON only: {"matches": [candidate numbers]}` });
   const ok = picked >= 0 && matches.includes(picked);
   const rows = [{ expect: "the official logo (reference picture)", found: picked >= 0 ? `picked #${picked + 1}: ${cands[picked].url}` : "picked none", ok, why: ok ? "" : matches.length ? `the right logo was found (#${matches.map(m => m + 1).join(", #")}) but not picked` : "the right logo was never found" },
     ...cands.map((x, i) => ({ expect: `candidate #${i + 1}`, found: x.url, ok: matches.includes(i), why: matches.includes(i) ? "" : "not this logo" }))];
-  return { score: ok ? 1 : 0, max: 1, rows, usage, trace: { ...trace, candidates: urls } };
+  return { score: ok ? 1 : 0, max: 1, rows, usage, trace };
 }
 async function runTest(caseId: string, runId: string) {
   stage = "loading the test";
@@ -810,8 +878,10 @@ Deno.serve(async (req) => {
     const [s] = await db(`series?id=eq.${body.series_id}&select=id,slug,website_url,logo_candidates`);
     if (!s) return json({ error: "not found" }, 404);
     if (!s.website_url) return json({ candidates: s.logo_candidates || [] });
-    const logos = await storeLogos(s.slug, await logoCandidatesFromHtml(s.website_url), 6);
-    const all = [...logos, ...(s.logo_candidates || [])].slice(0, 8);
+    const [full] = await db(`series?id=eq.${body.series_id}&select=*`);
+    const f = await findLogo(full, [], `${s.slug}-svg`);
+    const logos = await storeLogos(s.slug, (f.picked >= 0 ? [f.cands[f.picked]] : f.cands.slice(0, 6)).map(x => ({ url: x.url })), 6);
+    const all = (f.picked >= 0 ? logos : [...logos, ...(s.logo_candidates || [])]).slice(0, 8);
     await patch("series", `id=eq.${s.id}`, { logo_candidates: all });
     return json({ candidates: all });
   }

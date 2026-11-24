@@ -608,19 +608,19 @@ async function asJpeg(url: string) {
     return buf.length > 400 && buf.length < 2_500_000 ? b64(buf) : null;
   } catch (_) { return null; }
 }
-// one vision question; a bad or empty answer is asked again once
+// one vision question; a bad or empty answer is asked again once (room to think first: a short limit left empty answers)
 async function vision(model: string, content: any[]) {
   const u = newUsage(); u.model = model;
   let last = "";
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 300, messages: [{ role: "user", content }] }) });
+      const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AKEY, "anthropic-version": "2023-06-01", "content-type": "application/json" }, body: JSON.stringify({ model, max_tokens: 4000, messages: [{ role: "user", content }] }) });
       const t = await r.text();
       const j = t ? JSON.parse(t) : {};
       if (!r.ok) { last = `AI ${r.status}: ${j?.error?.message || "no answer"}`; await new Promise(x => setTimeout(x, 3000)); continue; }
       u.input += j.usage?.input_tokens || 0; u.output += j.usage?.output_tokens || 0; u.cost_usd = Math.round(priceOf(model, u.input, u.output) * 10000) / 10000;
       const text = (j.content || []).filter((b: any) => b.type === "text").map((b: any) => b.text).join("");
-      if (!text.includes("{")) { last = `no JSON in the answer: ${text.slice(0, 120)}`; continue; }
+      if (!text.includes("{")) { last = `no JSON in the answer (${j.stop_reason}): ${text.slice(0, 120)}`; continue; }
       return { out: JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)), usage: u };
     } catch (e) { last = String((e as Error).message || e); }
   }

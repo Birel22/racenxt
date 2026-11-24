@@ -168,6 +168,10 @@
   .rx-ord button{width:30px;height:22px;border:1px solid #33363d;border-radius:6px;background:#17181d;color:#a9abb2;font-size:9px;cursor:pointer}
   .rx-ord button:disabled{opacity:.3;cursor:default}
   .rx-seg.rx-seg-wrap{flex-wrap:wrap} .rx-seg.rx-seg-wrap button{flex:1 1 30%}
+  .rx-sheet [hidden]{display:none !important}
+  .rx-seg.rx-cls{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:3px;padding:3px}
+  .rx-seg.rx-cls button{height:36px;font-size:14px;padding:0 6px;white-space:nowrap}
+  .rx-clsh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 6px} .rx-clsh label.rx-f{margin:0} .rx-clsh small{font-size:12px;color:#8e919b;text-align:right}
   .rx-full{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;border:1px solid #3b3e47;background:#15161b;color:#f4f4f2;cursor:pointer;text-align:left;font:inherit}
   .rx-full span{flex:1;display:grid} .rx-full b{font-size:16px} .rx-full small{color:#8e919b;font-size:13.5px}
   .rx-tog{width:46px;height:28px;border-radius:999px;background:#3b3e47;position:relative;flex:none;transition:background .15s}
@@ -521,7 +525,7 @@
     const CLS = (s.classes || []).length > 1 ? s.classes : [];
     let cls = CLS.find(c => ck(c) === ck(en?.category)) || null;
     const forCls = e => !CLS.length || !cls || !(e.classes || []).length || e.classes.some(c => ck(c) === ck(cls));
-    const clsSeg = () => CLS.length ? `<div><label class="rx-f" id="rx-kl">Your class</label><div class="rx-seg rx-seg-wrap" role="radiogroup" aria-labelledby="rx-kl" id="rx-ks">${CLS.map(c => `<button type="button" role="radio" data-k="${esc(c)}" aria-checked="${c === cls}">${esc(c)}</button>`).join("")}</div><div class="rx-help">${esc(s.short_name)} classes don't all race at every round: your page only shows your class's races.</div></div>` : "";
+    const clsSeg = () => CLS.length ? `<div><div class="rx-clsh"><label class="rx-f" id="rx-kl">Your class</label><small>Your page shows only its races</small></div><div class="rx-seg rx-cls" role="radiogroup" aria-labelledby="rx-kl" id="rx-ks">${CLS.map(c => `<button type="button" role="radio" data-k="${esc(c)}" aria-checked="${c === cls}">${esc(c)}</button>`).join("")}</div></div>` : "";
     const needCls = () => { if (CLS.length && !cls) { alert("Choose your class."); return true; } return false; };
     const taken = new Set(R.entries.filter(e => e.series_id === s.id && e.id !== en?.id).map(e => e.year));
     const years = [...new Set(evs.map(e => e.year))].filter(y => !taken.has(y));
@@ -547,14 +551,14 @@
     const r = await sheet(`Your ${s.short_name} season`, `
       ${clsSeg()}
       ${!en && years.length > 1 ? `<div><label class="rx-f" id="rx-yl">Which season?</label><div class="rx-seg" role="radiogroup" aria-labelledby="rx-yl" id="rx-ys">${years.map(y => `<button type="button" role="radio" data-y="${y}" aria-checked="${y === year}">${y}</button>`).join("")}</div></div>` : ""}
-      <button type="button" class="rx-full" id="rx-full" role="switch"><span><b>Full season</b><small id="rx-cnt">${count()} races</small></span><i class="rx-tog"></i></button>
-      <div class="rx-help" style="margin-top:-6px">Not doing every round? Untick the races you skip.</div>
-      <div class="rx-rds" id="rx-rds">${rows()}</div>`,
+      <button type="button" class="rx-full" id="rx-full" role="switch"${CLS.length && !cls ? " hidden" : ""}><span><b>Full season</b><small id="rx-cnt">${count()} races</small></span><i class="rx-tog"></i></button>
+      <div class="rx-help" id="rx-rhelp" style="margin-top:-6px"${CLS.length && !cls ? " hidden" : ""}>Not doing every round? Untick the races you skip.</div>
+      <div class="rx-rds" id="rx-rds"${CLS.length && !cls ? " hidden" : ""}>${rows()}</div>`,
       { ok: en ? "Save" : "Continue", after() {
         const sync = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); $("#rx-full").setAttribute("aria-checked", all); $("#rx-cnt").textContent = count() + " races"; };
         const bind = () => $$("#rx-rds .rx-rd[data-ev]").forEach(b => b.onclick = () => { const id = b.dataset.ev; hidden.has(id) ? hidden.delete(id) : hidden.add(id); b.setAttribute("aria-checked", !hidden.has(id)); sync(); });
         $("#rx-full").onclick = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); l.forEach(e => all ? hidden.add(e.id) : hidden.delete(e.id)); $("#rx-rds").innerHTML = rows(); bind(); sync(); };
-        $$("#rx-ks button").forEach(b => b.onclick = () => { cls = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
+        $$("#rx-ks button").forEach(b => b.onclick = () => { cls = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); ["#rx-full", "#rx-rhelp", "#rx-rds"].forEach(q => { if ($(q)) $(q).hidden = false; }); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
         $$("#rx-ys button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#rx-ys button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
         bind(); sync();
       }, collect() { if (needCls()) return null; if (list().length && !list().some(e => !hidden.has(e.id))) { alert("Keep at least one race."); return null; } return true; } });
@@ -580,7 +584,7 @@
       <div><label class="rx-f" for="rx-mates">Teammates</label><input id="rx-mates" value="${esc((en.teammates || []).join(", "))}" autocomplete="off"><div class="rx-help">Separate names with commas.</div></div>
       <div><label class="rx-f">Vehicle</label><div id="rx-vbox">${vbox()}</div></div>
       <div><label class="rx-f">Vehicle photo</label><div id="rx-phbox">${phbox()}</div></div>
-      <div><label class="rx-f" id="rx-cl">Colour</label><div class="rx-sw" role="radiogroup" aria-labelledby="rx-cl" id="rx-cs">${COLORS.map(c => `<button type="button" role="radio" aria-label="${c}" data-c="${c}" aria-checked="${c === color}" style="background:${c}"></button>`).join("")}<label title="Custom colour"><input type="color" id="rx-cc" value="${esc(color)}" aria-label="Custom colour"></label></div></div>`;
+      <div><label class="rx-f" id="rx-cl">Colour</label><div class="rx-sw" role="radiogroup" aria-labelledby="rx-cl" id="rx-cs">${COLORS.filter(c => c === color || !R.entries.some(x => x.id !== en.id && (x.color || "").toUpperCase() === c)).map(c => `<button type="button" role="radio" aria-label="${c}" data-c="${c}" aria-checked="${c === color}" style="background:${c}"></button>`).join("")}<label title="Custom colour"><input type="color" id="rx-cc" value="${esc(color)}" aria-label="Custom colour"></label></div></div>`;
     const bindV = () => {
       if ($("#rx-vchg")) $("#rx-vchg").onclick = () => { vehicle = null; $("#rx-vbox").innerHTML = vbox(); bindV(); $("#rx-vq2")?.focus(); };
       if ($("#rx-vpk")) vehPicker($("#rx-vpk"), { onPick: v => { vehicle = v; $("#rx-vbox").innerHTML = vbox(); bindV(); } });

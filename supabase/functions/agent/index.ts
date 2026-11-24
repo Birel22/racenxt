@@ -134,6 +134,18 @@ function pageZone(z: any, circuitTz: string) {
   if (off && !off[3]) return `Etc/GMT${off[1] === "+" ? "-" : "+"}${+off[2]}`;
   return validTz(v) ? v : circuitTz;
 }
+// "UTC" is only believed when the page itself says so (a GMT/UTC label or a my-time/track-time switch, seen in the
+// AI's quote AND in the page's code when we can read it); otherwise the times are kept as shown (local), flagged to check.
+const ZONE_WORDS = /\b(gmt|utc)\b|my time|your time|track time|local time|heure locale|ora locale|hora local|ortszeit/i;
+async function zoneBacked(label: unknown, url: unknown) {
+  if (!ZONE_WORDS.test(String(label || ""))) return false;
+  if (typeof url !== "string" || !/^https?:/.test(url) || /\.pdf(\?|$)/i.test(url)) return true;
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+    if (!r.ok || !(r.headers.get("content-type") || "").includes("html")) return true;
+    return ZONE_WORDS.test((await r.text()).slice(0, 1_500_000));
+  } catch (_) { return true; }
+}
 function toCircuitTime(list: any[], zone: string, circuitTz: string) {
   if (!circuitTz || !validTz(circuitTz) || zone === circuitTz) return list;
   return (list || []).map((x: any) => x && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") ? { ...x, local_start: utcToWall(wallToUtc(x.local_start, zone), circuitTz), ...(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_end || "") ? { local_end: utcToWall(wallToUtc(x.local_end, zone), circuitTz) } : {}) } : x);
@@ -310,7 +322,7 @@ const SKIPPED = "Official pages unchanged since the last check: AI not needed.";
 const RULES = `You are the research agent of Racenxt, an app that shows athletes' race calendars to their fans.
 Rules:
 - Use OFFICIAL sources only: the championship's or its organiser's website, the circuit's official website, and official documents (timetables, supplementary regulations, entry lists, often PDFs; official timing providers count). Never take dates or times from news sites, fan sites, forums, Wikipedia or ticket resellers.
-- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". IMPORTANT: when a page has a switch such as "My time / Track time" or "Your time / Local time", you are reading the default view, which shows the reader's time; as a program your time zone is UTC, so write "UTC". If the page doesn't say, write "unknown". Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
+- Times: copy them exactly as the page shows them (format YYYY-MM-DD HH:MM, 24-hour) and do NOT convert them yourself. Instead, report which time zone the page uses in "times_zone": "local" if the page says local / track / circuit time, "UTC" if it says GMT or UTC, or the IANA zone / UTC offset it states. Many official sites show times in GMT or in the visitor's time zone when read by a program: look for labels such as "GMT", "UTC", "your time", "my time", "track time", "local time". IMPORTANT: only when the page really shows a switch such as "My time / Track time" or "Your time / Local time" are you reading the reader's time; as a program your time zone is UTC, so then write "UTC". Never assume a switch you can't see. If the page doesn't say which zone its times are in, write "unknown". Also copy, in "zone_label", the exact words on the page that tell the zone (e.g. "GMT", "Local time", "My time / Track time"), or null if there are none. Exception: an official timetable document of the event itself (e.g. the organiser's or circuit's timetable PDF) that shows no time zone is in local circuit time: write "local".
 - A timetable is only published when the page shows real times. If it shows "TBC", "TBA" or "TBD", it is NOT published, even if the page's hidden data contains times (those are placeholders).
 - For each session give the start and, when the timetable shows it, the end time (local_end). Use the session names as the official timetable writes them.
 - For support series (e.g. F2, F3, Porsche Supercup, F1 Academy), the main event's official timetable (e.g. formula1.com, which lists every series in local time) is an official source too.
@@ -349,7 +361,7 @@ JSON schema:
  "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
    "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null},
    "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}] | null,
-   "times_zone": "local"|"UTC"|string|null, "timetable_url": string|null}]}],
+   "times_zone": "local"|"UTC"|string|null, "zone_label": string|null, "timetable_url": string|null}]}],
  "notes": string}`;
 }
 function checkPrompt(ev: any, series: any, src: any, v: any, raceWeek: boolean) {
@@ -369,7 +381,7 @@ Task:
 2. ${raceWeek ? `Where to watch THIS race: only a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page), on an official site. Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. Set "watch_url" to null if there is no page for this race.` : `Skip where to watch: set "watch_url" to null.`}
 If the timetable is not published yet, set "timetable_found": false and an empty list.
 JSON schema:
-{"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null,
+{"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
  "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}],
  "watch_url": string|null}`;
 }
@@ -407,7 +419,8 @@ async function computeCalendar(series: any, src: any) {
     .map((e: any) => ({ ...e, name: cleanName(e.name, series) })).filter((e: any) => e.name && okDate(e.start_date) && okDate(e.end_date || e.start_date))
     .map((e: any) => {
       const tz = e.circuit?.timezone || "";
-      const zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
+      let zone = tz && validTz(tz) ? pageZone(e.times_zone, tz) : tz;
+      if (tz && zone !== tz && !ZONE_WORDS.test(String(e.zone_label || ""))) zone = tz;
       const conv = tz && zone && zone !== tz;
       return { ...e, end_date: e.end_date || e.start_date, zoneNote: conv ? ` (times converted from ${e.times_zone} to local ${tz})` : String(e.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(e.timetable_url || "") ? " (the page didn't say which time zone: check the times)" : "",
         sessions: isTbc(e.timetable_note) ? [] : cleanSessions(conv ? toCircuitTime(e.sessions, zone, tz) : e.sessions, e.start_date, e.end_date || e.start_date) };
@@ -496,9 +509,11 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
     try { const deep = await ask(SYS(), user + DEEP, 10, [STRONG]); addUsage(usage, deep.usage); addTrace(trace, deep.trace); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; else if (!out.watch_url && deep.out.watch_url) out.watch_url = deep.out.watch_url; } catch (_) { /* keep the first answer */ }
   }
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
-  const zone = ctz ? pageZone(out.times_zone, ctz) : "";
+  let zone = ctz ? pageZone(out.times_zone, ctz) : "";
+  let zoneDoubt = false;
+  if (ctz && zone !== ctz && !(await zoneBacked(out.zone_label, out.source_url))) { zone = ctz; zoneDoubt = true; }
   const conv = !!ctz && zone !== ctz;
-  const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : String(out.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(out.source_url || "") ? " (the page didn't say which time zone: check the times)" : "";
+  const zoneNote = conv ? ` (times converted from ${out.times_zone} to local ${ctz})` : zoneDoubt || (String(out.times_zone || "").toLowerCase() === "unknown" && !/\.pdf(\?|$)/i.test(out.source_url || "")) ? " (the page didn't say which time zone: kept as shown, check the times)" : "";
   if (isTbc(out.excerpt)) out.timetable_found = false;
   let sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
   let zoneFix = "";

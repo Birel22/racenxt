@@ -171,7 +171,7 @@
   .rx-sheet [hidden]{display:none !important}
   .rx-seg.rx-cls{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:3px;padding:3px}
   .rx-seg.rx-cls button{height:36px;font-size:14px;padding:0 6px;white-space:nowrap}
-  .rx-clsh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 6px} .rx-clsh label.rx-f{margin:0} .rx-clsh small{font-size:12px;color:#8e919b;text-align:right}
+  .rx-clsh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 6px} .rx-sheet .rx-clsh label.rx-f{margin:0} .rx-clsh small{font-size:12px;color:#8e919b;text-align:right}
   .rx-full{display:flex;align-items:center;gap:12px;width:100%;padding:14px;border-radius:14px;border:1px solid #3b3e47;background:#15161b;color:#f4f4f2;cursor:pointer;text-align:left;font:inherit}
   .rx-full span{flex:1;display:grid} .rx-full b{font-size:16px} .rx-full small{color:#8e919b;font-size:13.5px}
   .rx-tog{width:46px;height:28px;border-radius:999px;background:#3b3e47;position:relative;flex:none;transition:background .15s}

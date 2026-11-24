@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-221238"></script>
-<script src="rnx-auth.js?v=20261124-221238"></script>
-<script src="rnx-ui.js?v=20261124-221238"></script>
+<script src="config.js?v=20261124-221454"></script>
+<script src="rnx-auth.js?v=20261124-221454"></script>
+<script src="rnx-ui.js?v=20261124-221454"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -420,8 +420,6 @@ async function ensureVenue(name, country){
     if (g[0]){ lat = +g[0].lat; lng = +g[0].lon; const a = g[0].address || {}; city = a.town || a.city || a.village || a.county || a.state || null; if (!cc && a.country_code) cc = a.country_code.toUpperCase(); if (!country && a.country) country = a.country; }
     const lib = await loadTz(); if (lib && lat != null) tz = lib(lat, lng);
   } catch(e){}
-  // with its position known, the database finds the same circuit under another name (e.g. "Red Bull Ring - Spielberg")
-  try { const same = await rpc("venue_match", { p_name: name, p_lat: lat, p_lng: lng }); if (same) return same; } catch(e){}
   if (!tz){
     tz = prompt(`Time zone for "${name}"? (e.g. Europe/Paris, America/New_York)`, "Europe/Paris");
     if (!tz || !TZS.includes(tz)){ alert("Unknown time zone. The circuit wasn't created."); return null; }
@@ -959,22 +957,19 @@ function newDiscipline(name0){
     };
   });
 }
-// ---------- one circuit, one car: same rules as private.venue_key() / private.vehicle_key() (migration 0041) ----------
-const VK_STOP = new Set(["circuit","circuits","circuito","circuitos","autodromo","autodrom","international","internacional","internazionale","internationale","nazionale","national","raceway","speedway","motorsport","track","karting","world","the","de","do","di","del","della","la","le","les","of","des","du","el","da","e","y","and","et"]);
+// ---------- one circuit, one car: plain text, same rules as private.venue_norm() / private.vehicle_key() (migration 0041) ----------
+// the same text = a double (blocked) · 1-2 letters apart = asks · anything else = a different one
 const deacc = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "s").replace(/ł/g, "l");
-const venueKey = t => deacc(t).split(/[^a-z0-9]+/).filter(w => w && !VK_STOP.has(w)).join("");
+const venueKey = t => deacc(t).replace(/[^a-z0-9]/g, "");
 const carKey = t => deacc(t).replace(/[^a-z0-9]/g, "").replace(/lmgt3/g, "gt3");
-const km = (a, b, c, d) => Math.sqrt(((c - a) * 110.57) ** 2 + ((d - b) * 111.32 * Math.cos((a + c) / 2 * Math.PI / 180)) ** 2);
-// strong = the same circuit (blocked) · similar = worth a look (asks)
-function findSameVenue(name, lat, lng, selfId){
-  const k = venueKey(name), has = lat != null && lng != null && lat !== "" && lng !== "";
-  const strong = [], similar = [];
+function lev(a, b){ if (Math.abs(a.length - b.length) > 2) return 9; const d = Array.from({ length: b.length + 1 }, (_, i) => i); for (let i = 1; i <= a.length; i++){ let p = d[0]; d[0] = i; for (let j = 1; j <= b.length; j++){ const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, p + (a[i - 1] === b[j - 1] ? 0 : 1)); p = t; } } return d[b.length]; }
+function findSameVenue(name, selfId){
+  const k = venueKey(name), strong = [], similar = [];
   if (k.length < 3) return { strong, similar };
   for (const v of D.venues){
     if (v.id === selfId) continue;
-    const vk = venueKey(v.name), both = has && v.lat != null && v.lng != null, d = both ? km(+lat, +lng, v.lat, v.lng) : null;
-    if ((vk === k && (!both || d < 25)) || (both && d < 3 && vk.length >= 3 && (vk.includes(k) || k.includes(vk)))) strong.push(v);
-    else if ((both && d < 3) || (vk.length >= 4 && (vk.includes(k) || k.includes(vk)))) similar.push(v);
+    const vk = venueKey(v.name);
+    if (vk === k) strong.push(v); else if (k.length >= 6 && lev(k, vk) <= 2) similar.push(v);
   }
   return { strong, similar };
 }
@@ -984,7 +979,7 @@ function findSameCar(name, selfId){
   for (const v of D.vehicles){
     if (v.id === selfId || v.status !== "approved") continue;
     const vk = carKey(v.name);
-    if (vk === k) strong.push(v); else if (vk.length >= 4 && (vk.includes(k) || k.includes(vk))) similar.push(v);
+    if (vk === k) strong.push(v); else if (k.length >= 6 && lev(k, vk) <= 2) similar.push(v);
   }
   return { strong, similar };
 }
@@ -1604,14 +1599,14 @@ async function circuits(){
   ], () => editVenue(), editVenue, "+ Add circuit", "Circuits are created automatically when you add a race. Edit one here if a time zone is wrong.");
 }
 async function editVenue(v){
-  const g = sameGuard(() => findSameVenue($("#f_name")?.value, $("#f_lat")?.value, $("#f_lng")?.value, v?.id), "circuit", x => `#/circuits`);
+  const g = sameGuard(() => findSameVenue($("#f_name")?.value, v?.id), "circuit", x => `#/circuits`);
   const r = await drawer(v ? v.name : "Add circuit", [
     { k:"name", l:"Circuit name", req:true },
     { html: g.html },
     { row:[{ k:"city", l:"Town / region" }, { k:"country", l:"Country", req:true }] },
     { row:[{ k:"country_code", l:"Country code (flag)", ph:"FR" }, { k:"timezone", l:"Time zone", type:"select", req:true, options: TZS.map(t => ({ v:t, l:t.replace(/_/g, " ") })) }] },
     { row:[{ k:"lat", l:"Latitude", type:"number", step:"any" }, { k:"lng", l:"Longitude", type:"number", step:"any" }] }
-  ], v || {}, { onDelete: !!v, validate: g.validate, after(){ ["#f_name", "#f_lat", "#f_lng"].forEach(q => $(q)?.addEventListener("input", g.draw)); g.draw(); } });
+  ], v || {}, { onDelete: !!v, validate: g.validate, after(){ $("#f_name")?.addEventListener("input", g.draw); g.draw(); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("venues", v.id); route(); }, "Deleted");
   if (r.country_code) r.country_code = r.country_code.toUpperCase();

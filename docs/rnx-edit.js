@@ -834,7 +834,7 @@
     if (loc.lat == null) return placeId(loc.name, loc.country || "");
     const [hit] = await api(`venues?name=eq.${encodeURIComponent(loc.name)}&country=eq.${encodeURIComponent(loc.country || "")}&select=id&limit=1`);
     if (hit) return hit.id;
-    try { const same = await rpc("venue_match", { p_name: loc.name, p_lat: loc.lat, p_lng: loc.lng }); if (same) return same; } catch (e) {}
+    try { const same = await rpc("venue_match", { p_name: loc.name }); if (same) return same; } catch (e) {}
     let tz = null; try { const lib = await loadTz(); if (lib) tz = lib(loc.lat, loc.lng); } catch (e) {}
     const [v] = await ins("venues", { name: loc.name, city: loc.city || null, country: loc.country || "", country_code: loc.cc || null, lat: loc.lat, lng: loc.lng, timezone: tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
     return v.id;

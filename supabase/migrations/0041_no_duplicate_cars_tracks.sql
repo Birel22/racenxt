@@ -1,59 +1,35 @@
--- One car, one circuit: the same rule as championships (0034), for the vehicle library and circuits.
+-- One car, one circuit: the same idea as championships (0034), kept to plain text.
 --
--- Circuits: private.venue_key() drops accents, punctuation and generic words (circuit, autodromo, international, raceway...):
---   "Circuito de Jerez – Ángel Nieto" = "Circuito de Jerez Angel Nieto" -> jerezangelnieto · "Autódromo Internacional do Algarve" = "Algarve International Circuit" -> algarve
--- Two circuits are the same when their keys are equal (and, if both have coordinates, they're within 25 km), or when one key
--- contains the other and they're within 3 km ("Red Bull Ring" / "Red Bull Ring - Spielberg", "Circuit Zandvoort" / "MASCOT Zandvoort Circuit").
--- private.venue_for() (used when the agents' races are approved) and public.venue_match() (used by the admin and athletes' pages) reuse
--- the existing circuit instead of creating a new one; a trigger refuses a new circuit that's the same as one already there.
+-- Circuits: two circuits are the same only when their names are the same text, ignoring case, accents, spaces and punctuation:
+--   "Circuito de Jerez – Ángel Nieto" = "Circuito de Jerez Angel Nieto" · "Circuit Gilles-Villeneuve" = "Circuit Gilles Villeneuve"
+--   ("Red Bull Ring" and "Red Bull Ring - Spielberg" are NOT the same text: the admin page asks when names differ by only 1-2 letters).
+-- private.venue_for() (the agents' approved races) and public.venue_match() (admin, athletes' pages) reuse that circuit instead of
+-- creating a new one; a trigger refuses a new circuit with the same text.
 --
--- Cars: private.vehicle_key() -> lowercase letters and digits only, LMGT3 = GT3 ("ORECA 07" = "Oreca-07"). Two library cars
--- (approved) can't have the same key. An athlete's own car (not in the library) is never blocked. apply_cars links to a library car with the same key.
+-- Cars: same rule, letters and digits only ("ORECA 07" = "Oreca-07"), LMGT3 = GT3. Two library cars (approved) can't be the same;
+-- an athlete's own car (not in the library) is never blocked. apply_cars links to the library car with the same text.
 
-create or replace function private.venue_key(t text) returns text
+create or replace function private.venue_norm(t text) returns text
 language sql immutable parallel safe set search_path = '' as $$
-  select coalesce(string_agg(w, '' order by n), '')
-  from regexp_split_to_table(
-         regexp_replace(translate(lower(coalesce(t, '')), 'àáâãäåāăąçćčďèéêëēęěìíîïīłñńňòóôõöøōőřśšşťùúûüūůűýÿžźżß', 'aaaaaaaaacccdeeeeeeeiiiiilnnnoooooooorsssstuuuuuuuyyzzzs'), '[^a-z0-9]+', ' ', 'g'),
-         '\s+') with ordinality as x(w, n)
-  where w <> '' and w not in ('circuit','circuits','circuito','circuitos','autodromo','autodrom','international','internacional','internazionale','internationale',
-                              'nazionale','national','raceway','speedway','motorsport','track','karting','world','the','de','do','di','del','della','la','le','les',
-                              'of','des','du','el','da','e','y','and','et')
+  select regexp_replace(translate(lower(coalesce(t, '')), 'àáâãäåāăąçćčďèéêëēęěìíîïīłñńňòóôõöøōőřśšşťùúûüūůűýÿžźżß', 'aaaaaaaaacccdeeeeeeeiiiiilnnnoooooooorsssstuuuuuuuyyzzzs'), '[^a-z0-9]', '', 'g')
 $$;
 
--- km between two points (good enough at circuit scale)
-create or replace function private.km(lat1 double precision, lng1 double precision, lat2 double precision, lng2 double precision) returns double precision
-language sql immutable parallel safe set search_path = '' as $$
-  select sqrt(power((lat2 - lat1) * 110.57, 2) + power((lng2 - lng1) * 111.32 * cos(radians((lat1 + lat2) / 2)), 2))
+-- the circuit already there with the same name text (null if none)
+create or replace function private.venue_same(p_name text, p_self uuid default null) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select v.id from public.venues v
+  where v.id is distinct from p_self and length(private.venue_norm(p_name)) >= 3 and private.venue_norm(v.name) = private.venue_norm(p_name)
+  order by (v.lat is not null) desc, v.created_at limit 1
 $$;
 
--- the circuit already there that this one is the same as (null if none)
-create or replace function private.venue_same(p_name text, p_lat double precision, p_lng double precision, p_self uuid default null) returns uuid
-language plpgsql stable security definer set search_path = '' as $$
-declare k text := private.venue_key(p_name); hit uuid;
-begin
-  if length(k) < 3 then return null; end if;
-  select v.id into hit from public.venues v
-  where v.id is distinct from p_self
-    and (
-      (private.venue_key(v.name) = k and (p_lat is null or v.lat is null or private.km(p_lat, p_lng, v.lat, v.lng) < 25))
-      or (p_lat is not null and v.lat is not null and private.km(p_lat, p_lng, v.lat, v.lng) < 3
-          and length(private.venue_key(v.name)) >= 3
-          and (strpos(private.venue_key(v.name), k) > 0 or strpos(k, private.venue_key(v.name)) > 0))
-    )
-  order by (private.venue_key(v.name) = k) desc, (v.lat is not null) desc, v.created_at
-  limit 1;
-  return hit;
-end $$;
-
-create or replace function public.venue_match(p_name text, p_lat double precision default null, p_lng double precision default null)
-returns uuid language sql stable security definer set search_path = '' as $$ select private.venue_same(p_name, p_lat, p_lng, null) $$;
-grant execute on function public.venue_match(text, double precision, double precision) to authenticated;
+create or replace function public.venue_match(p_name text)
+returns uuid language sql stable security definer set search_path = '' as $$ select private.venue_same(p_name, null) $$;
+grant execute on function public.venue_match(text) to authenticated;
 
 create or replace function private.venues_unique() returns trigger language plpgsql set search_path = '' as $$
 declare hit uuid; hn text;
 begin
-  hit := private.venue_same(new.name, new.lat, new.lng, new.id);
+  hit := private.venue_same(new.name, new.id);
   if hit is not null then
     select name into hn from public.venues where id = hit;
     raise exception 'This circuit is already in Racenxt: %', hn using errcode = '23505';
@@ -61,16 +37,16 @@ begin
   return new;
 end $$;
 drop trigger if exists venues_unique on public.venues;
-create trigger venues_unique before insert or update of name, lat, lng on public.venues
+create trigger venues_unique before insert or update of name on public.venues
   for each row execute function private.venues_unique();
 
--- races the agents found: reuse the circuit already there
+-- races the agents found: reuse the circuit with the same name
 create or replace function private.venue_for(c jsonb) returns uuid
 language plpgsql security definer set search_path to '' as $function$
 declare vid uuid; tz text;
 begin
   if c is null or coalesce(c->>'name', '') = '' then return null; end if;
-  vid := private.venue_same(c->>'name', (c->>'lat')::double precision, (c->>'lng')::double precision, null);
+  vid := private.venue_same(c->>'name', null);
   if vid is not null then return vid; end if;
   tz := c->>'timezone';
   if tz is null or not exists (select 1 from pg_catalog.pg_timezone_names where name = tz) then return null; end if;

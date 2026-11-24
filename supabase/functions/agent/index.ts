@@ -664,7 +664,7 @@ Official calendar: ${calUrl || series.website_url || "unknown"}
 Classes: ${cls.join(", ")}
 Today: ${new Date().toISOString().slice(0, 10)}
 Task: these classes share one calendar, and not every class races at every round. For each numbered round below, say which of the classes race there.
-Read the official calendar page first: it usually shows each round's classes (often as small class labels or logos). Open a round's own official page only if the calendar doesn't show them. If you can't tell for a round, use null. Use the class names exactly as listed above.
+Read the official calendar page first: it usually shows each round's classes (often as small class labels or logos). The official news article announcing the season's calendar usually says, race by race, which classes go there: read it too. Open a round's own official page only if neither shows them. If you can't tell for a round, use null. Use the class names exactly as listed above.
 Rounds:
 ${evs.map((e, i) => `${i + 1}. ${e.name} (${e.venues?.name || "circuit ?"}), ${e.start_date} to ${e.end_date}`).join("\n")}
 JSON schema: {"calendar_url": string|null, "rounds": [{"n": number, "classes": [string]|null}]}`;
@@ -672,11 +672,20 @@ JSON schema: {"calendar_url": string|null, "rounds": [{"n": number, "classes": [
 async function classesJob(series: any, src: any, runId: string, body: any) {
   const cls: string[] = (series.classes || []).length > 1 ? series.classes : (Array.isArray(body.classes) ? body.classes.map((c: any) => String(c || "").trim()).filter(Boolean) : []);
   if (cls.length < 2) return { result: "no_change", summary: "One class: nothing to check.", usage: null, pages: [] };
-  const evs = await db(`events?series_id=eq.${series.id}&year=gte.${new Date().getUTCFullYear()}&select=id,name,start_date,end_date,classes,venues(name)&order=start_date&limit=40`);
+  // races still to come (a race already run doesn't need it)
+  const evs = await db(`events?series_id=eq.${series.id}&end_date=gte.${new Date().toISOString().slice(0, 10)}&select=id,name,start_date,end_date,classes,venues(name)&order=start_date&limit=40`);
   if (!evs.length) return { result: "no_change", summary: "No races yet.", usage: null, pages: [] };
   const calUrl = body.calendar_url || (src?.urls || [])[0]?.url || series.website_url || "";
   const { out, usage, trace } = await ask(SYS(), classesPrompt(series, cls, calUrl, evs), 4);
   const by = new Map<number, any>((out.rounds || []).map((r: any) => [Math.round(Number(r.n)), r.classes]));
+  // some rounds still unknown: the stronger model reads again, and fills only what it can tell
+  if (evs.some((_: any, i: number) => !Array.isArray(by.get(i + 1)))) {
+    try {
+      const r2 = await ask(SYS(), classesPrompt(series, cls, calUrl, evs), 5, [STRONG]); addUsage(usage, r2.usage); addTrace(trace, r2.trace);
+      for (const r of r2.out.rounds || []) { const n = Math.round(Number(r.n)); if (Array.isArray(r.classes) && !Array.isArray(by.get(n))) by.set(n, r.classes); }
+      (out as any).second_look = r2.out;
+    } catch (_) { /* keep the first answer */ }
+  }
   const evCh: any[] = [];
   let subsets = 0;
   evs.forEach((ev: any, i: number) => {
@@ -688,9 +697,12 @@ async function classesJob(series: any, src: any, runId: string, body: any) {
   const pages = await fingerprint([out.calendar_url, calUrl]);
   if (!subsets && !(series.classes || []).length) return { result: "no_change", summary: "Every class races at every round: no class choice needed.", usage, pages, trace: { ...trace, answer: out } };
   const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.classes&status=eq.pending&select=id&limit=1`);
-  if (pending || (!evCh.length && sameCls(series.classes, cls))) return { result: "no_change", summary: pending ? "A classes suggestion is already waiting in the Review queue." : "Nothing new: classes unchanged.", usage, pages, trace: { ...trace, answer: out } };
-  await ins("proposals", { run_id: runId, series_id: series.id, kind: "classes", payload: { classes: cls, events: evCh },
-    evidence: { url: out.calendar_url || calUrl, excerpt: `${series.short_name || series.name} runs ${cls.length} classes on one calendar and not every class races at every round. Athletes pick their class: their page only shows the races of their class.` } });
+  if (!evCh.length && sameCls(series.classes, cls)) return { result: "no_change", summary: "Nothing new: classes unchanged.", usage, pages, trace: { ...trace, answer: out } };
+  const prop = { run_id: runId, series_id: series.id, kind: "classes", payload: { classes: cls, events: evCh },
+    evidence: { url: out.calendar_url || calUrl, excerpt: `${series.short_name || series.name} runs ${cls.length} classes on one calendar and not every class races at every round. Athletes pick their class: their page only shows the races of their class.` } };
+  // a suggestion still waiting is replaced by the newer one
+  if (pending) await patch("proposals", `id=eq.${pending.id}`, { run_id: runId, payload: prop.payload, evidence: prop.evidence, created_at: new Date().toISOString() });
+  else await ins("proposals", prop);
   return { result: "proposal", summary: `Found: classes${evCh.length ? ` (${evCh.length} race${evCh.length > 1 ? "s" : ""} without every class)` : ""}.`, usage, pages, trace: { ...trace, answer: out } };
 }
 

@@ -181,6 +181,8 @@
   .rx-rd[aria-checked="true"] i::after{content:"✓";color:#fff;font-size:13px;font-weight:700;font-style:normal}
   .rx-rd[aria-checked="false"] .rx-rd-t,.rx-rd[aria-checked="false"] .rx-rd-d{opacity:.45}
   .rx-rd-d{font:700 15px 'Barlow Condensed'}
+  .rx-rd.off{cursor:default;background:#111216} .rx-rd.off i{border-style:dashed;opacity:.5} .rx-rd.off .rx-rd-t b,.rx-rd.off .rx-rd-d{opacity:.45}
+  .rx-rd-x{color:#ff6b5b !important;font-weight:600}
   .rx-rd-t{display:grid;min-width:0} .rx-rd-t b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .rx-rd-t small{color:#8e919b;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .rx-phrow{display:flex;align-items:center;gap:14px}
   .rx-phbtns{display:grid;gap:8px}
@@ -537,7 +539,10 @@
     }
     const fmt = (a, b) => { const A = new Date(a + "T12:00:00Z"), B = new Date(b + "T12:00:00Z"), m = x => x.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }); return A.getUTCMonth() === B.getUTCMonth() ? `${A.getUTCDate()}–${B.getUTCDate()} ${m(A)}` : `${A.getUTCDate()} ${m(A)} – ${B.getUTCDate()} ${m(B)}`; };
     const list = () => evs.filter(e => e.year === year && forCls(e));
-    const rows = () => CLS.length && !cls ? `<div class="rx-help" style="text-align:center;padding:14px 0">Choose your class to see its races.</div>` : list().map(e => `<button type="button" class="rx-rd" role="checkbox" data-ev="${e.id}" aria-checked="${!hidden.has(e.id)}"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", "))}</small></span></button>`).join("");
+    // races of the season your class doesn't do: shown greyed, with the classes that do race there in red
+    const rows = () => CLS.length && !cls ? `<div class="rx-help" style="text-align:center;padding:14px 0">Choose your class to see its races.</div>` : evs.filter(e => e.year === year).map(e => forCls(e)
+      ? `<button type="button" class="rx-rd" role="checkbox" data-ev="${e.id}" aria-checked="${!hidden.has(e.id)}"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small>${esc([e.venues?.name, e.venues?.country].filter(Boolean).join(", "))}</small></span></button>`
+      : `<div class="rx-rd off" aria-disabled="true"><i></i><span class="rx-rd-d">${fmt(e.start_date, e.end_date)}</span><span class="rx-rd-t"><b>${esc(e.name)}</b><small class="rx-rd-x">Only ${esc(e.classes.join(" · "))}</small></span></div>`).join("");
     const count = () => { const l = list(); return l.filter(e => !hidden.has(e.id)).length + " of " + l.length; };
     const r = await sheet(`Your ${s.short_name} season`, `
       ${clsSeg()}
@@ -547,7 +552,7 @@
       <div class="rx-rds" id="rx-rds">${rows()}</div>`,
       { ok: en ? "Save" : "Continue", after() {
         const sync = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); $("#rx-full").setAttribute("aria-checked", all); $("#rx-cnt").textContent = count() + " races"; };
-        const bind = () => $$("#rx-rds .rx-rd").forEach(b => b.onclick = () => { const id = b.dataset.ev; hidden.has(id) ? hidden.delete(id) : hidden.add(id); b.setAttribute("aria-checked", !hidden.has(id)); sync(); });
+        const bind = () => $$("#rx-rds .rx-rd[data-ev]").forEach(b => b.onclick = () => { const id = b.dataset.ev; hidden.has(id) ? hidden.delete(id) : hidden.add(id); b.setAttribute("aria-checked", !hidden.has(id)); sync(); });
         $("#rx-full").onclick = () => { const l = list(), all = l.every(e => !hidden.has(e.id)); l.forEach(e => all ? hidden.add(e.id) : hidden.delete(e.id)); $("#rx-rds").innerHTML = rows(); bind(); sync(); };
         $$("#rx-ks button").forEach(b => b.onclick = () => { cls = b.dataset.k; $$("#rx-ks button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });
         $$("#rx-ys button").forEach(b => b.onclick = () => { year = +b.dataset.y; $$("#rx-ys button").forEach(x => x.setAttribute("aria-checked", x === b)); $("#rx-rds").innerHTML = rows(); bind(); sync(); });

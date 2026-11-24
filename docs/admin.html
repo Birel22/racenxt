@@ -1049,7 +1049,7 @@ async function review(slug){
     const box = document.querySelector(`[data-p="${p.id}"]`);
     if (p.kind === "logo"){ logoProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     current(p).then(t => { const n = box.querySelector(".now"); if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
-    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (p.kind === "new_season" || p.kind === "new_event") { findTimetables(p.series_id, true); } if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
+    box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
     box.querySelector('[data-act="edit"]').onclick = async () => {
       const r = await drawer("Edit proposal", [{ k:"payload", l:"Data (local circuit times)", type:"textarea" }], { payload: JSON.stringify(p.payload, null, 2) }, { ok:"Approve with changes" });

@@ -163,7 +163,7 @@
       } else photo.style.display = "none";
     }
     const lg = document.getElementById("rnx-logo");
-    if (lg && p.logo_url) { lg.src = p.logo_url; lg.alt = p.display_name; lg.hidden = false; }
+    if (lg && p.logo_url) { lg.src = p.logo_url; lg.alt = p.display_name; lg.hidden = false; const ls = +(p.photo_pos && p.photo_pos.lg); if (ls >= .5 && ls <= 2) lg.style.setProperty("--lgs", ls); }
     const href = k => k === "email" ? (p.contact_email ? "mailto:" + p.contact_email : "") : (p.socials && p.socials[k]) || "";
     const soc = Object.keys(ICONS).filter(k => href(k));
     document.querySelectorAll(".rnx-socials").forEach(n => {

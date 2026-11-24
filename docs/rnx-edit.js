@@ -13,6 +13,9 @@
   const PLUS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
   const CHEV = '<svg class="rx-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
   const FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>';
+  const COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"/></svg>';
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+  const SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12.5V18a2.5 2.5 0 0 0 2.5 2.5h9A2.5 2.5 0 0 0 19 18v-5.5"/></svg>';
   const LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
   const USER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
   const OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></svg>';
@@ -137,6 +140,13 @@
   .rx-mlang .rx-lseg{display:flex;padding:3px;border-radius:999px;background:#0d0e11;border:1px solid #2a2c33}
   .rx-menu .rx-mlang .rx-lseg button{width:auto;padding:5px 11px;border-radius:999px;font:700 12px Barlow;letter-spacing:.08em;color:#8e919b}
   .rx-menu .rx-mlang .rx-lseg button[aria-pressed="true"]{background:#f4f4f2;color:#0d0e11}
+  .rx-share{margin:14px 0 0;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:18px;background:#14151a;border:1px solid #2a2c33;font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
+  .rx-share-i{width:38px;height:38px;flex:none;border-radius:12px;background:rgba(255,90,31,.12);color:#FF5A1F;display:grid;place-items:center} .rx-share-i svg{width:19px;height:19px}
+  .rx-share-t{flex:1;min-width:0;display:grid} .rx-share-t b{font-size:15px;font-weight:600} .rx-share-t small{font-size:13.5px;color:#a9abb2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rx-share .rx-b{flex:none} .rx-share .rx-b svg{width:16px;height:16px}
+  .rx-share .rx-b.done{background:#1f3a2a;border-color:#2f6b45;color:#7be29a}
+  .rx-share-b{width:38px;padding:0;justify-content:center}
+  @media (max-width:380px){.rx-share #rx-copy span{display:none}.rx-share #rx-copy{width:38px;padding:0;justify-content:center}}
   .rx-season{margin:18px 0 8px;border-radius:18px;background:#14151a;border:1px solid #2a2c33;overflow:hidden;font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
   .rx-season-h{display:flex;align-items:center;gap:12px;padding:16px}
   .rx-season-h > div{flex:1;display:grid}
@@ -472,13 +482,13 @@
   async function editProfile() {
     const p = R.profile, so = p.socials || {};
     const last = p.last_name || (p.display_name || "").replace(new RegExp("^" + (p.first_name || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*"), "");
-    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false, phRemoved = false;
+    let file = null, prev = p.hero_url || p.photo_url || "", pos = p.photo_pos || null, posChanged = false, phRemoved = false, lgs = +(p.photo_pos && p.photo_pos.lg) || 1;
     // logo: what's saved, plus what the athlete prepared in the editor (saved with the profile)
     const LG = { url: p.logo_url || "", src: p.logo_src_url || "", mode: p.logo_style || "original", pending: null, removed: false };
     const lgUrl = () => LG.removed ? "" : LG.pending ? (LG.pending.url || (LG.pending.url = URL.createObjectURL(LG.pending.out))) : LG.url;
     const PAL_UNUSED = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.3 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></svg>';
     const IMG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-    const lgHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(rnxLogoThumb(lgUrl(), "Your logo", prev, pos), "rx-lgbox", lgUrl() ? "Change logo" : "Add logo")}</div>${lgUrl() ? `<button type="button" class="rx-link rx-lgx" id="rx-lgx">Remove logo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
+    const lgHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(rnxLogoThumb(lgUrl(), "Your logo", prev, { ...(pos || { x: 50, y: 35, z: 1 }), lg: lgs }), "rx-lgbox", lgUrl() ? "Change logo" : "Add logo")}</div>${lgUrl() ? `<button type="button" class="rx-link rx-lgx" id="rx-lgx">Remove logo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-lg">${IMG} ${lgUrl() ? "Change logo" : "Add logo"}</button>${lgUrl() ? `<button type="button" class="rx-b" id="rx-lgc">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const title = `${esc((p.first_name || "").toUpperCase())} <em>RACE HUB</em>`;
     const phHtml = () => `<div class="rx-phrow rx-lgrow"><div class="rx-lgbox">${rnxThumbBtn(prev ? rnxPhotoThumb(prev, pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Your photo</span></div>`, "rx-phbox", prev ? "Change photo" : "Add photo")}</div>${prev ? `<button type="button" class="rx-link rx-lgx" id="rx-phx">Remove photo</button>` : ""}<div class="rx-phbtns"><button type="button" class="rx-b" id="rx-ph">${CAM.replace("<svg", '<svg width="16" height="16"')} ${prev ? "Change photo" : "Add photo"}</button>${prev ? `<button type="button" class="rx-b" id="rx-adj">${PEN.replace("<svg", '<svg width="15" height="15"')} Adjust</button>` : ""}</div></div>`;
     const r = await sheet("Edit profile", `
@@ -499,10 +509,10 @@
           $("#rx-lgw").innerHTML = lgHtml(); bindLg();
         };
         const bindLg = () => {
-          const ed = o => rnxLogoEditor({ photo: prev, pos, title, getToken: token, ...o });
+          const ed = o => rnxLogoEditor({ photo: prev, pos, size: lgs, title, getToken: token, ...o });
           $("#rx-lgbox").onclick = () => $("#rx-lg").click();
-          $("#rx-lg").onclick = async () => { const f = await pickFile(); if (!f) return; const r = await ed({ file: f, mode: LG.pending?.mode || LG.mode }); if (r) { LG.pending = r; LG.removed = false; } $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
-          if ($("#rx-lgc")) $("#rx-lgc").onclick = async () => { const r = await ed({ src: LG.pending?.src || LG.src || "", current: lgUrl(), mode: LG.pending?.mode || LG.mode }); if (r) LG.pending = { src: LG.pending?.src || null, out: r.out, mode: r.mode }; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
+          $("#rx-lg").onclick = async () => { const f = await pickFile(); if (!f) return; const r = await ed({ file: f, mode: LG.pending?.mode || LG.mode }); if (r) { LG.pending = r; LG.removed = false; if (r.size !== lgs) { lgs = r.size || 1; posChanged = true; } } $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
+          if ($("#rx-lgc")) $("#rx-lgc").onclick = async () => { const r = await ed({ src: LG.pending?.src || LG.src || "", current: lgUrl(), mode: LG.pending?.mode || LG.mode }); if (r) { if (r.mode !== (LG.pending?.mode || LG.mode)) LG.pending = { src: LG.pending?.src || null, out: r.out, mode: r.mode }; if (r.size !== lgs) { lgs = r.size || 1; posChanged = true; } } $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
           if ($("#rx-lgx")) $("#rx-lgx").onclick = () => { LG.removed = true; LG.pending = null; $("#rx-lgw").innerHTML = lgHtml(); bindLg(); };
         };
         bind(); },
@@ -514,7 +524,7 @@
           if (webRaw && /@/.test(webRaw) && !/\//.test(webRaw.replace(/^https?:\/\//, ""))) { alert("That looks like an email address. Put it in Contact email, and your website address (like louisdeletraz.com) here."); $("#rx-web").focus(); return null; }
           const web = toUrl("website", webRaw); if (web) socials.website = web;
           const first = $("#rx-first").value.trim(), lastn = $("#rx-last").value.trim();
-          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(posChanged ? { photo_pos: pos } : {}), ...(phRemoved && !file ? { photo_url: null, hero_url: null, photo_pos: null } : {}) };
+          return { first_name: first, last_name: lastn, display_name: `${first} ${lastn}`, socials, contact_email: mail || null, ...(posChanged ? { photo_pos: { ...(pos || {}), lg: lgs } } : {}), ...(phRemoved && !file ? { photo_url: null, hero_url: null, photo_pos: lgs !== 1 ? { lg: lgs } : null } : {}) };
         } });
     if (!r) return;
     save(async () => {
@@ -1118,6 +1128,19 @@
       ${R.entries.length ? `<div class="rx-rows">${R.entries.map(e => { const d = [(e.series?.classes || []).length > 1 && e.category ? esc(e.category) : "", e.car_number ? "#" + esc(e.car_number) : "", esc(e.team || ""), esc(e.vehicles?.name || "")].filter(Boolean); return `<button class="rx-row" data-e="${e.id}" style="--c:${esc(e.color || "#8a8d96")}"><span class="rx-row-lg">${lg(e.series)}</span><span class="rx-row-t"><b>${esc(e.series?.name || "")}</b><small class="${d.length ? "" : "warn"}">${d.length ? d.join(" · ") : "Add your number, team and car"}</small></span><span class="rx-row-y">${e.year}</span>${CHEV}</button>`; }).join("")}</div>` : ""}`;
     const anchor = $("#cd") || $("#ffdd") || $("#list");
     anchor.parentNode.insertBefore(strip, anchor);
+
+    // share your page: the link, one tap to copy (and the phone's share sheet where there is one)
+    const pub = R.pageUrl || (location.origin + location.pathname);
+    const shareCard = document.createElement("section"); shareCard.className = "rx-share rx-only"; shareCard.id = "rx-share";
+    shareCard.innerHTML = `<span class="rx-share-i" aria-hidden="true">${LINK}</span><span class="rx-share-t"><b>Your page link</b><small>${esc(pub.replace(/^https?:\/\//, "").replace(/\/$/, ""))}</small></span>
+      <button type="button" class="rx-b pri" id="rx-copy">${COPY}<span>Copy link</span></button>${navigator.share ? `<button type="button" class="rx-b rx-share-b" id="rx-shr" aria-label="Share your page">${SHARE}</button>` : ""}`;
+    strip.insertAdjacentElement("beforebegin", shareCard);
+    $("#rx-copy").onclick = async () => {
+      const b = $("#rx-copy");
+      try { await navigator.clipboard.writeText(pub); } catch (e) { const t = document.createElement("textarea"); t.value = pub; t.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } catch (e2) { prompt("Your page link:", pub); } t.remove(); }
+      b.classList.add("done"); b.innerHTML = `${CHECK}<span>Copied</span>`; clearTimeout(b._t); b._t = setTimeout(() => { b.classList.remove("done"); b.innerHTML = `${COPY}<span>Copy link</span>`; }, 2200);
+    };
+    if ($("#rx-shr")) $("#rx-shr").onclick = () => navigator.share({ title: `${p.display_name} · Race Hub`, url: pub }).catch(() => {});
     $("#rx-add").onclick = addChampionship;
 
     // your own events
@@ -1209,6 +1232,7 @@
     try { localStorage.removeItem("rnx_tour"); } catch (e) {}
     const steps = [
       { el: ".rx-edit-b", t: "Your profile", d: "Your photo, name, logo and social links. Tap Edit profile any time to change them." },
+      { el: "#rx-share", t: "Share your page", d: "Your page link. Copy it in one tap for your bio, a message or a post." },
       { el: "#rx-season", t: "Your season", d: "The championships you race in, with your class, car and number. Your races and their schedules appear on your page by themselves." },
       { el: "#rx-events", t: "Custom events", d: "Add what isn't on a championship calendar: tests, media days, autograph sessions." },
       { el: "#rx-partners", t: "Your partners", d: "Add your partners' logos. The first 6 show right under your photo, all of them at the bottom of the page." },

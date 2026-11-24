@@ -61,8 +61,8 @@
   .rxe-b.rxl-b{gap:14px;padding-top:14px;padding-bottom:14px}
   .rxl-stage > img.ph{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .rxl-stage::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.28),transparent 30%,transparent 60%,rgba(0,0,0,.7))}
-  .rxl-stage .lg{position:absolute;z-index:1;top:4.5%;left:6%;width:24%;max-height:16%;object-fit:contain;object-position:left top;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:width .25s ease}
-  .rxl-stage.desk .lg{width:16%;top:6%;left:3.5%;max-height:22%}
+  .rxl-stage .lg{position:absolute;z-index:1;top:4.5%;left:6%;width:calc(24% * var(--lgs,1));max-height:calc(16% * var(--lgs,1));object-fit:contain;object-position:left top;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4));transition:width .25s ease}
+  .rxl-stage.desk .lg{width:calc(16% * var(--lgs,1));top:6%;left:3.5%;max-height:calc(22% * var(--lgs,1))}
   .rxl-stage .nm{position:absolute;z-index:1;left:6%;bottom:5%;font:700 26px/1 'Barlow Condensed',sans-serif;color:#fff;text-transform:uppercase}
   .rxl-stage.desk .nm{left:3.5%;font-size:30px}
   .rxl-stage .nm em{font-style:normal;color:#FF5A1F}
@@ -75,13 +75,17 @@
   .rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(24dvh,210px)}
   .rxl-side{display:grid;gap:8px;align-content:center;min-width:0}
   .rxl-side .rxe-lbl{margin:0}
+  .rxl-size{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;font:600 13px Barlow,system-ui,sans-serif;color:#9a9ca3}
+  .rxl-size input{width:100%;min-width:0;accent-color:#FF5A1F;height:28px;margin:0}
+  .rxl-size output{min-width:38px;text-align:right;color:#f2f2ef;font-variant-numeric:tabular-nums}
+  .rxl-row:not(.stack) .rxl-seg button{min-height:36px !important}
   .rxl-row:not(.stack) .rxl-seg{grid-template-columns:1fr}
   .rxl-row:not(.stack) .rxl-seg button{justify-content:flex-start;padding:0 12px;min-height:40px}
   .rxl-side .rxf-views{justify-self:start;margin:4px 0 0}
   .rxl-side .rxf-views button{height:30px;padding:0 12px;font-size:13px}
   .rxl-row.stack{grid-template-columns:1fr}
   .rxl-row.stack .rxl-stage.desk{width:100%;height:auto;max-height:none;aspect-ratio:16/8.6}
-  .rxl-b.fr.dk .rxl-row.stack .rxl-stage.desk{width:auto;height:min(19dvh,180px);max-width:100%;margin:0 auto}
+  .rxl-b.fr.dk .rxl-row.stack .rxl-stage.desk{width:auto;height:min(17dvh,180px);max-width:100%;margin:0 auto}
   .rxl-row.stack .rxl-side{grid-template-columns:1fr}
   .rxl-row .rxl-stage.pt{height:min(15dvh,130px)}
   .rxl-row.stack .rxl-side .rxe-lbl{display:none}
@@ -90,7 +94,7 @@
   #rxl-crop .rxc{justify-items:center;gap:6px}
   #rxl-crop .rxc-stage{display:inline-block;width:auto;max-width:100%}
   #rxl-crop .rxc-stage img{width:auto;max-width:100%;max-height:min(28dvh,260px)}
-  .rxl-b.fr.dk #rxl-crop .rxc-stage img{max-height:min(22dvh,200px)}
+  .rxl-b.fr.dk #rxl-crop .rxc-stage img{max-height:min(17dvh,200px)}
   #rxl-crop .rxc-msg{font-size:13px}
   @media (min-width:700px){#rxl-crop .rxc-stage img{max-height:min(32dvh,300px)}.rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(28dvh,240px)}}
   .rxl-stage.pt::after{display:none}
@@ -316,7 +320,7 @@
   // small preview: the logo on top of the athlete's photo, or an empty "Your logo" box
   window.rnxLogoThumb = function (logo, label, photo, pos) {
     style(); label = label || "Your logo";
-    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}"></div>`; }
+    if (logo && photo) { const p = pos || { x: 50, y: 35, z: 1 }, ls = +p.lg || 1; return `<div class="rxt rxt-pv"><img src="${esc(photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%"><img class="rxt-pvlg" src="${esc(logo)}" alt="${esc(label)}" style="width:${34 * ls}%;height:${26 * ls}%"></div>`; }
     return logo ? `<div class="rxt rxt-lg"><img class="rxt-logo" src="${esc(logo)}" alt="${esc(label)}"></div>`
       : `<div class="rxt"><span class="rxt-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z"/></svg>${esc(label)}</span></div>`;
   };
@@ -337,6 +341,7 @@
             <div class="rxl-side">
               <div class="rxe-lbl">Colour</div>
               <div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>
+              ${opts.partners ? "" : `<label class="rxl-size"><span>Size</span><input type="range" id="rxl-sz" min="60" max="150" step="5" value="${Math.round((opts.size || 1) * 100)}" aria-label="Logo size"><output id="rxl-szv">${Math.round((opts.size || 1) * 100)}%</output></label>`}
               <div class="rxf-views" role="radiogroup" aria-label="Preview on"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div>
             </div>
           </div>
@@ -367,7 +372,11 @@
       document.addEventListener("keydown", key, true);
       ov.querySelector(".rxe-x").onclick = () => close(null);
       ov.querySelector("#rxl-no").onclick = () => close(null);
-      ok.onclick = () => { if (!st.busy && st.out) close({ src: opts.file ? st.src : null, out: st.out, mode: st.mode }); };
+      ok.onclick = () => { if (!st.busy && st.out) close({ src: opts.file ? st.src : null, out: st.out, mode: st.mode, size: st.size }); };
+      // logo size on the page: the preview follows the slider
+      st.size = opts.size || 1; stage.style.setProperty("--lgs", st.size);
+      const sz = ov.querySelector("#rxl-sz");
+      if (sz) sz.oninput = () => { st.size = +sz.value / 100; stage.style.setProperty("--lgs", st.size); ov.querySelector("#rxl-szv").textContent = sz.value + "%"; };
       ov.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; ov.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
       ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); const dk = b.dataset.v === "desk"; stage.classList.toggle("desk", dk); ov.querySelector("#rxl-row").classList.toggle("stack", dk || !!opts.partners); ov.querySelector(".rxl-b").classList.toggle("dk", dk); });
       ov.querySelector(".rxe-x").focus({ preventScroll: true });

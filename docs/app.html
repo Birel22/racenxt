@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-001213"></script>
-<script src="rnx-social.js?v=20261125-001213"></script>
-<script src="rnx-auth.js?v=20261125-001213"></script>
-<script src="rnx-ui.js?v=20261125-001213"></script>
+<script src="config.js?v=20261125-002156"></script>
+<script src="rnx-social.js?v=20261125-002156"></script>
+<script src="rnx-auth.js?v=20261125-002156"></script>
+<script src="rnx-ui.js?v=20261125-002156"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -445,6 +445,7 @@ function obStep(){
       OB.savedEntries = OB.savedEntries || new Set();
       const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
       if (OB.photo){ let pic; try { pic = await heroPhoto(OB.photo); } catch(e){ pic = OB.photo; } row.photo_url = await upload(pic, `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
+      if (OB.logo && (OB.lgs || 1) !== 1) row.photo_pos = { ...(row.photo_pos || {}), lg: OB.lgs };   // logo size on the page
       if (OB.logo?.out){ const stamp = Date.now(); if (OB.logo.src) row.logo_src_url = await upload(OB.logo.src, `profiles/${id}-logo-${stamp}-src.png`); row.logo_url = await upload(OB.logo.out, `profiles/${id}-logo-${stamp}-${OB.logo.mode}.png`); row.logo_style = OB.logo.mode; }
       await upd("profiles", id, row);
       const picked = [...OB.picked]; let ci = 0;
@@ -469,11 +470,11 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxThumbBtn(rnxLogoThumb(url, "Your logo", OB.photoUrl, OB.pos), "ob-lgbox", url ? "Change logo" : "Add logo")}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
-  const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
-  $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) OB.logo = { src: r.src, out: r.out, mode: r.mode }; obLogo(); };
+  box.innerHTML = `<div class="ob-lgrow"><div class="ob-lgbox">${rnxThumbBtn(rnxLogoThumb(url, "Your logo", OB.photoUrl, { ...(OB.pos || { x:50, y:35, z:1 }), lg: OB.lgs || 1 }), "ob-lgbox", url ? "Change logo" : "Add logo")}</div>${url ? `<button type="button" class="ob-lgx" id="ob-lgx">Remove logo</button>` : ""}<div class="ob-lgbtns"><button type="button" class="btn sm" id="ob-lg">${url ? "Change logo" : "Add logo"}</button>${url ? `<button type="button" class="btn sm" id="ob-lgc">Adjust</button>` : ""}</div></div>`;
+  const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, size: OB.lgs || 1, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
+  $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) { OB.logo = { src: r.src, out: r.out, mode: r.mode }; OB.lgs = r.size || 1; } obLogo(); };
   $("#ob-lgbox").onclick = () => $("#ob-lg").click();
-  if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; obLogo(); };
+  if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) { OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; OB.lgs = r.size || 1; } obLogo(); };
   if ($("#ob-lgx")) $("#ob-lgx").onclick = () => { OB.logo = null; obLogo(); };
 }
 // ---------- "Your championships": search with suggestions, your picks, popular, then A–Z ----------

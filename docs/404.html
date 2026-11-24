@@ -27,7 +27,7 @@
   .hero .photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 40%}
   .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(13,14,17,.92) 0%,rgba(13,14,17,.55) 45%,rgba(13,14,17,0) 75%),linear-gradient(0deg,rgba(13,14,17,.85) 0%,rgba(13,14,17,0) 45%)}
   .hero-text{position:relative;z-index:1;padding:28px}
-  .logo{position:absolute;top:24px;left:28px;z-index:1;width:150px;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+  .logo{position:absolute;top:24px;left:28px;z-index:1;width:calc(150px * var(--lgs,1));max-width:45%;height:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
   .partners{display:flex;align-items:center;justify-content:center;gap:clamp(24px,6vw,56px);padding:18px 16px;margin-bottom:6px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
   .partners span{font:600 12px 'Barlow Condensed';letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
   .partners img{display:block;width:auto;opacity:.85;transition:opacity .15s}
@@ -323,7 +323,7 @@
     .lang{top:12px;right:12px}
     .lang button{padding:5px 10px}
     .hero-text{padding:14px 16px}
-    .logo{top:14px;left:16px;width:92px}
+    .logo{top:14px;left:16px;width:calc(92px * var(--lgs,1));max-width:38%}
     .hero .socials{gap:6px;margin-top:8px}
     .socials a{width:28px;height:28px}
     .socials svg{width:16px;height:16px}
@@ -497,11 +497,11 @@
 .ff-none{text-align:center;color:var(--muted);padding:40px 16px;font-size:15px}
 @media (prefers-reduced-motion:reduce){.ff-search{animation:none}}
 </style>
-<script src="config.js?v=20261125-001213"></script>
-<script src="rnx-social.js?v=20261125-001213"></script>
-<script src="rnx-ui.js?v=20261125-001213"></script>
-<script src="rnx-edit.js?v=20261125-001213"></script>
-<script src="rnx-data.js?v=20261125-001213"></script>
+<script src="config.js?v=20261125-002156"></script>
+<script src="rnx-social.js?v=20261125-002156"></script>
+<script src="rnx-ui.js?v=20261125-002156"></script>
+<script src="rnx-edit.js?v=20261125-002156"></script>
+<script src="rnx-data.js?v=20261125-002156"></script>
 </head>
 <body>
 <div class="wrap">

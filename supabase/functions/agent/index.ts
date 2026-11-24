@@ -1061,7 +1061,7 @@ async function tick(secret: string) {
 
 // the classes job started by the database (after new races of a shared calendar are approved): run as the service role
 async function startJob(b: any) {
-  const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "classes", series_id: b.series_id }) });
+  const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "classes", series_id: b.series_id, classes: b.classes, calendar_url: b.calendar_url }) });
   return json(await r.json().catch(() => ({})), r.status);
 }
 

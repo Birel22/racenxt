@@ -146,6 +146,23 @@ async function zoneBacked(label: unknown, url: unknown) {
     return ZONE_WORDS.test((await r.text()).slice(0, 1_500_000));
   } catch (_) { return true; }
 }
+// Many official pages also carry the exact times for programs (e.g. "2027-01-15T10:10:00+01:00" or "...T11:00:00Z").
+// Those timestamps say the time zone for sure: they decide between "as shown" and "converted".
+async function pageStamps(url: unknown, ctz: string, start: string, end: string) {
+  const set = new Set<string>();
+  if (typeof url !== "string" || !/^https?:/.test(url) || /\.pdf(\?|$)/i.test(url) || !validTz(ctz)) return set;
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(12000) });
+    if (!r.ok) return set;
+    const html = (await r.text()).slice(0, 3_000_000);
+    const lo = new Date(start + "T00:00:00Z").getTime() - 2 * 864e5, hi = new Date(end + "T23:59:00Z").getTime() + 2 * 864e5;
+    for (const m of html.matchAll(/(20\d\d-\d\d-\d\dT\d\d:\d\d)(?::\d\d(?:\.\d+)?)?(Z|[+-]\d\d:?\d\d)/g)) {
+      const ms = Date.parse(m[1] + ":00" + (m[2] === "Z" ? "Z" : m[2].replace(/^([+-]\d\d)(\d\d)$/, "$1:$2")));
+      if (ms >= lo && ms <= hi) set.add(utcToWall(ms, ctz));
+    }
+  } catch (_) { /* page unreadable */ }
+  return set;
+}
 function toCircuitTime(list: any[], zone: string, circuitTz: string) {
   if (!circuitTz || !validTz(circuitTz) || zone === circuitTz) return list;
   return (list || []).map((x: any) => x && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_start || "") ? { ...x, local_start: utcToWall(wallToUtc(x.local_start, zone), circuitTz), ...(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x.local_end || "") ? { local_end: utcToWall(wallToUtc(x.local_end, zone), circuitTz) } : {}) } : x);
@@ -517,8 +534,23 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
   if (isTbc(out.excerpt)) out.timetable_found = false;
   let sessions = cleanSessions(conv ? toCircuitTime(out.sessions, zone, ctz) : out.sessions, ev.start_date, ev.end_date);
   let zoneFix = "";
+  // the page's own exact timestamps, when it has them, settle the time zone
+  if (ctz && (out.sessions || []).length) {
+    const stamps = await pageStamps(out.source_url, ctz, ev.start_date, ev.end_date);
+    if (stamps.size >= 2) {
+      const hits = (l: any[]) => l.filter(x => stamps.has(String(x.local_start).replace("T", " ").slice(0, 16))).length;
+      const options = [
+        { list: sessions, note: "" },
+        { list: cleanSessions(out.sessions, ev.start_date, ev.end_date), note: " (checked against the page's own timestamps: times are local)" },
+        { list: cleanSessions(toCircuitTime(out.sessions, "UTC", ctz), ev.start_date, ev.end_date), note: ` (checked against the page's own timestamps: converted from UTC to local ${ctz})` },
+      ];
+      const best = options.reduce((a, o) => hits(o.list) > hits(a.list) ? o : a, options[0]);
+      if (best !== options[0] && hits(best.list) > 0) { sessions = best.list; zoneFix = best.note; }
+      else if (hits(options[0].list) > 0) zoneFix = " (checked against the page's own timestamps)";
+    }
+  }
   // safety net: zone not stated, but read as UTC the times match what we already have -> the page was showing UTC
-  if (!conv && ctz && ctz !== "UTC" && String(out.times_zone || "").toLowerCase() === "unknown" && current.length) {
+  if (!zoneFix && !conv && ctz && ctz !== "UTC" && String(out.times_zone || "").toLowerCase() === "unknown" && current.length) {
     const asUtc = cleanSessions(toCircuitTime(out.sessions, "UTC", ctz), ev.start_date, ev.end_date);
     const starts = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
     if (starts(asUtc) === starts(current)) { sessions = asUtc; zoneFix = ` (times were shown in UTC: converted to local ${ctz})`; }

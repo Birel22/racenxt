@@ -252,15 +252,6 @@
   .sub-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel2)}
   .sub-opt:hover{border-color:#4a4d56}
   .sub-opt.done{opacity:.6}
-  .cal-lbl{font:600 11px 'Barlow Condensed',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
-  .cal-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
-  .cal-app{font:inherit;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);min-height:56px}
-  .cal-app b{font:700 15px 'Barlow Condensed';letter-spacing:.04em;text-transform:uppercase}
-  .cal-app small{font-size:11.5px;color:var(--muted);line-height:1.2}
-  .cal-app[aria-checked="true"]{border-color:var(--lm);box-shadow:inset 0 0 0 1px var(--lm)}
-  .cal-app:focus-visible{outline:2px solid var(--lm);outline-offset:2px}
-  @media (max-width:420px){ .cal-apps{grid-template-columns:repeat(2,1fr)} }
-  .cal-back{font:inherit;cursor:pointer;border:0;background:none;color:var(--text);padding:12px 4px;font-weight:600}
   .sub-opt:focus-visible{outline:2px solid var(--lm);outline-offset:2px}
   .sub-opt b{display:block;font:700 17px 'Barlow Condensed';letter-spacing:.06em;text-transform:uppercase}
   .sub-opt small{color:var(--muted);font-size:13px}
@@ -761,7 +752,7 @@ document.querySelector(".tt-modal").addEventListener("click", e => {
   if (e.target.closest(".cal-all")){
     const ev = EVENTS[ttOpenIdx], t = TIMETABLES[ev.id];
     const ks = [...box.querySelectorAll(".tt-pick:checked")].map(c => +c.dataset.k); if (!ks.length) return;
-    addSessions(ev, t, ks);
+    window.location.href = rnxIcsUrl(P.slug, ev.uuid, ks.map(k => t.sessions[k].id));
     return;
   }
 });
@@ -778,60 +769,20 @@ document.getElementById("tt-hdc").addEventListener("click", e => {
   keep.forEach(k => { const c = document.querySelector(`#tt-body .tt-pick[data-k="${k}"]`); if (c) c.checked = true; }); updatePickUI();
 });
 const SUBS = [["sub_all","sub_all_d","all"],["sub_qr","sub_qr_d","qr"],["sub_r","sub_r_d","r"]];
-// Calendar apps: a web page can't see which apps are on the phone, so the fan picks one. The likely one comes first
-// (iPhone/Mac: Apple, Android: Google, Windows: Outlook) and the choice is remembered.
+// One tap, straight into the phone's own calendar: a page can't see which apps are installed, so we use what the phone
+// itself opens. iPhone/Mac: Apple Calendar (which also saves into Google or Outlook accounts set up on the phone).
+// Android: the calendar file opens in Google Calendar (or Samsung Calendar) to add the races.
 const tr = (en, fr) => LANG === "fr" ? fr : en;
-const CAL_APPS = [["apple", "Apple", () => tr("iPhone, iPad, Mac", "iPhone, iPad, Mac")], ["google", "Google", () => tr("Google Calendar", "Google Agenda")], ["outlook", "Outlook", () => "Outlook.com"], ["other", () => tr("Other", "Autre"), () => tr("Copy the link", "Copier le lien")]];
-let CAL_APP = (() => { try { const v = localStorage.getItem("calApp"); if (CAL_APPS.some(a => a[0] === v)) return v; } catch(e){} const u = navigator.userAgent; return /Android/i.test(u) ? "google" : /Windows/i.test(u) ? "outlook" : "apple"; })();
-const calOrder = () => [CAL_APPS.find(a => a[0] === CAL_APP), ...CAL_APPS.filter(a => a[0] !== CAL_APP)];
-const lbl = x => typeof x === "function" ? x() : x;
-function setCalApp(k){ CAL_APP = k; try { localStorage.setItem("calApp", k); } catch(e){} }
-const calPick = (cur) => `<div class="cal-apps" role="radiogroup" aria-label="${tr("Your calendar app", "Ton application calendrier")}">${CAL_APPS.map(([k, n, d]) => `<button type="button" role="radio" class="cal-app" data-app="${k}" aria-checked="${k === cur}"><b>${esc(lbl(n))}</b><small>${esc(lbl(d))}</small></button>`).join("")}</div>`;
-function subHref(f){
-  const web = rnxSubUrl(P.slug, f), https = web.replace(/^webcal:/, "https:"), name = T("subTitle");
-  if (CAL_APP === "google") return `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(web)}`;
-  if (CAL_APP === "outlook") return `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(https)}&name=${encodeURIComponent(name)}`;
-  if (CAL_APP === "other") return https;
-  return web;
-}
+const IS_ANDROID = /Android/i.test(navigator.userAgent), IS_APPLE = /iPhone|iPad|iPod|Macintosh/i.test(navigator.userAgent);
+function subHref(f){ const web = rnxSubUrl(P.slug, f); return IS_ANDROID ? web.replace(/^webcal:/, "https:") : web; }
 function fillSub(){
   document.getElementById("tt-hdc").innerHTML = `<div class="tt-head lm"><h3 id="tt-title">${T("subTitle")}</h3></div>`;
   document.getElementById("tt-ft").innerHTML = "";
-  const ext = CAL_APP === "google" || CAL_APP === "outlook";
+  const g = rnxSubUrl(P.slug, "all");
   document.getElementById("tt-body").innerHTML = `<p class="tt-empty" style="padding-top:0">${T("subIntro")}</p>`
-    + `<div class="cal-lbl">${tr("1 · Your calendar", "1 · Ton calendrier")}</div>${calPick(CAL_APP)}`
-    + `<div class="cal-lbl">${tr("2 · What to add", "2 · Ce que tu veux")}</div>`
-    + SUBS.map(([t,dsc,f]) => `<a class="sub-opt" data-f="${f}" href="${subHref(f)}"${ext ? ' target="_blank" rel="noopener"' : ""}><span><b>${T(t)}</b><small>${T(dsc)}</small></span><span class="arr" aria-hidden="true">›</span></a>`).join("")
-    + (CAL_APP === "other" ? `<p class="tt-empty" style="padding:4px 0 0;font-size:13px">${tr("Copies the calendar link: in your calendar app, choose “Add calendar from URL” (or “Subscribe”) and paste it.", "Copie le lien du calendrier : dans ton application calendrier, choisis « Ajouter un calendrier par URL » (ou « S’abonner ») et colle-le.")}</p>` : "")
-    + (CAL_APP === "outlook" ? `<p class="tt-empty" style="padding:4px 0 0;font-size:13px">${tr("Work or school Outlook? Choose Other, then paste the link in Outlook: Add calendar → From internet.", "Outlook pro ou école ? Choisis Autre, puis colle le lien dans Outlook : Ajouter un calendrier → À partir d’Internet.")}</p>` : "");
-  document.querySelectorAll("#tt-body .cal-app").forEach(b => b.onclick = () => { setCalApp(b.dataset.app); fillSub(); document.querySelector(`#tt-body .cal-app[data-app="${b.dataset.app}"]`)?.focus(); });
-  document.querySelectorAll("#tt-body .sub-opt").forEach(a => a.onclick = e => { if (CAL_APP !== "other") return; e.preventDefault(); const u = a.getAttribute("href"); (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast(T("copied")), () => prompt(tr("Calendar link", "Lien du calendrier"), u)); });
-}
-// adding chosen sessions: Apple gets the calendar file; Google and Outlook open their own "new event" page, one per session
-const gStamp = iso => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-function sessionLinks(ev, ses, app){
-  const title = `${LABEL[ev.series] || ""} ${L(ev.name)} · ${L(ses.label)}`.trim(), start = new Date(ses.utc), end = new Date(start.getTime() + (ses.min || 60) * 60000);
-  const where = [L(ev.where), L(ev.country)].filter(Boolean).join(", "), info = `${FIRST} · ${location.href.split("#")[0]}`;
-  if (app === "google") return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${gStamp(start.toISOString())}/${gStamp(end.toISOString())}&location=${encodeURIComponent(where)}&details=${encodeURIComponent(info)}`;
-  return `https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${encodeURIComponent(title)}&startdt=${encodeURIComponent(start.toISOString())}&enddt=${encodeURIComponent(end.toISOString())}&location=${encodeURIComponent(where)}&body=${encodeURIComponent(info)}`;
-}
-function addSessions(ev, t, ks){
-  const box = document.querySelector(".tt-modal");
-  const draw = () => {
-    box.classList.remove("selecting");
-    document.getElementById("tt-ft").innerHTML = `<button type="button" class="cal-back">${tr("‹ Back to the schedule", "‹ Retour à l’horaire")}</button>`;
-    const app = CAL_APP, ext = app === "google" || app === "outlook";
-    document.getElementById("tt-body").innerHTML = `<div class="cal-lbl" style="margin-top:0">${tr("Add to", "Ajouter à")}</div>${calPick(app)}`
-      + (ext ? `<p class="tt-empty" style="padding:2px 0 8px;font-size:13px">${ks.length > 1 ? tr("Tap each session to open it in your calendar and save it.", "Touche chaque session pour l’ouvrir dans ton calendrier et l’enregistrer.") : tr("Opens your calendar with the session filled in: just save it.", "Ouvre ton calendrier avec la session déjà remplie : il suffit d’enregistrer.")}</p>`
-          + ks.map(k => { const ses = t.sessions[k]; return `<a class="sub-opt cal-one" target="_blank" rel="noopener" href="${sessionLinks(ev, ses, app)}"><span><b>${esc(L(ses.label))}</b><small>${esc(new Date(ses.utc).toLocaleString(T("locale"), { weekday:"short", day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }))}</small></span><span class="arr" aria-hidden="true">›</span></a>`; }).join("")
-        : `<button type="button" class="sub-opt cal-file" style="width:100%;font:inherit;cursor:pointer;text-align:left"><span><b>${ks.length === 1 ? T("addOneSel") : T("addN").replace("{n}", ks.length)}</b><small>${app === "other" ? tr("Downloads a calendar file (.ics) that any calendar app can open.", "Télécharge un fichier calendrier (.ics) que toute application calendrier peut ouvrir.") : T("calNote")}</small></span><span class="arr" aria-hidden="true">›</span></button>`);
-    document.querySelectorAll("#tt-body .cal-app").forEach(b => b.onclick = () => { setCalApp(b.dataset.app); draw(); });
-    document.querySelectorAll("#tt-body .cal-one").forEach(a => a.addEventListener("click", () => { a.classList.add("done"); a.querySelector(".arr").textContent = "✓"; }));
-    const f = document.querySelector("#tt-body .cal-file"); if (f) f.onclick = () => { window.location.href = rnxIcsUrl(P.slug, ev.uuid, ks.map(k => t.sessions[k].id)); };
-    document.querySelector("#tt-ft .cal-back").onclick = () => fillTT(ttOpenIdx);
-    document.getElementById("tt-body").scrollTop = 0;
-  };
-  draw();
+    + SUBS.map(([t,dsc,f]) => `<a class="sub-opt" href="${subHref(f)}"><span><b>${T(t)}</b><small>${T(dsc)}</small></span><span class="arr" aria-hidden="true">›</span></a>`).join("")
+    + (IS_ANDROID ? `<p class="tt-empty" style="padding:4px 0 0;font-size:13px">${tr("Opens in your calendar app (Google Calendar: tap Add). New schedules aren’t added automatically on Android: come back here to update.", "S’ouvre dans ton application calendrier (Google Agenda : touche Ajouter). Sur Android, les nouveaux horaires ne s’ajoutent pas tout seuls : reviens ici pour mettre à jour.")}</p>`
+      : !IS_APPLE ? `<p class="tt-empty" style="padding:4px 0 0;font-size:13px">${tr("Using Google Calendar on this computer?", "Tu utilises Google Agenda sur cet ordinateur ?")} <a href="https://calendar.google.com/calendar/render?cid=${encodeURIComponent(g)}" target="_blank" rel="noopener" style="color:var(--text)">${tr("Add it to Google Calendar", "L’ajouter à Google Agenda")}</a></p>` : "");
 }
 document.getElementById("sub-open").addEventListener("click", () => { ttOpenIdx = "sub"; document.querySelector(".tt-modal").classList.remove("selecting"); fillSub(); ttLastFocus = document.activeElement; if (document.getElementById("tt").hidden) lockScroll(); document.getElementById("tt").classList.remove("closing"); document.getElementById("tt").hidden = false; document.getElementById("tt-body").scrollTop = 0; requestAnimationFrame(updateCue); document.getElementById("tt-close").focus(); });
 document.getElementById("tt").addEventListener("click", e => { if (e.target.id === "tt") closeTT(); });

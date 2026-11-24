@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-234202"></script>
-<script src="rnx-social.js?v=20261124-234202"></script>
-<script src="rnx-auth.js?v=20261124-234202"></script>
-<script src="rnx-ui.js?v=20261124-234202"></script>
+<script src="config.js?v=20261125-001213"></script>
+<script src="rnx-social.js?v=20261125-001213"></script>
+<script src="rnx-auth.js?v=20261125-001213"></script>
+<script src="rnx-ui.js?v=20261125-001213"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -161,14 +161,24 @@
   .cls-row.on{border-color:var(--acc);background:rgba(255,90,31,.08)}
   .cls-row{display:flex;align-items:center;justify-content:space-between;gap:10px} .cls-row small{color:var(--dim);font-size:13px;font-weight:500}
   .cs-add{color:var(--acc);flex-wrap:wrap} .cs-add small{flex-basis:100%;margin-top:-2px}
-  .cs-q{margin-bottom:10px} .cs-cars{max-height:46dvh;overflow-y:auto}
+  
   .cs-two{display:grid;grid-template-columns:110px 1fr;gap:10px}
   .cs-sug{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;margin-bottom:14px;border:1px solid #2a2d35;border-radius:14px;background:#1d2026;cursor:pointer}
   .cs-sug input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--acc)} .cs-sug span{display:grid;gap:3px} .cs-sug b{font-size:15px;font-weight:600} .cs-sug small{font-size:13px;color:var(--dim);line-height:1.4}
   .cs-ph{display:flex;align-items:center;gap:12px} .cs-ph img{width:120px;aspect-ratio:16/10;object-fit:cover;border-radius:10px}
   .tile .tc{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);min-height:0} .tile .tc:empty{display:none}
   .cls-ov{position:fixed;inset:0;z-index:60;background:rgba(5,6,8,.62);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;animation:clsF .25s ease}
-  .cls-box{width:100%;max-width:520px;max-height:85dvh;overflow-y:auto;background:#16181d;border:1px solid #2c2f37;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:clsU .32s cubic-bezier(.2,.85,.25,1)}
+  .cls-box{width:100%;max-width:520px;max-height:min(88dvh,calc(var(--vvh,100dvh) - 8px));margin-bottom:var(--kb,0px);display:flex;flex-direction:column;overflow:hidden;background:#16181d;border:1px solid #2c2f37;border-radius:22px 22px 0 0;padding:20px 18px 0;animation:clsU .32s cubic-bezier(.2,.85,.25,1)}
+  .cls-box > #cs-b{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0 -18px;padding:0 18px 6px}
+  .cls-box > .cs-f{flex:none;margin:0 -18px;padding:12px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #24262d}
+  .cs-q{position:sticky;top:0;z-index:1;background:#16181d;padding-bottom:10px;margin-bottom:0 !important}
+  .cs-cars{gap:6px} .cs-cars .cls-row{min-height:46px;padding:0 14px;font-size:15.5px;border-radius:12px} .cs-cars .oc-h{margin:10px 0 4px}
+  .cs-cars .cls-row small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+  /* keyboard up: the window gives its room to what you're typing (same as the page editor's sheets) */
+  html.kb-open .cls-box{border-radius:16px 16px 0 0;padding-top:12px}
+  html.kb-open .cls-box .cs-dots,html.kb-open .cls-box .cls-k,html.kb-open .cls-box > .cs-f{display:none}
+  html.kb-open .cls-box .cls-top{align-items:center;margin-bottom:8px} html.kb-open .cls-box .cls-top h2{font-size:19px;margin:0}
+  html.kb-open .cls-box .cls-x{width:32px;height:32px}
   @media (min-width:700px){ .cls-ov{align-items:center} .cls-box{border-radius:22px} }
   .cls-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
   .cls-k{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
@@ -517,12 +527,12 @@ function champSetup(ser, d0){
   return new Promise(async res => {
     const d = { ...d0 }, back = document.activeElement;
     const CL = (ser.classes || []).length > 1 ? ser.classes : null;
-    if (!VEHS) { try { VEHS = await api("vehicles?status=eq.approved&select=id,name,manufacturer,category&order=name"); } catch(e){ VEHS = []; } }
+    if (!VEHS) { try { VEHS = await api("vehicles?status=eq.approved&select=*&order=name"); } catch(e){ VEHS = []; } }
     let mine = []; try { mine = (await api(`series_vehicles?series_id=eq.${ser.id}&select=vehicle_id,classes`)); } catch(e){}
     const steps = [...(CL ? ["class"] : []), "car", "details"];
     let at = 0;
     const ov = document.createElement("div"); ov.className = "cls-ov";
-    ov.innerHTML = `<div class="cls-box" role="dialog" aria-modal="true" aria-labelledby="cls-h"><div class="cls-top"><div><div class="cls-k">${esc(ser.short_name || ser.name)}</div><h2 id="cls-h"></h2></div><button type="button" class="cls-x" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="cs-dots" aria-hidden="true">${steps.map(() => "<i></i>").join("")}</div><div id="cs-b"></div><div class="cs-f" id="cs-f"></div></div>`;
+    ov.innerHTML = `<div class="cls-box" role="dialog" aria-modal="true" aria-labelledby="cls-h"><div class="cls-top"><div><div class="cls-k">${esc(ser.short_name || ser.name)}</div><h2 id="cls-h"></h2></div><button type="button" class="cls-x" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="cs-dots" aria-hidden="true">${steps.map(() => "<i></i>").join("")}</div><div id="cs-b" data-scroll></div><div class="cs-f" id="cs-f"></div></div>`;
     const close = v => { ov.remove(); document.removeEventListener("keydown", key); document.body.style.overflow = ""; back?.focus?.(); res(v); };
     const key = e => { if (e.key === "Escape") quit(); if (e.key === "Tab"){ const f = [...ov.querySelectorAll("button:not([disabled]),input")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); } } };
     // closing after a first answer keeps what's chosen (adding), closing right away adds nothing
@@ -544,13 +554,15 @@ function champSetup(ser, d0){
       }
       if (st === "car"){
         ov.querySelector("#cls-h").textContent = "Your car";
+        // suggested: listed in this championship (in your class), or a car that races under your class name anywhere (a 296 GT3 is "GT3", "GTD", "GTD Pro"…)
         const ids = new Set(mine.filter(m => !d.category || !(m.classes || []).length || m.classes.includes(d.category)).map(m => m.vehicle_id));
+        if (d.category) VEHS.forEach(v => { if (clsFits(v.classes, d.category)) ids.add(v.id); });
         b.innerHTML = `<div class="oc-q cs-q">${'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>'}<input id="cs-q" type="search" autocomplete="off" placeholder="Search cars, e.g. ORECA 07" aria-label="Search cars"></div><div class="cls-list cs-cars" id="cs-cars"></div>`;
         const list = () => {
           const q = b.querySelector("#cs-q").value.trim().toLowerCase();
           const m = VEHS.filter(v => !q || (v.name + " " + (v.manufacturer || "")).toLowerCase().includes(q));
           const top = m.filter(v => ids.has(v.id)), rest = m.filter(v => !ids.has(v.id));
-          const row = v => `<button type="button" class="cls-row${d.vehicle?.id === v.id ? " on" : ""}" data-v="${v.id}"><span>${esc(v.name)}</span>${v.category ? `<small>${esc(v.category)}</small>` : ""}</button>`;
+          const row = v => { const cl = (v.classes && v.classes.length ? v.classes : [v.category]).filter(Boolean).filter(x => x !== "kart chassis"); return `<button type="button" class="cls-row${d.vehicle?.id === v.id ? " on" : ""}" data-v="${v.id}"><span>${esc(v.name)}</span>${cl.length ? `<small>${esc(cl.join(" · "))}</small>` : ""}</button>`; };
           b.querySelector("#cs-cars").innerHTML = (top.length ? `<div class="oc-h">In ${esc(ser.short_name || ser.name)}${d.category ? " · " + esc(d.category) : ""}</div>${top.map(row).join("")}` : "")
             + (rest.length ? `${top.length ? `<div class="oc-h">All cars</div>` : ""}${rest.slice(0, q ? 30 : 12).map(row).join("")}` : "")
             + (q && !VEHS.some(v => carK(v.name) === carK(q)) ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: it's yours right away</small></button>` : "");
@@ -589,6 +601,9 @@ function champSetup(ser, d0){
     (ov.querySelector(".cls-row, #cs-q, #cs-num") || ov.querySelector(".cls-x")).focus({ preventScroll: true });
   });
 }
+// a car's class names vs. the class you race in: same name, or the car's name starts yours ("LMP2" fits "LMP2 Pro-Am", "GT3" fits "LMGT3")
+const clsKey = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").replace(/^lmgt3/, "gt3");
+function clsFits(list, cls){ const k = clsKey(cls); return !!k && (list || []).some(c => { const ck = clsKey(c); return ck && (ck === k || k.startsWith(ck)); }); }
 // "Oreca-07" = "ORECA 07" (same rule as the library, private.vehicle_key)
 const carK = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").replace(/lmgt3/g, "gt3");
 // a car photo, resized for the page

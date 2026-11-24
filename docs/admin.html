@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-234202"></script>
-<script src="rnx-auth.js?v=20261124-234202"></script>
-<script src="rnx-ui.js?v=20261124-234202"></script>
+<script src="config.js?v=20261125-001213"></script>
+<script src="rnx-auth.js?v=20261125-001213"></script>
+<script src="rnx-ui.js?v=20261125-001213"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -1627,7 +1627,7 @@ async function vehicles(){
   const rank = v => v.status === "approved" ? 1 : v.suggested ? 0 : 2;
   const rows = [...D.vehicles].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   listPage("Vehicles", rows, [
-    { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>` }, { l:"Engine", f:v => `<span class="dim">${esc(v.engine || "")}</span>`, m:1 },
+    { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>${(v.classes || []).length ? `<div class="dim" style="font-size:13px">${esc(v.classes.join(" · "))}</div>` : ""}` }, { l:"Engine", f:v => `<span class="dim">${esc(v.engine || "")}</span>`, m:1 },
     { l:"Drivetrain", f:v => esc(DRIVE[v.drivetrain] || "–"), m:1 },
     { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : v.suggested ? '<span class="chip warn">Suggested by a user · to review</span>' : '<span class="chip">A user\'s own car</span>' }
   ], () => editVehicle(), editVehicle, "+ Add vehicle");
@@ -1638,18 +1638,19 @@ async function editVehicle(v){
   const g = sameGuard(() => $("#f_approved")?.checked === false ? { strong:[], similar:[] } : findSameCar($("#f_name")?.value, v?.id), "car", x => `#/vehicles`);
   const driveHtml = `<div><label class="f">Drivetrain</label><div class="seg" id="dv-pick" role="radiogroup" aria-label="Drivetrain">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" class="${drive === k ? "on" : ""}" aria-checked="${drive === k}">${l}</button>`).join("")}</div><div class="help">All-wheel, rear-wheel or front-wheel drive. Tap again to clear.</div></div>`;
   const r = await drawer(v ? v.name : "Add vehicle", [
-    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }, { html: g.html }] },
+    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }, { html: g.html }, { k:"classes", l:"Classes", help:"Every class name it races under, separated by commas. For example: GT3, GTD, GTD Pro, LMGT3. Athletes racing in one of these classes see this car first. One car, several names: no copy per class." }] },
     { section:"Specs", sub:"Shown on every page that uses this car", items:[
       VFIELDS[0], VFIELDS[1], VFIELDS[2], { html: driveHtml },
       { row:[VFIELDS[3], VFIELDS[4]] }, { row:[VFIELDS[5], VFIELDS[6]] } ] },
     { section:"Catalogue", items:[{ k:"approved", l:"Availability", type:"bool", l2:"In the catalogue: every user can pick it" }] }
-  ], { ...(v || {}), approved: v ? v.status === "approved" : true }, { onDelete: !!v, deleteText:"Delete this vehicle? Pages using it will show no car.",
+  ], { ...(v || {}), classes: (v?.classes || []).join(", "), approved: v ? v.status === "approved" : true }, { onDelete: !!v, deleteText:"Delete this vehicle? Pages using it will show no car.",
     validate: g.validate,
     after(){ ["#f_name", "#f_approved"].forEach(q => { $(q)?.addEventListener("input", g.draw); $(q)?.addEventListener("change", g.draw); }); g.draw(); $$("#dv-pick button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-pick button").forEach(x => { x.classList.toggle("on", x.dataset.d === drive); x.setAttribute("aria-checked", x.dataset.d === drive); }); }); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("vehicles", v.id); route(); }, "Deleted");
   const row = { name:r.name, drivetrain: drive || null, status: r.approved ? "approved" : "pending" };
   VFIELDS.forEach(f => row[f.k] = r[f.k] || null);
+  if ((v && "classes" in v) || (r.classes || "").trim()) row.classes = [...new Set((r.classes || "").split(",").map(x => x.trim()).filter(Boolean))];
   await guard(async () => { try { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Vehicle saved");
 }
 

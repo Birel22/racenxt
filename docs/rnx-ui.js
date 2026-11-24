@@ -69,7 +69,30 @@
   /* partner logos: preview in the partners bar of the page */
   .rxl-stage.pt{background:#0b0c0f;display:flex;align-items:center;justify-content:center;padding:0 6%;aspect-ratio:auto;height:min(24dvh,210px);width:72%}
   .rxl-stage.pt.desk{width:100%;max-height:none;height:min(24dvh,210px)}
-  .rxl-b.fr .rxl-stage:not(.pt){height:min(26dvh,250px)}
+  .rxe-b.rxl-b{display:flex;flex-direction:column;gap:12px}
+  .rxl-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+  .rxl-row .rxl-stage{margin:0;height:min(40dvh,340px)}
+  .rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(24dvh,210px)}
+  .rxl-side{display:grid;gap:8px;align-content:center;min-width:0}
+  .rxl-side .rxe-lbl{margin:0}
+  .rxl-row:not(.stack) .rxl-seg{grid-template-columns:1fr}
+  .rxl-row:not(.stack) .rxl-seg button{justify-content:flex-start;padding:0 12px;min-height:40px}
+  .rxl-side .rxf-views{justify-self:start;margin:4px 0 0}
+  .rxl-side .rxf-views button{height:30px;padding:0 12px;font-size:13px}
+  .rxl-row.stack{grid-template-columns:1fr}
+  .rxl-row.stack .rxl-stage.desk{width:100%;height:auto;max-height:none;aspect-ratio:16/8.6}
+  .rxl-b.fr.dk .rxl-row.stack .rxl-stage.desk{width:auto;height:min(19dvh,180px);max-width:100%;margin:0 auto}
+  .rxl-row.stack .rxl-side{grid-template-columns:1fr}
+  .rxl-row .rxl-stage.pt{height:min(15dvh,130px)}
+  .rxl-row.stack .rxl-side .rxe-lbl{display:none}
+  .rxl-row.stack .rxl-side .rxf-views{margin:0;justify-self:center}
+  .rxl-row.stack .rxl-stage.pt{width:100%}
+  #rxl-crop .rxc{justify-items:center;gap:6px}
+  #rxl-crop .rxc-stage{display:inline-block;width:auto;max-width:100%}
+  #rxl-crop .rxc-stage img{width:auto;max-width:100%;max-height:min(28dvh,260px)}
+  .rxl-b.fr.dk #rxl-crop .rxc-stage img{max-height:min(22dvh,200px)}
+  #rxl-crop .rxc-msg{font-size:13px}
+  @media (min-width:700px){#rxl-crop .rxc-stage img{max-height:min(32dvh,300px)}.rxl-b.fr .rxl-row .rxl-stage:not(.pt){height:min(28dvh,240px)}}
   .rxl-stage.pt::after{display:none}
   .rxl-stage .pt-bar{width:100%;display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:16px;padding:14px 12px;border:1px solid #23262d;border-radius:12px;background:#121419}
   .rxl-stage .pt-bar span{display:none;font:600 9px 'Barlow Condensed',sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#7d808a}
@@ -307,13 +330,17 @@
       const ov = document.createElement("div"); ov.className = "rxe"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rxl-h");
       ov.innerHTML = `<div class="rxe-back"></div><div class="rxe-box">${edHead(opts.label || "Your logo", opts.heading || (opts.file ? "Add your logo" : "Adjust your logo")).replace("<b>", '<b id="rxl-h">')}
         <div class="rxe-b rxl-b${opts.file ? " fr" : ""}">
-          ${opts.file ? `<div id="rxl-frame"><div class="rxe-lbl">1 · Frame ${opts.partners ? "the" : "your"} logo</div><div id="rxl-crop"></div></div>` : ""}
-          <div><div class="rxe-lbl">${opts.file ? "2 · " : ""}Colour</div><div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div></div>
-          <div><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><div class="rxe-lbl" style="margin:0">${opts.file ? "3 · " : ""}Preview</div><div class="rxf-views" role="radiogroup" aria-label="Preview on" style="margin:0"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div></div>
-            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}</div>
-          <div class="rxl-warn" id="rxl-warn" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span><b>The background isn't plain</b>For a clean cut-out, use an SVG, a transparent PNG or your logo on one colour.</span><button type="button" class="rxl-wb" id="rxl-other">Change</button></div>
+          ${opts.file ? `<div id="rxl-crop"></div>` : ""}
+          <div class="rxl-warn" id="rxl-warn" role="status" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span><b>Background isn't plain</b>Best: an SVG, a PNG without background, or a plain one.</span><button type="button" class="rxl-wb" id="rxl-other">Change</button></div>
+          <div class="rxl-row${opts.partners ? " stack" : ""}" id="rxl-row">
+            ${opts.partners ? `<div class="rxl-stage pt" id="rxl-stage"><div class="pt-bar"><span>${esc(opts.barLabel || "Partners")}</span>${opts.partners.map(u => u === "me" ? `<img class="lg" alt="" hidden>` : `<img src="${esc(u)}" alt="">`).join("")}</div></div>` : `<div class="rxl-stage" id="rxl-stage">${opts.photo ? `<img class="ph" src="${esc(opts.photo)}" alt="" style="object-position:${p.x}% ${p.y}%;transform:scale(${p.z || 1});transform-origin:${p.x}% ${p.y}%">` : ""}<img class="lg" alt="" hidden><div class="nm">${opts.title || ""}</div></div>`}
+            <div class="rxl-side">
+              <div class="rxe-lbl">Colour</div>
+              <div class="rxl-seg" role="radiogroup" aria-label="Logo colour">${[["original", "Original", "conic-gradient(#FF5A1F,#2f7bff,#5fcf6e,#FF5A1F)"], ["white", "White", "#fff"], ["black", "Black", "#000"]].map(([m, l, c]) => `<button type="button" role="radio" data-m="${m}" aria-checked="${st.mode === m}"><i style="background:${c}"></i>${l}</button>`).join("")}</div>
+              <div class="rxf-views" role="radiogroup" aria-label="Preview on"><button type="button" role="radio" data-v="phone" aria-checked="true">Phone</button><button type="button" role="radio" data-v="desk" aria-checked="false">Computer</button></div>
+            </div>
+          </div>
         </div>
-
         <div class="rxe-f"><button type="button" id="rxl-no">Cancel</button><button type="button" class="pri" id="rxl-ok" disabled>Done</button></div></div>`;
       document.body.appendChild(ov); requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add("on")));
       const stage = ov.querySelector("#rxl-stage"), lg = stage.querySelector(".lg"), ok = ov.querySelector("#rxl-ok");
@@ -342,7 +369,7 @@
       ov.querySelector("#rxl-no").onclick = () => close(null);
       ok.onclick = () => { if (!st.busy && st.out) close({ src: opts.file ? st.src : null, out: st.out, mode: st.mode }); };
       ov.querySelectorAll(".rxl-seg button").forEach(b => b.onclick = () => { st.mode = b.dataset.m; ov.querySelectorAll(".rxl-seg button").forEach(x => x.setAttribute("aria-checked", x === b)); render(); });
-      ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); stage.classList.toggle("desk", b.dataset.v === "desk"); });
+      ov.querySelectorAll(".rxf-views button").forEach(b => b.onclick = () => { ov.querySelectorAll(".rxf-views button").forEach(x => x.setAttribute("aria-checked", x === b)); const dk = b.dataset.v === "desk"; stage.classList.toggle("desk", dk); ov.querySelector("#rxl-row").classList.toggle("stack", dk || !!opts.partners); ov.querySelector(".rxl-b").classList.toggle("dk", dk); });
       ov.querySelector(".rxe-x").focus({ preventScroll: true });
       const start = async () => {
         if (opts.file && window.rnxLogoCropper) { st.cropper = await rnxLogoCropper(ov.querySelector("#rxl-crop"), opts.file, opts.getToken); st.cropper.onChange(render); }
@@ -383,10 +410,13 @@
         else if (r.top < v.top + 6) sc.scrollBy({ top: r.top - v.top - 10, behavior: sm });
         return;
       }
+      // inside a sheet: scroll only the sheet, never the page behind it (the page jumping down is what makes typing feel broken)
+      if (sc) { const r = el.getBoundingClientRect(), v = sc.getBoundingClientRect(); if (r.top < v.top + 8 || r.bottom > v.bottom - 8) sc.scrollBy({ top: (r.top + r.height / 2) - (v.top + v.height / 2), behavior: sm }); return; }
       el.scrollIntoView({ block: "center", behavior: sm });
     };
     document.addEventListener("focusin", e => {
       const el = e.target; if (!typing(el)) return;
+      if (el.closest(".rx-sheet,.rxe-box,.cls-box,[data-sheet]")) { const y = window.scrollY; requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo(0, y); }); }
       setTimeout(() => show(el), 320);
       if (vv) { const once = () => { vv.removeEventListener("resize", once); setTimeout(() => show(el), 60); }; vv.addEventListener("resize", once); setTimeout(() => vv.removeEventListener("resize", once), 1200); }
     });

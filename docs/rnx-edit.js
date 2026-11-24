@@ -298,6 +298,7 @@
   .rx-sheet .rx-srch input{padding-left:42px}
   .rx-lres{margin-top:6px;background:#121419;border:1px solid #262930;border-radius:14px;overflow:hidden}
   .rx-lres button{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;background:none;border:0;border-bottom:1px solid #1f2228;color:#f4f4f2;text-align:left;font:15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-vfit{color:#FF8A5C;font-size:13px;font-weight:600;margin-left:-8px}
   .rx-lres button:hover,.rx-lres button:focus-visible{background:#1b1d23;outline:none}
   .rx-lres .rx-lres-own{color:#FF5A1F;font-weight:600;font-size:14px;padding:12px}
   .rx-lres-m{padding:12px;font-size:14px;color:#a9abb2;border-bottom:1px solid #1f2228}
@@ -620,7 +621,7 @@
       <div><label class="rx-f" id="rx-cl">Colour</label><div class="rx-sw" role="radiogroup" aria-labelledby="rx-cl" id="rx-cs">${COLORS.filter(c => c === color || !R.entries.some(x => x.id !== en.id && (x.color || "").toUpperCase() === c)).map(c => `<button type="button" role="radio" aria-label="${c}" data-c="${c}" aria-checked="${c === color}" style="background:${c}"></button>`).join("")}<label title="Custom colour"><input type="color" id="rx-cc" value="${esc(color)}" aria-label="Custom colour"></label></div></div>`;
     const bindV = () => {
       if ($("#rx-vchg")) $("#rx-vchg").onclick = () => { vehicle = null; $("#rx-vbox").innerHTML = vbox(); bindV(); $("#rx-vq2")?.focus(); };
-      if ($("#rx-vpk")) vehPicker($("#rx-vpk"), { onPick: v => { vehicle = v; $("#rx-vbox").innerHTML = vbox(); bindV(); } });
+      if ($("#rx-vpk")) vehPicker($("#rx-vpk"), { cls: () => rounds?.category || en.category || "", onPick: v => { vehicle = v; $("#rx-vbox").innerHTML = vbox(); bindV(); } });
       return;
       const q = $("#rx-vq"); if (!q) return; const l = $("#rx-vl");
       const show = () => { const t = q.value.trim().toLowerCase(); const hits = VEH.filter(v => !t || v.name.toLowerCase().includes(t)).slice(0, 12);
@@ -649,6 +650,9 @@
   }
   // ---------- vehicle picker: one search box, names only (A→Z), create it if it isn't there; your vehicles below ----------
   // vehPicker(host, { mine:[{v, photo, from}], onPick(v, photo) })
+  const clsKey = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").replace(/^lmgt3/, "gt3");
+  // "LMP2" fits "LMP2 Pro-Am", "GT3" fits "LMGT3", "GTD" fits "GTD Pro"
+  function clsFits(list, cls) { const k = clsKey(cls); return !!k && (list || []).some(c => { const ck = clsKey(c); return ck && (ck === k || k.startsWith(ck)); }); }
   function vehPicker(host, o) {
     const sorted = () => [...VEH].sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
     let creating = null;
@@ -677,9 +681,11 @@
       const q = $("#rx-vq2"), box = $("#rx-vres");
       const show = () => {
         const t = q.value.trim(), tl = t.toLowerCase();
-        const hits = sorted().filter(v => !tl || v.name.toLowerCase().includes(tl));
+        const cl = typeof o.cls === "function" ? o.cls() : o.cls || "";
+        const fit = v => !!cl && clsFits(v.classes, cl);
+        const hits = sorted().filter(v => !tl || v.name.toLowerCase().includes(tl)).sort((a, b) => fit(b) - fit(a));
         const exact = hits.some(v => v.name.toLowerCase() === tl);
-        box.innerHTML = hits.map(v => `<button type="button" role="option" data-v="${v.id}">${esc(v.name)}</button>`).join("")
+        box.innerHTML = hits.map(v => `<button type="button" role="option" data-v="${v.id}">${esc(v.name)}${fit(v) ? `<small class="rx-vfit"> · ${esc(cl)}</small>` : ""}</button>`).join("")
           + (t && !exact ? `<button type="button" class="rx-lres-own" data-new="1">+ Create “${esc(t)}”</button>` : "")
           + (!hits.length && !t ? `<div class="rx-lres-m">No vehicles yet. Type a name to create one.</div>` : "");
         box.hidden = false; q.setAttribute("aria-expanded", "true");

@@ -672,6 +672,10 @@
       { ok: "Add car", after() { $$("#rx-ds button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#rx-ds button").forEach(x => x.setAttribute("aria-checked", x.dataset.d === drive)); }); },
         collect() { if (!need("#rx-v-name", "Give the car a name.")) return null; const row = { name: $("#rx-v-name").value.trim(), drivetrain: drive || null }; VFIELDS.forEach(([k]) => row[k] = $("#rx-v-" + k).value.trim() || null); row.suggested = !!$("#rx-v-sug")?.checked; return row; } });
     if (!r) return null;
+    // already in the library under the same name (e.g. "Oreca-07" = "ORECA 07"): use it
+    const ck = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").replace(/lmgt3/g, "gt3");
+    const lib = VEH.find(v => v.status === "approved" && ck(v.name) === ck(r.name));
+    if (lib && confirm(`${lib.name} is already in the Racenxt library, with its specs. Use it?`)) return lib;
     try { const [v] = await ins("vehicles", { ...r, status: "pending", created_by_profile: R.profile.id }); VEH.push(v); return v; }
     catch (e) { alert("Couldn't add the car: " + e.message); return null; }
   }
@@ -728,6 +732,7 @@
     name = (name || "").trim(); if (!name) return null;
     const [hit] = await api(`venues?name=ilike.${encodeURIComponent(name.replace(/[%*,()]/g, ""))}&select=id&limit=1`);
     if (hit) return hit.id;
+    try { const same = await rpc("venue_match", { p_name: name }); if (same) return same; } catch (e) {}
     let lat = null, lng = null, tz = null, cc = null, city = null;
     try {
       const g = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=${encodeURIComponent([name, country].filter(Boolean).join(", "))}`, { headers: { "Accept-Language": "en" } }).then(r => r.json());
@@ -829,6 +834,7 @@
     if (loc.lat == null) return placeId(loc.name, loc.country || "");
     const [hit] = await api(`venues?name=eq.${encodeURIComponent(loc.name)}&country=eq.${encodeURIComponent(loc.country || "")}&select=id&limit=1`);
     if (hit) return hit.id;
+    try { const same = await rpc("venue_match", { p_name: loc.name, p_lat: loc.lat, p_lng: loc.lng }); if (same) return same; } catch (e) {}
     let tz = null; try { const lib = await loadTz(); if (lib) tz = lib(loc.lat, loc.lng); } catch (e) {}
     const [v] = await ins("venues", { name: loc.name, city: loc.city || null, country: loc.country || "", country_code: loc.cc || null, lat: loc.lat, lng: loc.lng, timezone: tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC" });
     return v.id;

@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-220451"></script>
-<script src="rnx-auth.js?v=20261124-220451"></script>
-<script src="rnx-ui.js?v=20261124-220451"></script>
+<script src="config.js?v=20261124-220813"></script>
+<script src="rnx-auth.js?v=20261124-220813"></script>
+<script src="rnx-ui.js?v=20261124-220813"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -411,7 +411,7 @@ function loadTz(){ if (tzLib) return tzLib; tzLib = new Promise(res => { const s
 const CC = { "united states":"US", usa:"US", "united kingdom":"GB", uk:"GB", france:"FR", spain:"ES", italy:"IT", portugal:"PT", belgium:"BE", germany:"DE", netherlands:"NL", austria:"AT", hungary:"HU", japan:"JP", china:"CN", australia:"AU", canada:"CA", mexico:"MX", brazil:"BR", argentina:"AR", bahrain:"BH", "saudi arabia":"SA", qatar:"QA", "united arab emirates":"AE", uae:"AE", singapore:"SG", malaysia:"MY", thailand:"TH", indonesia:"ID", india:"IN", "south africa":"ZA", monaco:"MC", switzerland:"CH", sweden:"SE", finland:"FI", poland:"PL", "czech republic":"CZ", czechia:"CZ", turkey:"TR", azerbaijan:"AZ", "south korea":"KR", korea:"KR", "new zealand":"NZ", morocco:"MA" };
 async function ensureVenue(name, country){
   name = (name || "").trim(); if (!name) return null;
-  const hit = D.venues.find(v => v.name.toLowerCase() === name.toLowerCase());
+  const hit = D.venues.find(v => v.name.toLowerCase() === name.toLowerCase()) || findSameVenue(name).strong[0];
   if (hit) return hit.id;
   let lat = null, lng = null, tz = null, cc = CC[(country || "").toLowerCase()] || null, city = null;
   try {
@@ -420,6 +420,8 @@ async function ensureVenue(name, country){
     if (g[0]){ lat = +g[0].lat; lng = +g[0].lon; const a = g[0].address || {}; city = a.town || a.city || a.village || a.county || a.state || null; if (!cc && a.country_code) cc = a.country_code.toUpperCase(); if (!country && a.country) country = a.country; }
     const lib = await loadTz(); if (lib && lat != null) tz = lib(lat, lng);
   } catch(e){}
+  // with its position known, the database finds the same circuit under another name (e.g. "Red Bull Ring - Spielberg")
+  try { const same = await rpc("venue_match", { p_name: name, p_lat: lat, p_lng: lng }); if (same) return same; } catch(e){}
   if (!tz){
     tz = prompt(`Time zone for "${name}"? (e.g. Europe/Paris, America/New_York)`, "Europe/Paris");
     if (!tz || !TZS.includes(tz)){ alert("Unknown time zone. The circuit wasn't created."); return null; }
@@ -957,6 +959,52 @@ function newDiscipline(name0){
     };
   });
 }
+// ---------- one circuit, one car: same rules as private.venue_key() / private.vehicle_key() (migration 0041) ----------
+const VK_STOP = new Set(["circuit","circuits","circuito","circuitos","autodromo","autodrom","international","internacional","internazionale","internationale","nazionale","national","raceway","speedway","motorsport","track","karting","world","the","de","do","di","del","della","la","le","les","of","des","du","el","da","e","y","and","et"]);
+const deacc = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "s").replace(/ł/g, "l");
+const venueKey = t => deacc(t).split(/[^a-z0-9]+/).filter(w => w && !VK_STOP.has(w)).join("");
+const carKey = t => deacc(t).replace(/[^a-z0-9]/g, "").replace(/lmgt3/g, "gt3");
+const km = (a, b, c, d) => Math.sqrt(((c - a) * 110.57) ** 2 + ((d - b) * 111.32 * Math.cos((a + c) / 2 * Math.PI / 180)) ** 2);
+// strong = the same circuit (blocked) · similar = worth a look (asks)
+function findSameVenue(name, lat, lng, selfId){
+  const k = venueKey(name), has = lat != null && lng != null && lat !== "" && lng !== "";
+  const strong = [], similar = [];
+  if (k.length < 3) return { strong, similar };
+  for (const v of D.venues){
+    if (v.id === selfId) continue;
+    const vk = venueKey(v.name), both = has && v.lat != null && v.lng != null, d = both ? km(+lat, +lng, v.lat, v.lng) : null;
+    if ((vk === k && (!both || d < 25)) || (both && d < 3 && vk.length >= 3 && (vk.includes(k) || k.includes(vk)))) strong.push(v);
+    else if ((both && d < 3) || (vk.length >= 4 && (vk.includes(k) || k.includes(vk)))) similar.push(v);
+  }
+  return { strong, similar };
+}
+function findSameCar(name, selfId){
+  const k = carKey(name), strong = [], similar = [];
+  if (k.length < 3) return { strong, similar };
+  for (const v of D.vehicles){
+    if (v.id === selfId || v.status !== "approved") continue;
+    const vk = carKey(v.name);
+    if (vk === k) strong.push(v); else if (vk.length >= 4 && (vk.includes(k) || k.includes(vk))) similar.push(v);
+  }
+  return { strong, similar };
+}
+// the live box under a name field: blocks a clear double, asks for a look-alike (same look as championships)
+function sameGuard(find, what, open){
+  const st = { strong:[], similar:[] };
+  const html = `<div id="dup-box" class="dup" style="grid-column:1/-1" hidden aria-live="polite"></div>`;
+  const draw = () => {
+    Object.assign(st, find());
+    const box = $("#dup-box"), ok = $("#dr-ok"); if (!box) return;
+    const items = l => l.map(x => `<a href="${open(x)}">${esc(x.name)}${x.city ? ` <span class="dim">· ${esc(x.city)}</span>` : ""} – Open</a>`).join("");
+    if (st.strong.length){ box.hidden = false; box.className = "dup bad"; box.innerHTML = `<b>Already in Racenxt</b>${items(st.strong)}<span>One ${what}, one entry: open it instead of adding it again.</span>`; }
+    else if (st.similar.length){ box.hidden = false; box.className = "dup warn"; box.innerHTML = `<b>Is it one of these?</b>${items(st.similar)}<label class="sw"><input type="checkbox" id="dup-ok"> It's a different ${what}</label>`; $("#dup-ok").onchange = () => { if (ok) ok.disabled = !$("#dup-ok").checked; }; }
+    else { box.hidden = true; box.innerHTML = ""; }
+    if (ok) ok.disabled = !!st.strong.length || (!!st.similar.length && !$("#dup-ok")?.checked);
+    box.querySelectorAll("a").forEach(a => a.onclick = () => closeDrawer(null));
+  };
+  return { html, draw, validate(){ draw(); if (st.strong.length || (st.similar.length && !$("#dup-ok")?.checked)){ $("#dup-box")?.scrollIntoView({ block:"nearest" }); return false; } return true; } };
+}
+
 // ---------- one championship, one entry ----------
 // "FIA Formula 3", "Formula 3", "F3" -> "f3" · "Moto GP" / "MotoGP" -> "motogp" · "FIA World Endurance Championship" / "World Endurance Championship" -> "worldendurance"
 // Same rule as private.series_key() in the database (migration 0034): keep both in step.
@@ -1011,7 +1059,7 @@ function sameSeriesGuard(selfId){
   return { html, after(){ ["#f_name", "#f_short_name"].forEach(q => { const el = $(q); if (el) el.addEventListener("input", draw); }); draw(); },
     validate(){ draw(); if (st.strong.length || (st.similar.length && !$("#dup-ok")?.checked)){ $("#dup-box")?.scrollIntoView({ block:"nearest" }); return false; } return true; } };
 }
-const dupMsg = e => /already in Racenxt|series_same/i.test(e.message || "") ? "This championship is already in Racenxt (same name or short name). Open it from Championships instead." : e.message;
+const dupMsg = e => /already in (Racenxt|the library)|series_same/i.test(e.message || "") ? e.message.replace(/^.*?(This (championship|circuit|car) is already)/, "$1") + ". Open it instead of adding it again." : e.message;
 
 async function addSeries(){
   const sp = sportPicker(""), dg = sameSeriesGuard(null);
@@ -1556,16 +1604,18 @@ async function circuits(){
   ], () => editVenue(), editVenue, "+ Add circuit", "Circuits are created automatically when you add a race. Edit one here if a time zone is wrong.");
 }
 async function editVenue(v){
+  const g = sameGuard(() => findSameVenue($("#f_name")?.value, $("#f_lat")?.value, $("#f_lng")?.value, v?.id), "circuit", x => `#/circuits`);
   const r = await drawer(v ? v.name : "Add circuit", [
     { k:"name", l:"Circuit name", req:true },
+    { html: g.html },
     { row:[{ k:"city", l:"Town / region" }, { k:"country", l:"Country", req:true }] },
     { row:[{ k:"country_code", l:"Country code (flag)", ph:"FR" }, { k:"timezone", l:"Time zone", type:"select", req:true, options: TZS.map(t => ({ v:t, l:t.replace(/_/g, " ") })) }] },
     { row:[{ k:"lat", l:"Latitude", type:"number", step:"any" }, { k:"lng", l:"Longitude", type:"number", step:"any" }] }
-  ], v || {}, { onDelete: !!v });
+  ], v || {}, { onDelete: !!v, validate: g.validate, after(){ ["#f_name", "#f_lat", "#f_lng"].forEach(q => $(q)?.addEventListener("input", g.draw)); g.draw(); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("venues", v.id); route(); }, "Deleted");
   if (r.country_code) r.country_code = r.country_code.toUpperCase();
-  await guard(async () => { v ? await upd("venues", v.id, r) : await ins("venues", r); route(); }, "Circuit saved");
+  await guard(async () => { try { v ? await upd("venues", v.id, r) : await ins("venues", r); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Circuit saved");
 }
 // Vehicle specs: one fixed list, used by every user page
 const VFIELDS = [
@@ -1589,20 +1639,23 @@ async function vehicles(){
 }
 async function editVehicle(v){
   let drive = v?.drivetrain || "";
+  // a double only matters for library cars (an athlete's own car stays theirs)
+  const g = sameGuard(() => $("#f_approved")?.checked === false ? { strong:[], similar:[] } : findSameCar($("#f_name")?.value, v?.id), "car", x => `#/vehicles`);
   const driveHtml = `<div><label class="f">Drivetrain</label><div class="seg" id="dv-pick" role="radiogroup" aria-label="Drivetrain">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" class="${drive === k ? "on" : ""}" aria-checked="${drive === k}">${l}</button>`).join("")}</div><div class="help">All-wheel, rear-wheel or front-wheel drive. Tap again to clear.</div></div>`;
   const r = await drawer(v ? v.name : "Add vehicle", [
-    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }] },
+    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }, { html: g.html }] },
     { section:"Specs", sub:"Shown on every page that uses this car", items:[
       VFIELDS[0], VFIELDS[1], VFIELDS[2], { html: driveHtml },
       { row:[VFIELDS[3], VFIELDS[4]] }, { row:[VFIELDS[5], VFIELDS[6]] } ] },
     { section:"Catalogue", items:[{ k:"approved", l:"Availability", type:"bool", l2:"In the catalogue: every user can pick it" }] }
   ], { ...(v || {}), approved: v ? v.status === "approved" : true }, { onDelete: !!v, deleteText:"Delete this vehicle? Pages using it will show no car.",
-    after(){ $$("#dv-pick button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-pick button").forEach(x => { x.classList.toggle("on", x.dataset.d === drive); x.setAttribute("aria-checked", x.dataset.d === drive); }); }); } });
+    validate: g.validate,
+    after(){ ["#f_name", "#f_approved"].forEach(q => { $(q)?.addEventListener("input", g.draw); $(q)?.addEventListener("change", g.draw); }); g.draw(); $$("#dv-pick button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-pick button").forEach(x => { x.classList.toggle("on", x.dataset.d === drive); x.setAttribute("aria-checked", x.dataset.d === drive); }); }); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("vehicles", v.id); route(); }, "Deleted");
   const row = { name:r.name, drivetrain: drive || null, status: r.approved ? "approved" : "pending" };
   VFIELDS.forEach(f => row[f.k] = r[f.k] || null);
-  await guard(async () => { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); route(); }, "Vehicle saved");
+  await guard(async () => { try { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Vehicle saved");
 }
 
 // ---------- start ----------

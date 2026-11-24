@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-220451"></script>
-<script src="rnx-social.js?v=20261124-220451"></script>
-<script src="rnx-auth.js?v=20261124-220451"></script>
-<script src="rnx-ui.js?v=20261124-220451"></script>
+<script src="config.js?v=20261124-220813"></script>
+<script src="rnx-social.js?v=20261124-220813"></script>
+<script src="rnx-auth.js?v=20261124-220813"></script>
+<script src="rnx-ui.js?v=20261124-220813"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -546,7 +546,7 @@ function champSetup(ser, d0){
           const row = v => `<button type="button" class="cls-row${d.vehicle?.id === v.id ? " on" : ""}" data-v="${v.id}"><span>${esc(v.name)}</span>${v.category ? `<small>${esc(v.category)}</small>` : ""}</button>`;
           b.querySelector("#cs-cars").innerHTML = (top.length ? `<div class="oc-h">In ${esc(ser.short_name || ser.name)}${d.category ? " · " + esc(d.category) : ""}</div>${top.map(row).join("")}` : "")
             + (rest.length ? `${top.length ? `<div class="oc-h">All cars</div>` : ""}${rest.slice(0, q ? 30 : 12).map(row).join("")}` : "")
-            + (q ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: it's yours right away</small></button>` : "");
+            + (q && !VEHS.some(v => carK(v.name) === carK(q)) ? `<button type="button" class="cls-row cs-add" id="cs-add">+ Add “${esc(b.querySelector("#cs-q").value.trim())}”<small>Not in the list: it's yours right away</small></button>` : "");
           b.querySelectorAll("[data-v]").forEach(x => x.onclick = () => { d.vehicle = VEHS.find(v => v.id === x.dataset.v); delete d.newCar; next(); });
           const add = b.querySelector("#cs-add"); if (add) add.onclick = () => { d.newCar = b.querySelector("#cs-q").value.trim(); delete d.vehicle; next(); };
         };
@@ -580,6 +580,8 @@ function champSetup(ser, d0){
     (ov.querySelector(".cls-row, #cs-q, #cs-num") || ov.querySelector(".cls-x")).focus({ preventScroll: true });
   });
 }
+// "Oreca-07" = "ORECA 07" (same rule as the library, private.vehicle_key)
+const carK = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").replace(/lmgt3/g, "gt3");
 // a car photo, resized for the page
 async function carPic(file){
   try {

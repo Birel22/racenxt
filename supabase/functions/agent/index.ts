@@ -777,7 +777,8 @@ JSON schema:
    "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}],
  "notes": string}`;
 }
-const carKey = (s: string) => norm(s).replace(/\b(lmgt3|lm gt3)\b/g, "gt3").replace(/\s+/g, "");
+// same rule as private.vehicle_key() (migration 0041): letters and digits only, LMGT3 = GT3
+const carKey = (s: string) => norm(s).replace(/\s+/g, "").replace(/lmgt3/g, "gt3");
 async function carsJob(series: any, runId: string) {
   const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.cars&status=eq.pending&select=id&limit=1`);
   if (pending) return { result: "no_change", summary: "Cars: a suggestion is already waiting in the Review queue.", usage: null, pages: [] };

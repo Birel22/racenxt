@@ -11,5 +11,6 @@ and let the calendar agent pick them up from the organiser's pages. Not part of 
 - Leaked-password protection (Supabase Pro plan).
 
 ## Agent
+- Cost saving: judge a timetable "complete" only for the classes published athletes race in (e.g. KZ2 out, OK Junior not: stop re-checking if no athlete is in OK Junior). Today every class must be complete (migration 0038; the per-class version was 0037).
 - Cloudflare Browser Run for logos (code ready, off): add secrets CF_ACCOUNT_ID + CF_BROWSER_TOKEN (token permission "Browser Run - Edit"). Free plan: 10 min/day.
 - Schedule agent: time zone on pages with a "my time / track time" switch (ALMS Jerez read 1 h late). Check the page's own zone instead of assuming UTC.

@@ -187,8 +187,8 @@
       const r = await fetch(`${C.url}/functions/v1/logo-detect`, { method: "POST", headers: { apikey: C.key, Authorization: `Bearer ${tok}`, "Content-Type": "application/json" }, body: JSON.stringify({ image: data }) });
       const j = r.ok ? await r.json() : null;
       if (j && j.found && Array.isArray(j.box)) { const [l, t, rr, bb] = j.box.map(Number); if (rr > l && bb > t) { const pad = .015; Object.assign(b, { l: clamp(l - pad, 0, 1), t: clamp(t - pad, 0, 1), r: clamp(rr + pad, 0, 1), b: clamp(bb + pad, 0, 1) }); snap(); } msg.innerHTML = "Logo found. Adjust the box if needed."; }
-      else msg.innerHTML = "Move the box around the logo.";
-    } catch (e) { msg.innerHTML = "Move the box around the logo."; }
+      else { snap(); msg.innerHTML = "Move the box around the logo."; }
+    } catch (e) { snap(); msg.innerHTML = "Move the box around the logo."; }
     frame.hidden = false; draw();
     // drag the box or its corners
     let d = null;

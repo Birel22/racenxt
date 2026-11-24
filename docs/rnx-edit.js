@@ -99,28 +99,29 @@
   // ---------- styles (prefixed so they never touch the page's own) ----------
   const CSS = `
   body.rx-view .rx-only{display:none!important}
-  .rx-app{position:fixed;top:0;left:0;right:0;z-index:900;padding-top:env(safe-area-inset-top);background:rgba(11,12,15,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(255,255,255,.07);font-family:Barlow,system-ui,sans-serif;color:#f4f4f2}
-  .rx-app-in{max-width:980px;margin:0 auto;height:58px;padding:0 14px;display:flex;align-items:center;gap:10px}
-  .rx-brand{font:800 italic 22px 'Barlow Condensed',sans-serif;letter-spacing:-.3px}
+  .rx-top{position:absolute;top:20px;right:20px;z-index:4;display:flex;align-items:center;gap:8px}
+  .rx-mode{display:flex;padding:3px;border-radius:999px;background:rgba(13,14,17,.62);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .rx-mode button{height:32px;padding:0 13px 0 11px;border:0;border-radius:999px;background:none;color:#d5d6d9;display:inline-flex;align-items:center;gap:6px;font:700 13px 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+  .rx-mode button svg{width:15px;height:15px;flex:none}
+  .rx-mode button[aria-checked="true"]{background:#f4f4f2;color:#0d0e11}
+  .rx-mode button[data-m="edit"][aria-checked="true"] svg{color:#FF5A1F}
+  .rx-mode button:focus-visible,.rx-av-b:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
+  body.rx-edit .lang{top:66px}
+  .rx-pow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:8px 0 2px;font:600 10.5px Barlow,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,244,242,.68)}
+  .rx-pow .rx-brand{font:800 italic 16px 'Barlow Condensed',sans-serif;letter-spacing:-.2px;text-transform:none;color:#f4f4f2}
   .rx-brand .x{background:linear-gradient(90deg,#FF5A1F 50%,#f4f4f2 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:1px}
-  .rx-status{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid rgba(242,178,15,.35);color:#f2b20f;font:600 12.5px Barlow,system-ui,sans-serif}
-  .rx-status i{width:7px;height:7px;border-radius:50%;background:currentColor}
-  .rx-status.live{border-color:rgba(95,207,110,.4);color:#5fcf6e}
-  .rx-icon-b{height:38px;padding:0 12px;border-radius:12px;border:1px solid #33363d;background:#17181d;color:#f4f4f2;display:inline-flex;align-items:center;gap:7px;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
-  .rx-icon-b svg{width:18px;height:18px}
-  .rx-icon-b:hover{border-color:#50545e}
-  @media (max-width:420px){.rx-icon-b span{display:none}.rx-icon-b{width:38px;padding:0;justify-content:center}}
-  .rx-av-b{width:40px;height:40px;padding:0;border-radius:50%;border:2px solid #33363d;background:none;cursor:pointer;overflow:hidden}
+  .rx-status{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;border:1px solid rgba(242,178,15,.4);background:rgba(13,14,17,.5);color:#f2b20f;font:600 11.5px Barlow,system-ui,sans-serif;letter-spacing:.04em;text-transform:none}
+  .rx-status i{width:6px;height:6px;border-radius:50%;background:currentColor}
+  @media (max-width:620px){.rx-top{top:12px;right:12px}body.rx-edit .lang{top:58px}.rx-mode button{height:30px;padding:0 11px 0 9px;font-size:12px;gap:5px}.rx-mode button svg{width:14px;height:14px}.rx-av-b{width:38px;height:38px}}
+  @media (max-width:380px){.rx-mode button{padding:0 10px}.rx-mode button svg{display:none}}
+  .rx-av-b{width:40px;height:40px;padding:0;border-radius:50%;border:2px solid rgba(255,255,255,.28);box-shadow:0 4px 14px rgba(0,0,0,.35);background:none;cursor:pointer;overflow:hidden}
   .rx-av-b[aria-expanded="true"],.rx-av-b:hover{border-color:#FF5A1F}
   .rx-av{display:flex;width:100%;height:100%;border-radius:50%;background:#22242b center/cover no-repeat;align-items:center;justify-content:center;font:700 14px Barlow,system-ui,sans-serif;color:#cfd0d4}
   .rx-av.lg{width:46px;height:46px;flex:none;font-size:16px}
-  body.rx-edit{padding-top:calc(58px + env(safe-area-inset-top))}
-  body.rx-view{padding-top:0}
-  body.rx-view .rx-app{display:none}
   .rx-exit{display:none;position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;border:1px solid #3b3e47;background:rgba(17,18,22,.9);backdrop-filter:blur(10px);color:#a9abb2;font:500 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap}
   .rx-exit b{color:#FF5A1F;font-weight:700}
   .rx-exit svg{width:17px;height:17px}
-  body.rx-view .rx-exit{display:inline-flex}
+  body.rx-view.rx-topoff .rx-exit{display:inline-flex}
   .rx-edit-b{position:relative;z-index:6;margin:0 0 12px;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 15px 0 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(11,12,15,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
   .rx-edit-b svg{width:16px;height:16px;color:#FF5A1F}
   .rx-edit-b:hover{background:rgba(11,12,15,.8)}
@@ -144,7 +145,7 @@
   .rx-row-t small.warn{color:#f2b20f}
   .rx-row-y{font:700 14px 'Barlow Condensed';color:#7d808a}
   .rx-chev{width:18px;height:18px;color:#5d6069}
-  .rx-menu{position:fixed;right:max(14px, calc((100vw - 980px) / 2 + 14px));top:calc(64px + env(safe-area-inset-top));z-index:960;width:min(300px,calc(100vw - 28px));background:#17181d;border:1px solid #33363d;border-radius:16px;padding:6px;font:15px Barlow,system-ui,sans-serif;color:#f4f4f2;box-shadow:0 20px 50px rgba(0,0,0,.55)}
+  .rx-menu{position:absolute;z-index:960;width:min(300px,calc(100vw - 28px));background:#17181d;border:1px solid #33363d;border-radius:16px;padding:6px;font:15px Barlow,system-ui,sans-serif;color:#f4f4f2;box-shadow:0 20px 50px rgba(0,0,0,.55)}
   .rx-menu-h{display:flex;align-items:center;gap:12px;padding:10px 10px 12px}
   .rx-menu-h > div{display:grid;min-width:0}
   .rx-menu-h b{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -374,6 +375,22 @@
   @keyframes rxHint{0%,100%{box-shadow:none}40%{box-shadow:0 0 0 3px rgba(255,90,31,.45)}}
   .rx-sh-f.rx-hint .rx-b.pri,.rx-sh-f.rx-hint #rx-cancel{animation:rxHint .9s ease}
   @media (prefers-reduced-motion:reduce){.rx-sheet.rx-nudge,.rx-sh-f.rx-hint .rx-b{animation:none}}
+
+  .rx-tour{position:fixed;inset:0;z-index:1200}
+  .rx-tour-hole{position:fixed;border-radius:18px;box-shadow:0 0 0 9999px rgba(5,6,8,.78);outline:2px solid #FF5A1F;outline-offset:3px;pointer-events:none;transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease}
+  .rx-tour-card{position:fixed;left:50%;width:min(360px,calc(100vw - 32px));transform:translateX(-50%);box-sizing:border-box;padding:18px;border-radius:20px;background:#16181d;border:1px solid #2c2f37;box-shadow:0 24px 50px rgba(0,0,0,.6);font-family:Barlow,system-ui,sans-serif;color:#f4f4f2;animation:rxTourIn .2s ease}
+  @keyframes rxTourIn{from{opacity:0;transform:translate(-50%,6px)}to{opacity:1;transform:translate(-50%,0)}}
+  .rx-tour-top{display:flex;align-items:center;justify-content:space-between}
+  .rx-tour-n{font:700 12px Barlow;letter-spacing:.16em;text-transform:uppercase;color:#FF5A1F}
+  .rx-tour-dots{display:flex;gap:5px}.rx-tour-dots i{width:18px;height:4px;border-radius:2px;background:#2f323a}.rx-tour-dots i.on{background:#FF5A1F}.rx-tour-dots i.done{background:#5a5d66}
+  .rx-tour-card h2{margin:8px 0 4px;font:700 24px/1.05 'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.02em}
+  .rx-tour-card p{margin:0;font-size:15px;line-height:1.45;color:#a9abb2}
+  .rx-tour-btns{display:flex;gap:10px;margin-top:16px}
+  .rx-tour-btns button{flex:1;height:46px;border-radius:14px;font:600 15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rx-tour-skip{border:1px solid #2a2d35;background:none;color:#a9abb2}
+  .rx-tour-next{border:0;background:#FF5A1F;color:#fff}
+  .rx-tour-btns button:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){.rx-tour-hole{transition:none}.rx-tour-card{animation:none}}
   .rx-link{color:#FF5A1F;background:none;border:0;padding:0;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
   .rx-toast{pointer-events:none;white-space:nowrap;position:fixed;left:50%;top:calc(16px + env(safe-area-inset-top));transform:translateX(-50%);z-index:999;background:#f4f4f2;color:#0b0c0f;padding:10px 16px;border-radius:12px;font:600 14px Barlow,system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4)}
   body.rx-edit:not(.rx-view) #scroll-cue,body.rx-edit:not(.rx-view) #page-cue{display:none!important}`;
@@ -1046,25 +1063,36 @@
     const initials = ((p.first_name || "?")[0] + ((p.last_name || (p.display_name || "").split(" ").slice(1).join(" "))[0] || "")).toUpperCase();
     const avatar = (cls = "rx-av") => `<span class="${cls}" style="${photo ? `background-image:url('${esc(photo)}')` : ""}">${photo ? "" : esc(initials)}</span>`;
 
-    // app bar
-    const bar = document.createElement("header"); bar.className = "rx-app"; bar.setAttribute("aria-label", "Racenxt");
-    bar.innerHTML = `<div class="rx-app-in"><span class="rx-brand">RACEN<span class="x">X</span>T</span>${p.published ? "" : `<span class="rx-status"><i></i>Hidden</span>`}<span style="flex:1"></span>
-      <button class="rx-icon-b" id="rx-prev" aria-label="Preview as a fan">${EYE}<span>Preview</span></button>
-      <button class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button></div>`;
-    document.body.prepend(bar);
-    const exit = document.createElement("button"); exit.className = "rx-exit"; exit.innerHTML = `${EYE} Fan preview · <b>Back to editing</b>`;
+    // Edit / Fan view switch + account, on the photo (no fixed bar)
+    const MODE = `<div class="rx-mode" role="radiogroup" aria-label="Page mode"><button type="button" role="radio" data-m="edit" aria-checked="true">${PEN}Edit</button><button type="button" role="radio" data-m="fan" aria-checked="false">${EYE}Fan view</button></div>`;
+    const exit = document.createElement("button"); exit.className = "rx-exit"; exit.innerHTML = `${EYE} Fan view · <b>Back to editing</b>`;
     document.body.appendChild(exit);
-    const preview = on => { document.body.classList.toggle("rx-view", on); window.scrollTo({ top: 0 }); };
-    $("#rx-prev").onclick = () => preview(true); exit.onclick = () => preview(false);
+    const preview = on => {
+      document.body.classList.toggle("rx-view", on);
+      document.querySelectorAll(".rx-mode [data-m]").forEach(b => b.setAttribute("aria-checked", String((b.dataset.m === "fan") === on)));
+      window.scrollTo({ top: 0 });
+    };
+    exit.onclick = () => preview(false);
 
     // one edit button on the hero
     const hero = $(".hero");
     if (hero) {
       if (getComputedStyle(hero).position === "static") hero.style.position = "relative";
+      const top = document.createElement("div"); top.className = "rx-top";
+      top.innerHTML = `${MODE}<button type="button" class="rx-av-b" id="rx-me" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">${avatar()}</button>`;
+      hero.appendChild(top);
+      top.querySelectorAll("[data-m]").forEach(b => b.onclick = () => preview(b.dataset.m === "fan"));
+      // the "Back to editing" pill only once the switch has scrolled out of sight
+      if ("IntersectionObserver" in window) new IntersectionObserver(([en]) => document.body.classList.toggle("rx-topoff", !en.isIntersecting)).observe(top);
+      else document.body.classList.add("rx-topoff");
       if (!photo) { const ph = document.createElement("button"); ph.type = "button"; ph.className = "rx-photo-ph rx-only"; ph.innerHTML = `${CAM}<span>Add your photo</span>`; ph.onclick = editProfile; ph.style.cssText = "position:absolute;inset:0;border-radius:inherit;padding-bottom:18%"; hero.prepend(ph); }
       const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile;
       // just above "NAME RACE HUB", so the top-left corner stays free for the athlete's logo
       const ht = hero.querySelector(".hero-text"); if (ht) ht.prepend(eb); else hero.appendChild(eb);
+      // Powered by Racenxt, right under "NAME RACE HUB" (editor only; fans see it at the bottom of the page)
+      const pw = document.createElement("div"); pw.className = "rx-pow rx-only";
+      pw.innerHTML = `<span>Powered by</span><span class="rx-brand" role="img" aria-label="Racenxt">RACEN<span class="x">X</span>T</span>${p.published ? "" : `<span class="rx-status" title="Only you can see this page for now"><i></i>Hidden</span>`}`;
+      const h1 = hero.querySelector("h1"); if (h1) h1.insertAdjacentElement("afterend", pw); else (ht || hero).appendChild(pw);
     }
 
     // your season
@@ -1136,6 +1164,7 @@
         <hr><button role="menuitem" data-a="pw">${KEY}Security</button>
         <button role="menuitem" data-a="out" class="rx-out">${OUT}Log out</button>`;
       document.body.appendChild(m); $("#rx-me").setAttribute("aria-expanded", "true");
+      { const r = $("#rx-me").getBoundingClientRect(); m.style.top = (r.bottom + window.scrollY + 8) + "px"; m.style.right = Math.max(14, document.documentElement.clientWidth - r.right) + "px"; }
       m.querySelector("button")?.focus();
       m.onclick = async e2 => {
         const b = e2.target.closest("button"); if (!b) return; closeMenu();
@@ -1151,7 +1180,57 @@
       };
       setTimeout(() => document.addEventListener("click", function off(e3) { if (!m.contains(e3.target)) { closeMenu(); document.removeEventListener("click", off); } }), 0);
     };
-    if (!R.entries.length) setTimeout(addChampionship, 500);
+    let tourDue = false; try { tourDue = localStorage.getItem("rnx_tour") === p.id; } catch (e) {}
+    if (tourDue) setTimeout(() => tour(() => { if (!R.entries.length) addChampionship(); }), 700);
+    else if (!R.entries.length) setTimeout(addChampionship, 500);
+  }
+
+  // ---------- first visit after creating the page: a short guided tour ----------
+  function tour(done) {
+    try { localStorage.removeItem("rnx_tour"); } catch (e) {}
+    const steps = [
+      { el: ".rx-edit-b", t: "Your profile", d: "Your photo, name, logo and social links. Tap Edit profile any time to change them." },
+      { el: "#rx-season", t: "Your season", d: "The championships you race in, with your class, car and number. Your races and their schedules appear on your page by themselves." },
+      { el: "#rx-events", t: "Custom events", d: "Add what isn't on a championship calendar: tests, media days, autograph sessions." },
+      { el: "#rx-partners", t: "Your partners", d: "Add your partners' logos. The first 6 show right under your photo, all of them at the bottom of the page." },
+      { el: ".rx-mode", t: "See it as a fan", d: "Switch to Fan view to check your page exactly as fans see it, then come back to editing." },
+    ].filter(x => document.querySelector(x.el));
+    if (!steps.length) return done && done();
+    const ov = document.createElement("div"); ov.className = "rx-tour"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "rx-tour-t");
+    ov.innerHTML = `<div class="rx-tour-hole"></div><div class="rx-tour-card"></div>`;
+    document.body.appendChild(ov);
+    const hole = ov.firstChild, card = ov.lastChild, prevFocus = document.activeElement;
+    let i = 0;
+    const place = () => {
+      const el = document.querySelector(steps[i].el); if (!el) return;
+      const r = el.getBoundingClientRect(), pad = 6, vh = window.innerHeight;
+      Object.assign(hole.style, { top: r.top - pad + "px", left: r.left - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px", borderRadius: (parseFloat(getComputedStyle(el).borderRadius) || 12) + pad + "px" });
+      const ch = card.offsetHeight, below = vh - r.bottom - pad - 16;
+      card.style.top = (below >= ch + 8 ? r.bottom + pad + 14 : Math.max(12, r.top - pad - 14 - ch)) + "px";
+    };
+    const show = () => {
+      const st = steps[i], el = document.querySelector(st.el), last = i === steps.length - 1;
+      card.innerHTML = `<div class="rx-tour-top"><span class="rx-tour-n">${i + 1} of ${steps.length}</span><span class="rx-tour-dots" aria-hidden="true">${steps.map((_, k) => `<i class="${k < i ? "done" : k === i ? "on" : ""}"></i>`).join("")}</span></div>
+        <h2 id="rx-tour-t">${st.t}</h2><p>${st.d}</p>
+        <div class="rx-tour-btns">${last ? "" : `<button type="button" class="rx-tour-skip">Skip tour</button>`}<button type="button" class="rx-tour-next">${last ? "Start editing" : "Next"}</button></div>`;
+      card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
+      card.querySelector(".rx-tour-skip")?.addEventListener("click", end);
+      card.querySelector(".rx-tour-next").onclick = () => { if (last) end(); else { i++; show(); } };
+      const r = el.getBoundingClientRect();
+      if (r.top < 70 || r.bottom > window.innerHeight - 260) el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      place(); setTimeout(place, 350); setTimeout(place, 700);
+      card.querySelector(".rx-tour-next").focus({ preventScroll: true, focusVisible: false });
+    };
+    const onKey = e => {
+      if (e.key === "Escape") { e.stopPropagation(); end(); }
+      if (e.key === "Tab") { const f = [...card.querySelectorAll("button")]; const k = f.indexOf(document.activeElement); if (e.shiftKey && k <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && k === f.length - 1) { e.preventDefault(); f[0].focus(); } }
+    };
+    function end() {
+      window.removeEventListener("resize", place); window.removeEventListener("scroll", place); document.removeEventListener("keydown", onKey, true);
+      ov.remove(); window.scrollTo({ top: 0, behavior: "smooth" }); prevFocus?.focus?.({ preventScroll: true }); done && done();
+    }
+    window.addEventListener("resize", place); window.addEventListener("scroll", place, { passive: true }); document.addEventListener("keydown", onKey, true);
+    show();
   }
 
   window.rnxEditInit = async function (raw) {

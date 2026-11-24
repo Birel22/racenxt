@@ -199,6 +199,19 @@
   .drawer input:hover,.drawer select:hover,.drawer textarea:hover{border-color:#50545e}
   .drawer label.f{color:#e9e9e6}
   .drawer .help{color:#8e919b}
+  .dup{display:grid;gap:8px;padding:12px 14px;border-radius:14px;border:1px solid;font-size:14px}
+  .dup.bad{border-color:#5a2420;background:color-mix(in srgb,var(--bad) 10%,transparent)} .dup.bad b{color:var(--bad)}
+  .dup.warn{border-color:#5a4a1a;background:color-mix(in srgb,var(--warn) 9%,transparent)} .dup.warn b{color:var(--warn)}
+  .dup a{color:var(--text);text-decoration:none;padding:8px 10px;border-radius:10px;background:#1d2026;border:1px solid #2a2d35;min-height:20px}
+  .dup a:hover{border-color:#3a3d46;background:#23262d} .dup span{color:var(--dim);font-size:13px}
+  #dr-ok:disabled{opacity:.45;cursor:not-allowed}
+  .cars-rv{display:grid;gap:8px}
+  .car-rv{border:1px solid var(--line2);border-radius:14px;padding:10px 12px;background:var(--panel2)}
+  .car-rv.lib{padding:8px 12px}
+  .car-hd{display:flex;flex-wrap:wrap;align-items:center;gap:8px;cursor:pointer;font-size:14.5px}
+  .car-hd input{width:18px;height:18px;margin:0;accent-color:var(--acc)}
+  .car-specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 16px;margin-top:8px;font-size:13px}
+  .car-specs>div{display:grid;grid-template-columns:86px 1fr;gap:8px}
   .drawer .sp-tile{background:#0d0e11;border-color:#3b3e47}
   .drawer .drop{background:#0d0e11;border-color:#3b3e47}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -454,6 +467,7 @@ function drawer(title, layout, values = {}, opts = {}){
       for (const f of all){ const el = $("#f_" + f.k); if (f.req && el && !el.value.trim()){ el.focus(); el.reportValidity && el.setCustomValidity("Required"); el.reportValidity(); el.setCustomValidity(""); return; } }
       const out = {}; all.forEach(f => out[f.k] = readField(f));
       if (opts.collect) Object.assign(out, opts.collect());
+      if (opts.validate && !opts.validate(out)) return;
       closeDrawer(out);
     };
     if (opts.onDelete) $("#dr-del").onclick = () => { if (confirm(opts.deleteText || "Delete this item? This can't be undone.")) closeDrawer({ __delete:true }); };
@@ -939,20 +953,77 @@ function newDiscipline(name0){
     };
   });
 }
+// ---------- one championship, one entry ----------
+// "FIA Formula 3", "Formula 3", "F3" -> "f3" · "Moto GP" / "MotoGP" -> "motogp" · "FIA World Endurance Championship" / "World Endurance Championship" -> "worldendurance"
+// Same rule as private.series_key() in the database (migration 0034): keep both in step.
+const SK_DROP = new Set(["the","of","fia","fim","cik","championship","championships","championnat","campionato","campeonato","meisterschaft"]);
+const SK_NUM = { one:"1", two:"2", three:"3", four:"4", five:"5", e:"e" };
+const skWords = t => (t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/&/g, " and ").split(/[^a-z0-9]+/).filter(Boolean);
+function seriesKey(t){
+  const w = skWords(t).filter(x => !SK_DROP.has(x)), out = [];
+  for (let i = 0; i < w.length; i++){
+    const nx = w[i + 1];
+    if (w[i] === "formula" && nx && (SK_NUM[nx] || /^[0-9a-z]{1,2}$/.test(nx) && nx !== "and")){ out.push("f" + (SK_NUM[nx] || nx)); i++; }
+    else out.push(w[i]);
+  }
+  return out.join("");
+}
+const seriesInitials = t => skWords(t).filter(x => !["the","of","fia","fim","cik","and"].includes(x)).map(x => /^[0-9]+$/.test(x) ? x : x[0]).join("");
+// strong: same championship for sure (blocked) · similar: worth a second look (needs a tick to go on)
+function findSameSeries(name, short, selfId){
+  const mine = [seriesKey(name), seriesKey(short)].filter(Boolean);
+  const ini = seriesInitials(name), words = new Set(skWords(name).filter(x => !SK_DROP.has(x)));
+  const strong = [], similar = [];
+  for (const s of D.series){
+    if (s.id === selfId) continue;
+    const theirs = [seriesKey(s.name), seriesKey(s.short_name)].filter(Boolean);
+    if (mine.some(k => theirs.includes(k))){ strong.push(s); continue; }
+    const tw = skWords(s.name).filter(x => !SK_DROP.has(x)), ti = seriesInitials(s.name);
+    const inside = words.size && tw.length && (tw.every(x => words.has(x)) || [...words].every(x => tw.includes(x)));
+    if ((ini.length >= 3 && theirs.includes(ini)) || (ti.length >= 3 && mine.includes(ti)) || inside) similar.push(s);
+  }
+  return { strong, similar };
+}
+// live box under the name fields + the check run when Save is pressed
+function sameSeriesGuard(selfId){
+  const st = { strong:[], similar:[] };
+  const html = `<div id="dup-box" class="dup" style="grid-column:1/-1" hidden aria-live="polite"></div>`;
+  const label = s => `${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` (${esc(s.short_name)})` : ""}`;
+  const draw = () => {
+    Object.assign(st, findSameSeries($("#f_name")?.value, $("#f_short_name")?.value, selfId));
+    const box = $("#dup-box"), ok = $("#dr-ok");
+    if (!box) return;
+    if (st.strong.length){
+      box.hidden = false; box.className = "dup bad";
+      box.innerHTML = `<b>Already in Racenxt</b>${st.strong.map(s => `<a href="#/championships/${esc(s.slug)}">${label(s)} – Open</a>`).join("")}<span>One championship, one entry: open it instead of adding it again.</span>`;
+    } else if (st.similar.length){
+      box.hidden = false; box.className = "dup warn";
+      box.innerHTML = `<b>Is it one of these?</b>${st.similar.map(s => `<a href="#/championships/${esc(s.slug)}">${label(s)} – Open</a>`).join("")}<label class="sw"><input type="checkbox" id="dup-ok"> It's a different championship</label>`;
+      $("#dup-ok").onchange = () => { if (ok) ok.disabled = !$("#dup-ok").checked; };
+    } else { box.hidden = true; box.innerHTML = ""; }
+    if (ok) ok.disabled = !!st.strong.length || (!!st.similar.length && !$("#dup-ok")?.checked);
+    box.querySelectorAll("a").forEach(a => a.onclick = () => closeDrawer(null));
+  };
+  return { html, after(){ ["#f_name", "#f_short_name"].forEach(q => { const el = $(q); if (el) el.addEventListener("input", draw); }); draw(); },
+    validate(){ draw(); if (st.strong.length || (st.similar.length && !$("#dup-ok")?.checked)){ $("#dup-box")?.scrollIntoView({ block:"nearest" }); return false; } return true; } };
+}
+const dupMsg = e => /already in Racenxt|series_same/i.test(e.message || "") ? "This championship is already in Racenxt (same name or short name). Open it from Championships instead." : e.message;
+
 async function addSeries(){
-  const sp = sportPicker("");
+  const sp = sportPicker(""), dg = sameSeriesGuard(null);
   const r = await drawer("Add championship", [
     { section:"Championship", sub:"The AI finds the rest", items:[
       { k:"name", l:"Full championship name", req:true },
-      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
+      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
+      { html: dg.html } ] },
     { section:"Discipline", items:[{ html: sp.html }] }
-  ], {}, { ok:"Add and find with AI", after: sp.after });
+  ], {}, { ok:"Add and find with AI", after(){ sp.after(); dg.after(); }, validate: dg.validate });
   if (!r) return;
   if (!sp.st.v){ alert("Choose a discipline."); return addSeries(); }
   const row = { name:r.name, short_name:r.short_name || r.name, sport:sp.st.v, slug: slugify(r.short_name && r.short_name !== r.name ? r.short_name : r.name).slice(0, 40) };
   if (D.series.some(x => x.slug === row.slug)) row.slug = (row.slug + "-" + Date.now().toString(36).slice(-3)).slice(0, 44);
   let n;
-  try { [n] = await ins("series", row); await loadRef(); } catch(e){ return alert("Couldn't add it: " + e.message); }
+  try { [n] = await ins("series", row); await loadRef(); } catch(e){ return alert("Couldn't add it: " + dupMsg(e)); }
   aiSetup(n);
 }
 // Full-screen progress while the AI sets up a new championship, then straight to review
@@ -961,7 +1032,7 @@ function aiSetup(n){
   const m = document.createElement("div");
   m.className = "ai-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "ai-h");
   m.innerHTML = `<div class="ai-box"><div class="spin"></div><h2 id="ai-h">Setting up ${esc(label)}</h2><div class="dim">Usually about 30–60 seconds · <span class="t" id="ai-t">0s</span></div>
-    <ul><li>Official website</li><li>Logo</li><li>Season calendar and circuits</li><li>Where to watch</li></ul>
+    <ul><li>Official website</li><li>Logo</li><li>Season calendar and circuits</li><li>Where to watch</li><li>Cars (a minute later, also to Review)</li></ul>
     <div class="bar" style="justify-content:center;margin:0"><button class="btn" id="ai-bg">Keep working, notify me</button></div></div>`;
   document.body.appendChild(m);
   const t0 = Date.now(), tick = setInterval(() => { const el = $("#ai-t"); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
@@ -989,16 +1060,19 @@ function aiSetup(n){
 async function editSeries(s, src){
   if (!s) return addSeries();
   const lp = logoPicker(s, { pfx:"lg" });
-  const sp = sportPicker(s.sport || "");
+  const sp = sportPicker(s.sport || ""), dg = sameSeriesGuard(s.id);
   const r = await drawer(`Edit ${s.short_name || s.name}`, [
     { section:"Championship", items:[
       { k:"name", l:"Full championship name", req:true },
-      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." } ] },
+      { k:"short_name", l:"Short name", help:"Optional. Shown where space is tight." },
+      { html: dg.html } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
     { section:"Classes", sub:"Only when several classes share this calendar and not every class races at every round (e.g. IMSA). Athletes then pick their class, and their page only shows the races of their class.", items:[
       { k:"classes_txt", l:"Classes", help:"Separate with commas, e.g. GTP, LMP2, GTD PRO, GTD. Leave empty for a one-class championship." },
       ...((s.classes || []).length > 1 ? [{ html:`<button type="button" class="btn sm ai" id="f-cls"${aiBusy("cls-" + s.id) ? " disabled" : ""}>Check which class races where with AI</button>` }] : []) ] },
+    { section:"Cars", sub:"The cars on the official entry list. New ones come with their specs; you review everything first.", items:[
+      { html:`<button type="button" class="btn sm ai" id="f-cars"${aiBusy("cars-" + s.id) ? " disabled" : ""}>Find cars with AI</button>` } ] },
     { section:"Usual race weekend", sub:"Only a hint for the AI (formats often change): learned from the first timetable you approve. It never blocks or stops a search.", items:[
       { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
     { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
@@ -1007,7 +1081,8 @@ async function editSeries(s, src){
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], { ...s, classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
-    after(){ lp.after(); sp.after(); if ($("#f-cls")) $("#f-cls").onclick = () => { runAgent({ action:"classes", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cls-" + s.id); $("#f-cls").disabled = true; $("#f-cls").textContent = "Checking… results go to the Review queue"; }; $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
+    validate: dg.validate,
+    after(){ lp.after(); sp.after(); dg.after(); if ($("#f-cls")) $("#f-cls").onclick = () => { runAgent({ action:"classes", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cls-" + s.id); $("#f-cls").disabled = true; $("#f-cls").textContent = "Checking… results go to the Review queue"; }; $("#f-cars").onclick = () => { runAgent({ action:"cars", series_id:s.id }, `Cars ${s.short_name || s.name}`, "cars-" + s.id); $("#f-cars").disabled = true; $("#f-cars").textContent = "Searching… results go to the Review queue"; }; $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
     collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
@@ -1025,7 +1100,7 @@ async function editSeries(s, src){
   const domains = [...new Set([...list, row.website_url || ""].map(u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return null; } }).filter(Boolean))];
   await guard(async () => {
     Object.assign(row, await lp.fields());
-    await upd("series", s.id, row);
+    try { await upd("series", s.id, row); } catch(e){ throw new Error(dupMsg(e)); }
     await api("series_sources", { method:"POST", headers:{ Prefer:"resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ series_id:s.id, urls:list.map(url => ({ url })), allowed_domains:domains, agent_instructions: instr || "" }) });
     await loadRef();
     route();
@@ -1037,7 +1112,7 @@ async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes" };
+  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes", cars:"Cars" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1058,6 +1133,7 @@ async function review(slug){
       ${p.kind === "logo" ? `<div id="lgrv-${p.id}-box"></div>`
         : p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
         : p.kind === "classes" ? classesView(p.payload) + `<pre class="now" hidden></pre>`
+        : p.kind === "cars" ? carsView(p) + `<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
         : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
@@ -1071,6 +1147,7 @@ async function review(slug){
   for (const p of single){
     const box = document.querySelector(`[data-p="${p.id}"]`);
     if (p.kind === "logo"){ logoProposal(p, box, only && ps.length === 1 ? only : null); continue; }
+    if (p.kind === "cars"){ carsProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     current(p).then(t => { const n = box.querySelector(".now"); if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
     box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
@@ -1094,6 +1171,34 @@ function logoProposal(p, box, only){
     guard(async () => { const f = await lp.fields(); await rpc("apply_proposal", { p_id:p.id, p_payload:{ ...f, candidates:cands } }); await loadRef(); if (only) location.hash = `#/championships/${only.slug}`; else route(); }, "Logo saved");
   };
   box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions; you can add a logo by hand in Edit championship)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
+}
+// cars the agent found on the entry list: tick the ones to keep; new ones show their specs and where they come from
+const CAR_SPECS = [["engine","Engine"],["hybrid","Hybrid"],["power","Power"],["drivetrain","Drive"],["max_rpm","Max rpm"],["gearbox","Gearbox"],["weight","Weight"],["dimensions","Dimensions"]];
+function carsView(p){
+  const pl = p.payload || {}, cars = pl.cars || [];
+  return `<label class="f">${cars.length} car model${cars.length === 1 ? "" : "s"}${pl.season ? ` · ${pl.season} entry list` : ""}</label>
+    <div class="cars-rv">${cars.map((c, i) => `<div class="car-rv${c.in_library ? " lib" : ""}">
+      <label class="car-hd"><input type="checkbox" data-car="${i}" ${c.keep === false ? "" : "checked"}> <b>${esc(c.name)}</b>
+        ${c.in_library ? `<span class="chip good">${c.linked ? "In library · linked" : "In library"}</span>` : `<span class="chip warn">New car</span>`}
+        <span class="muted">${esc([c.category, (c.classes || []).filter(x => x !== c.category).join(", "), c.count ? `${c.count} car${c.count > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · "))}</span></label>
+      ${c.in_library ? "" : `<div class="car-specs">${CAR_SPECS.map(([k, l]) => `<div><span class="muted">${l}</span><span>${c[k] ? esc(k === "drivetrain" ? c[k].toUpperCase() : c[k]) : '<span class="dim">–</span>'}</span></div>`).join("")}</div>
+        ${c.spec_url ? `<div style="font-size:12.5px;margin-top:6px">Specs from ${linkHtml(c.spec_url)}</div>` : `<div class="dim" style="font-size:12.5px;margin-top:6px">No spec source given</div>`}`}
+    </div>`).join("")}</div>
+    <div class="dim" style="font-size:12.5px;margin-top:8px">Approve adds the new cars to the library and links every ticked car to this championship. Untick a car to leave it out; Edit to fix a spec first.</div>`;
+}
+function carsProposal(p, box, only){
+  const picked = () => (p.payload.cars || []).map((c, i) => ({ ...c, keep: !!box.querySelector(`[data-car="${i}"]`)?.checked }));
+  const done = () => { if (only) location.hash = `#/championships/${only.slug}`; else route(); };
+  box.querySelector('[data-act="approve"]').onclick = () => {
+    const cars = picked(); if (!cars.some(c => c.keep)) return alert("Tick at least one car, or Reject.");
+    guard(async () => { await rpc("apply_cars", { p_id:p.id, p_payload:{ ...p.payload, cars } }); await loadRef(); done(); }, `${cars.filter(c => c.keep).length} car${cars.filter(c => c.keep).length > 1 ? "s" : ""} saved`);
+  };
+  box.querySelector('[data-act="edit"]').onclick = async () => {
+    const r = await drawer("Edit cars", [{ k:"payload", l:"Cars (fix a name or a spec, then approve)", type:"textarea" }], { payload: JSON.stringify({ ...p.payload, cars: picked() }, null, 2) }, { ok:"Approve with changes" });
+    if (!r) return; let pl; try { pl = JSON.parse(r.payload); } catch(e){ return alert("That's not valid JSON."); }
+    guard(async () => { await rpc("apply_cars", { p_id:p.id, p_payload:pl }); await loadRef(); done(); }, "Cars saved");
+  };
+  box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
 }
 const endOf = (start, min) => { const d = new Date(String(start).replace(" ", "T").slice(0,16) + ":00Z"); d.setUTCMinutes(d.getUTCMinutes() + (+min || 60)); return d.toISOString().slice(11,16); };
 const linkHtml = u => /^https?:\/\//.test(u || "") ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>` : esc(u || "");
@@ -1215,7 +1320,7 @@ async function usage(){
   const mCost = mRuns.reduce((a, r) => a + runCost(r.usage), 0);
   const done = runs.filter(r => r.usage);
   const avg = done.length ? done.reduce((a, r) => a + runCost(r.usage), 0) / done.length : 0;
-  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)", classes:"Classes" };
+  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)", classes:"Classes", cars:"Cars" };
   const RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","No change · free"] };
   $("#main").innerHTML = `<div class="ph"><h1>AI usage</h1></div>
     <div class="kpis">

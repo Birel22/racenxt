@@ -13,4 +13,3 @@ and let the calendar agent pick them up from the organiser's pages. Not part of 
 ## Agent
 - Cloudflare Browser Run for logos (code ready, off): add secrets CF_ACCOUNT_ID + CF_BROWSER_TOKEN (token permission "Browser Run - Edit"). Free plan: 10 min/day.
 - Schedule agent: time zone on pages with a "my time / track time" switch (ALMS Jerez read 1 h late). Check the page's own zone instead of assuming UTC.
-- Split into the 5 agents (calendar, logo, schedule, where to watch, checker), re-testing after each.

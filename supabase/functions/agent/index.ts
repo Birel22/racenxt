@@ -1,7 +1,8 @@
-// Racenxt research agents. Five agents, each with one job:
-//   calendar (dates and circuits, this year and next) · logo · schedule (one race at a time) · where to watch · checker (rereads the source, attaches proof)
+// Racenxt research agents. Six agents, each with one job:
+//   calendar (dates and circuits, this year and next) · logo · schedule (one race at a time) · where to watch · checker (rereads the source, attaches proof) · cars (entry list + specs)
 // POST { action: "discover", series_id }  -> calendar agent, then logo, where to watch and the checker; files proposals
 // POST { action: "check_event", event_id } -> schedule agent (+ where to watch in race week) and the checker; files proposals
+// POST { action: "cars", series_id }      -> cars agent: the cars on the official entry list, new ones with their specs; files a proposal
 // POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
 // POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
 // POST { action: "prompts" }               -> the instructions for each task, for the admin Agent page
@@ -653,6 +654,12 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
       evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.classes.length > 1 ? `Shared calendar: ${out.classes.join(", ")}. Once approved, the AI checks which classes race at each round.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
+  // agent 6, cars: its own job (own time budget) when the championship is added or checked by hand
+  if (kind === "discover") {
+    try {
+      await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "cars", series_id: series.id }) });
+    } catch (_) { /* Find cars with AI by hand */ }
+  }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.calendar_url, ...urls, site]), trace: { ...trace, answer: out } };
 }
@@ -708,6 +715,68 @@ async function classesJob(series: any, src: any, runId: string, body: any) {
 
 // ---------- check_event: timetable + where to watch ----------
 // the timetable the AI finds for one race, cleaned up and in circuit time. Nothing is filed here.
+// ---------- agent 6, cars: which cars race in a championship (from its official entry list), with their specs ----------
+const CAR_RULES = `You are the cars agent of Racenxt, an app that shows athletes' seasons to their fans. Each athlete picks their car from a shared library.
+Rules:
+- Which cars race: only from the championship's OFFICIAL entry list (its own website, its organiser's, or the official timing provider). Entry lists often show the car only as a picture or in a team column: read the car model wherever the official page gives it.
+- Specs: the manufacturer's or constructor's own official page first (customer-racing pages, technical sheets, press kits). If a figure isn't there, the racing team's own page or reliable motorsport press may be used. Never use racing games or simulators, fan sites, forums or sellers.
+- Never guess a figure: null when no source gives it. Power and weight of balanced classes (e.g. GT3) depend on the Balance of Performance: say "subject to BoP".
+- One entry per car model, with the model's official name (e.g. "Ferrari 296 GT3 Evo", "Porsche 911 GT3 R", "ORECA 07", "Ligier JS P325"). Evolutions with their own name are separate models only when the entry list tells them apart.
+- Be economical: open each page at most once and stop as soon as you have the answer.
+- Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
+function carsPrompt(series: any, library: any[], year: number) {
+  return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
+Sport category: ${series.sport}
+Official website: ${series.website_url || "unknown"}
+${(series.classes || []).length ? `Classes: ${series.classes.join(", ")}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
+Cars already in our library (use these exact names in "library_name" when it's the same model): ${library.map((v: any) => v.name).join("; ") || "none"}
+Task:
+1. Find the championship's official entry list for ${year} (if the ${year} season hasn't started or has no entry list yet, the most recent one published; ${year + 1} if it's already published).
+2. List every car MODEL in it: official model name, manufacturer, category (e.g. "LMP2", "LMP3", "GT3", "Hypercar", "Formula", "Superbike"), the classes of this championship it races in, and how many cars of that model are entered.
+3. For each model that is NOT already in our library, find its specs: engine (layout, displacement, aspiration), hybrid system (null if none), power, drivetrain ("rwd", "awd" or "fwd"), max rpm, gearbox, weight, dimensions (length × width × height, wheelbase), and the address of the page the specs come from. For models already in our library, skip the specs.
+JSON schema:
+{"entry_list_url": string|null, "season": number|null,
+ "cars": [{"name": string, "manufacturer": string|null, "category": string|null, "classes": [string], "count": number|null, "library_name": string|null,
+   "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}],
+ "notes": string}`;
+}
+const carKey = (s: string) => norm(s).replace(/\b(lmgt3|lm gt3)\b/g, "gt3").replace(/\s+/g, "");
+async function carsJob(series: any, runId: string) {
+  const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.cars&status=eq.pending&select=id&limit=1`);
+  if (pending) return { result: "no_change", summary: "Cars: a suggestion is already waiting in the Review queue.", usage: null, pages: [] };
+  const library = await db(`vehicles?status=eq.approved&select=id,name&order=name`);
+  const linked = new Set((await db(`series_vehicles?series_id=eq.${series.id}&select=vehicle_id`)).map((x: any) => x.vehicle_id));
+  const year = new Date().getUTCFullYear();
+  const { out, usage, trace } = await ask(CAR_RULES, carsPrompt(series, library, year), 12);
+  const byKey = new Map<string, any>(library.map((v: any) => [carKey(v.name), v]));
+  const seen = new Set<string>();
+  const cars: any[] = [];
+  for (const c of Array.isArray(out.cars) ? out.cars : []) {
+    const name = String(c?.name || "").trim();
+    if (!name || seen.has(carKey(name))) continue;
+    seen.add(carKey(name));
+    const lib = byKey.get(carKey(c.library_name || "")) || byKey.get(carKey(name));
+    const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;
+    const dt = String(c.drivetrain || "").toLowerCase();
+    cars.push(lib
+      ? { name: lib.name, vehicle_id: lib.id, in_library: true, linked: linked.has(lib.id), manufacturer: str(c.manufacturer), category: str(c.category), classes: (c.classes || []).map(String).slice(0, 8), count: Number.isFinite(+c.count) ? +c.count : null }
+      : { name, in_library: false, manufacturer: str(c.manufacturer), category: str(c.category), classes: (c.classes || []).map(String).slice(0, 8), count: Number.isFinite(+c.count) ? +c.count : null,
+          engine: str(c.engine), hybrid: str(c.hybrid), power: str(c.power), drivetrain: ["rwd", "awd", "fwd"].includes(dt) ? dt : null, max_rpm: str(c.max_rpm), gearbox: str(c.gearbox), weight: str(c.weight), dimensions: str(c.dimensions), spec_url: okUrl(c.spec_url) ? c.spec_url : null });
+  }
+  // nothing to do: every car is already in the library and linked to this championship
+  if (!cars.length || cars.every(c => c.in_library && c.linked)) {
+    return { result: "no_change", summary: cars.length ? `Cars: all ${cars.length} already in the library.` : "Cars: no official entry list found.", usage, pages: [], trace: { ...trace, answer: out } };
+  }
+  // agent 5, checker: is each car model really on the entry list?
+  let chk: any = okUrl(out.entry_list_url) ? await checkSource(out.entry_list_url, cars.map(c => `${c.name} is entered`)) : null;
+  if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
+  const fresh = cars.filter(c => !c.in_library).length;
+  await ins("proposals", { run_id: runId, series_id: series.id, kind: "cars",
+    payload: { season: Number.isFinite(+out.season) ? +out.season : null, entry_list_url: okUrl(out.entry_list_url) ? out.entry_list_url : null, cars },
+    evidence: { url: okUrl(out.entry_list_url) ? out.entry_list_url : (series.website_url || ""), excerpt: [`${cars.length} car model${cars.length > 1 ? "s" : ""} on the entry list, ${fresh} new to the library.`, String(out.notes || "").slice(0, 300)].filter(Boolean).join(" "), check: chk } });
+  return { result: "proposal", summary: `Found: ${cars.length} car${cars.length > 1 ? "s" : ""} (${fresh} new to the library).`, usage, pages: [], trace: { ...trace, answer: out } };
+}
+
 async function computeSchedule(ev: any, series: any, src: any, current: any[], models = [FAST, STRONG]) {
   const v = ev.venues || {};
   // the race's own broadcast page is only published in the days before the race
@@ -1077,6 +1146,21 @@ async function startJob(b: any) {
   return json(await r.json().catch(() => ({})), r.status);
 }
 
+// the cars job, started by the calendar agent (cron secret) or by an admin; runs in the background
+async function carsStart(seriesId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(seriesId || "")) return json({ error: "bad id" }, 400);
+  const [series] = await db(`series?id=eq.${seriesId}&select=*`);
+  if (!series) return json({ error: "not found" }, 404);
+  const [run] = await ins("check_runs", { series_id: series.id, kind: "cars", result: "running", pages: [] });
+  const job = (async () => {
+    try { const r = await carsJob(series, run.id); await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() }); }
+    catch (e) { await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); }
+  })();
+  // @ts-ignore EdgeRuntime is provided by Supabase
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
+  return json({ run_id: run.id });
+}
+
 // ---------- entry ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -1085,12 +1169,13 @@ Deno.serve(async (req) => {
   if (cron) {
     // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
     const b = await req.json().catch(() => ({}));
-    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes") return tick(cron);
+    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars") return tick(cron);
     const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
     if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
     if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
     await loadGuidance();
     if (b.action === "classes") return startJob(b);
+    if (b.action === "cars") return carsStart(b.series_id);
     if (b.action === "test_one") {
       // one test per call, so each has the function's full time limit
       const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: ((stage ? stage + ": " : "") + String((e as Error).message || e)).slice(0, 500), finished_at: new Date().toISOString() }));
@@ -1127,6 +1212,7 @@ Deno.serve(async (req) => {
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
       { key: "classes", title: "1b · Classes (shared calendars)", when: "Only for championships whose classes share one calendar without every class racing everywhere (e.g. IMSA). Right after the calendar check (or once the new races are approved), then with each later calendar check.", text: classesPrompt(S, ["<class A>", "<class B>"], "<official calendar>", [{ name: "<race>", start_date: "2027-01-01", end_date: "2027-01-03", venues: { name: "<circuit>" } }]) },
+      { key: "cars", title: "6 · Cars agent", when: "When you add a championship (right after the calendar), or Find cars with AI in Edit championship. Reads the official entry list; new cars come with their specs. Everything goes to the Review queue: untick a car to leave it out.", text: CAR_RULES + "\n\n" + carsPrompt(S, [{ name: "<cars already in the library>" }], new Date().getUTCFullYear()) },
       { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion. If nothing is confirmed, it reads again with the stronger model.", text: CHECK_RULES },
     ] });
   }
@@ -1142,6 +1228,7 @@ Deno.serve(async (req) => {
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
     return json({ run_id: run.id });
   }
+  if (body.action === "cars") return carsStart(body.series_id);
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID.test(body.series_id || body.event_id || "")) return json({ error: "bad id" }, 400);
   let series: any, ev: any = null;

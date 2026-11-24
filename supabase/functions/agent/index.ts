@@ -413,7 +413,7 @@ Task: the race calendar, nothing else.
 6. If official sources disagree on a date, use the most recent one and say so in "doubts".
 7. Official announcements often show the calendar only as a picture, which you can't read: give the address of the official page announcing the ${year + 1} calendar in "announcement_url" (we read its pictures), even if its text has no dates.
 8. Fallback, only for rounds whose exact dates the official sites don't give in text: reliable motorsport press or the circuit's own official website (e.g. formula1.com, motorsport.com, autosport.com, the-race.com, racer.com, sportscar365.com, dailysportscar.com, endurance-info.com, speedweek.com). Use such a round only when at least 2 independent sources give the same race day (the last day of the weekend); the first day often differs between sources (some count practice or the Thursday): that is not a disagreement, use the earliest first day given. Then set "source": "press" and list the addresses in "sources". If the race days differ, keep the round in "tbc" with both versions in "when". Rounds read on official pages have "source": "official".
-9. Classes: only for a championship whose classes race TOGETHER, on track at the same time in the same race, when not every class races at every round (e.g. IMSA: GTP, LMP2, GTD PRO, GTD share each race; some rounds are GT only). Separate championships that only share race weekends, each with its own races and title, are NOT classes (e.g. WorldSBK and WorldSSP, IMSA and Michelin Pilot Challenge, F1 and F2, WRC and Junior WRC): then "classes" is []. When it applies, list the classes in "classes" with their official short names${(series.classes || []).length ? " (use the known classes' names)" : ""}. Otherwise "classes" is []. (Which class races where is checked separately: don't research it.)
+9. Classes: only for a championship whose classes race TOGETHER, on track at the same time in the same race, when not every class races at every round (e.g. IMSA: GTP, LMP2, GTD PRO, GTD share each race; some rounds are GT only). Separate championships that only share race weekends, each with its own races and title, are NOT classes (e.g. MotoGP, Moto2 and Moto3, WorldSBK and WorldSSP, IMSA and Michelin Pilot Challenge, F1 and F2, WRC and Junior WRC): then "classes" is []. When it applies, list the classes in "classes" with their official short names${(series.classes || []).length ? " (use the known classes' names)" : ""}. Otherwise "classes" is []. (Which class races where is checked separately: don't research it.)
 JSON schema:
 {"website_url": string|null, "calendar_url": string|null, "announcement_url": string|null, "classes": [string],
  "seasons": [{"year": number, "events": [{"round": number|null, "round_to": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null, "source": "official"|"press", "sources": [string],
@@ -831,14 +831,16 @@ async function suggestClassFormat(series: any, sessions: any[], runId: string, f
 }
 
 // ---------- class structure agent: which classes, and do they share sessions? (reads past timetables and results) ----------
-function classFormatPrompt(series: any, year: number) {
+function classFormatPrompt(series: any, year: number, src: any = null) {
   return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
 Sport category: ${series.sport}
 Official website: ${series.website_url || "unknown"}
 ${(series.classes || []).length ? `Classes we have so far: ${series.classes.join(", ")}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
-Task: understand how this championship's classes (categories) work. Past events are the best evidence: the next timetable may not be out yet.
+${src?.agent_instructions ? `Instructions from the Racenxt team (they take priority):\n${src.agent_instructions}\n` : ""}Task: understand how this championship's classes (categories) work. Past events are the best evidence: the next timetable may not be out yet.
 1. Open the official timetable of the most recent event of this championship already raced (${year} or ${year - 1}). If you can't find one, use the official results (classifications) of a recent event. Official sources only: the championship's or organiser's website, official documents (PDF timetables, supplementary regulations), or the official timing provider.
-2. List the classes (categories) that have their own classification under this championship's name, with the short names the championship uses (e.g. KZ2, OK, OKJ, MINI; or LMP2, LMP3, LMGT3). A separate championship that only shares the weekend is NOT a class (e.g. WorldSBK and WorldSSP, F1 and F2).
+2. List the classes (categories) of this championship, with the short names the championship uses (e.g. KZ2, OK, OKJ, MINI; or Hypercar, LMP2, LMP3, LMGT3).
+   A class is any group with its own classification and podium under this championship's name: a different kind of car (e.g. Hypercar, LMP2, LMGT3; KZ2, OK karts), or a category by FIA driver rating in the same cars (e.g. GT World Challenge Pro / Gold / Silver / Bronze Cup, ELMS LMP2 Pro/Am, EEPC Bronze Cup). Driver-rating categories race in the same sessions, so they are "shared" (an extra session for one of them, e.g. a Bronze-driver practice, is fine).
+   NOT classes: separate championships that only share the weekend, each with its own title (e.g. MotoGP, Moto2 and Moto3; WorldSBK and WorldSSP; F1 and F2).
 3. Decide the format from the timetable:
    - "none": one class only.
    - "shared": the classes race together in the same races (and mostly the same practice); a few sessions may be for one class only (e.g. qualifying per class).
@@ -847,10 +849,10 @@ Task: understand how this championship's classes (categories) work. Past events 
 JSON schema:
 {"class_format": "none"|"shared"|"separate", "classes": [string], "evidence_url": string|null, "evidence_event": string|null, "sessions_read": number|null, "class_specific": number|null, "examples": [string], "reason": string}`;
 }
-async function classFormatJob(series: any, runId: string) {
+async function classFormatJob(series: any, runId: string, src: any = null) {
   const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.class_format&status=eq.pending&select=id&limit=1`);
   if (pending) return { result: "no_change", summary: "Classes: a suggestion is already waiting in the Review queue.", usage: null, pages: [] };
-  const { out, usage, trace } = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear()), 10);
+  const { out, usage, trace } = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear(), src), 10);
   const fmt = ["none", "shared", "separate"].includes(out.class_format) ? out.class_format : null;
   const classes = [...new Set((Array.isArray(out.classes) ? out.classes : []).map((c: any) => String(c || "").trim()).filter(Boolean))].slice(0, 30) as string[];
   if (!fmt || (fmt !== "none" && classes.length < 2)) return { result: "no_change", summary: "Classes: no official timetable or results found to tell.", usage, pages: [], trace: { ...trace, answer: out } };
@@ -1247,7 +1249,7 @@ async function bgStart(kind: "cars" | "class_format", seriesId: string) {
   if (!series) return json({ error: "not found" }, 404);
   const [run] = await ins("check_runs", { series_id: series.id, kind, result: "running", pages: [] });
   const job = (async () => {
-    try { const r = kind === "cars" ? await carsJob(series, run.id) : await classFormatJob(series, run.id); await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() }); }
+    try { const r = kind === "cars" ? await carsJob(series, run.id) : await classFormatJob(series, run.id, (await db(`series_sources?series_id=eq.${series.id}&select=agent_instructions`))[0] || null); await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() }); }
     catch (e) { await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); }
   })();
   // @ts-ignore EdgeRuntime is provided by Supabase

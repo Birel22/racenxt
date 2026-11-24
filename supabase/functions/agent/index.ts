@@ -1,4 +1,5 @@
-// Racenxt research agent.
+// Racenxt research agents. Five agents, each with one job (see AGENTS below):
+//   calendar (dates and circuits, this year and next) · logo · schedule (one race at a time) · where to watch · checker (rereads the source, attaches proof)
 // POST { action: "discover", series_id }  -> finds official site, logo, calendar (+ timetables already out); files proposals
 // POST { action: "check_event", event_id } -> finds the race timetable and where-to-watch; files proposals
 // POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
@@ -360,27 +361,28 @@ Today: ${new Date().toISOString().slice(0, 10)}
 Task: ${WATCH_TASK}
 JSON schema: {"stream_url": string|null, "broadcasters_url": string|null}`;
 }
+// agent 1, calendar: dates and circuits only (no logo, no timetable, no where to watch)
 function discoverPrompt(series: any, src: any, year: number) {
   return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
 Sport category: ${series.sport}
 Known official website: ${series.website_url || "unknown"}
 Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}
-Task:
-1. Find the official website of this championship.
-2. Find the championship's official logo: up to 3 direct, absolute image URLs (SVG or PNG preferred), e.g. the logo image in the official site's header. If the official site doesn't expose one, a Wikimedia Commons file of the official logo (upload.wikimedia.org) is acceptable as the last candidate.
-3. Find the official calendar page and read the season calendar for ${year} and ${year + 1} (only seasons that are officially published; skip rounds that are already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
-4. For each race weekend: round number, the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
-5. Timetables: for the next upcoming race weekends, check the race page on the official site. If the official timetable (HTML or PDF) is already published, list every on-track session of THIS championship (practice, qualifying, hyperpole, warm-up, races) in local circuit time. If it is not published yet, set "sessions": null. Don't spend more than a few page reads on this; stop at the first race whose timetable is not published.
-6. ${WATCH_TASK}
+Task: the race calendar, nothing else.
+1. Find the official website of this championship. It may be published by its organiser together with other championships (e.g. a "Cup Series" running several classes): then use the organiser's calendar and keep only this championship's rounds.
+2. Read the official calendar for ${year} and ${year + 1} (only seasons officially published; skip rounds already over in ${year}). Next season's calendar is often announced in a news article on the official site before the calendar page changes: search for "${series.short_name || series.name} ${year + 1} calendar" too.
+3. For each race weekend: round number, the race's own name WITHOUT the championship name, the year, the round number or title sponsors (e.g. "4 Hours of Jerez", "Qatar Grand Prix"; not "4 Hours of Jerez by ALMS", "Formula 1 Qatar Airways Qatar Grand Prix 2026" or "Qatar Grand Prix (FIA Formula 2 Round 13)"; if the official name is only the championship and a round, use the circuit's town), first and last day of the race weekend (YYYY-MM-DD), race length label if published (e.g. "4h", "24h", "2 × 30 min"), and the circuit: official circuit name, town, country, ISO 3166 two-letter country code, IANA time zone (e.g. Europe/Paris) and approximate latitude/longitude.
+4. Test days, prologues and other events that are not races of this championship are not rounds: leave them out.
+5. A round without a confirmed date (TBC, or only a month) goes in "tbc" with what is known. Never invent or copy a date from another championship.
+6. If official sources disagree on a date, use the most recent one and say so in "doubts".
 JSON schema:
-{"website_url": string|null, "logo_urls": [string], "calendar_url": string|null, "stream_url": string|null, "broadcasters_url": string|null,
+{"website_url": string|null, "calendar_url": string|null,
  "seasons": [{"year": number, "events": [{"round": number|null, "name": string, "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "duration_label": string|null,
-   "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null},
-   "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}] | null,
-   "times_zone": "local"|"UTC"|string|null, "zone_label": string|null, "timetable_url": string|null}]}],
- "notes": string}`;
+   "circuit": {"name": string, "city": string|null, "country": string, "country_code": string|null, "timezone": string, "lat": number|null, "lng": number|null}}]}],
+ "tbc": [{"year": number, "round": number|null, "name": string|null, "circuit": string|null, "when": string|null}],
+ "doubts": [string], "notes": string}`;
 }
+// agent 3, schedule: one race at a time
 function checkPrompt(ev: any, series: any, src: any, v: any, raceWeek: boolean) {
   return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
 Official website: ${series.website_url || "unknown"}
@@ -395,12 +397,10 @@ Task:
    b. If it isn't there, search the web, for example "${series.short_name || series.name} ${v.name || ev.name} ${ev.start_date.slice(0, 4)} timetable", and also in the local language of the circuit (horaires, programme, horario, Zeitplan, orari, tijdschema).
    c. The timetable is often a PDF on the organiser's or the circuit's website, or published with the event's supplementary regulations. Open PDFs: you can read them.
    List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
-2. ${raceWeek ? `Where to watch THIS race: only a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page), on an official site. Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. Set "watch_url" to null if there is no page for this race.` : `Skip where to watch: set "watch_url" to null.`}
 If the timetable is not published yet, set "timetable_found": false and an empty list.
 JSON schema:
 {"timetable_found": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
- "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}],
- "watch_url": string|null}`;
+ "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}]}`;
 }
 const DEEP = "\nA first search didn't find the timetable. Look harder: search the web in English and in the local language, and check the circuit's own website and official PDF documents.";
 
@@ -410,6 +410,30 @@ const WATCH_TASK = `Where to watch, for the whole championship (official sources
    - "broadcasters_url": the official page that lists the TV broadcasters by country (often called "Where to watch", "Broadcasters", "TV schedule"). null if there is none.`;
 const sameUrl = (a: unknown, b: unknown) => !!a && !!b && String(a).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase() === String(b).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase();
 const okUrl = (u: unknown) => typeof u === "string" && /^https?:\/\/[^\s]+$/.test(u);
+// agent 4, where to watch, for one race in race week: only a page made for that race weekend
+function raceWatchPrompt(ev: any, series: any) {
+  return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
+Official website: ${series.website_url || "unknown"}
+Race: ${ev.name}, ${ev.start_date} to ${ev.end_date}
+Today: ${new Date().toISOString().slice(0, 10)}
+Task: where to watch THIS race. Only a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page), on an official site. Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. null if there is no page for this race.
+JSON schema: {"watch_url": string|null}`;
+}
+// agent 5, checker: opens the source page again and says, item by item, whether it really shows what was found, with the exact words
+const CHECK_RULES = `You check facts against ONE official web page (or PDF). Open that page and only that page: never search the web and never use another source.
+For each numbered item, say whether the page shows it. The page may write it differently (e.g. "15-17 Jan", "Friday 15 January", "10:10 AM", "10h10"): that still counts. A different date or time does not count.
+Quote the short exact words from the page that show it (at most 15 words), or null.
+Finish with ONE fenced \`\`\`json code block and nothing after it.`;
+async function checkSource(url: unknown, items: string[]) {
+  if (typeof url !== "string" || !/^https?:/.test(url) || !items.length) return null;
+  const list = items.slice(0, 30);
+  try {
+    const r = await ask(CHECK_RULES, `Page: ${url}\nItems:\n${list.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nJSON schema: {"readable": boolean, "items": [{"n": number, "found": boolean, "quote": string|null}]}`, 2, [FAST]);
+    const by = new Map<number, any>((r.out.items || []).map((x: any) => [Math.round(Number(x.n)), x]));
+    const res = list.map((item, i) => ({ item, found: !!by.get(i + 1)?.found, quote: by.get(i + 1)?.quote ? String(by.get(i + 1).quote).slice(0, 200) : null }));
+    return { url, readable: r.out.readable !== false, found: res.filter(x => x.found).length, total: res.length, items: res, usage: r.usage, checked_at: new Date().toISOString() };
+  } catch (e) { return { url, readable: false, found: 0, total: list.length, items: [], error: String((e as Error).message || e).slice(0, 200), checked_at: new Date().toISOString() }; }
+}
 // proposes the championship links that are new or changed (never removes one)
 async function proposeLinks(series: any, out: any, runId: string, url: string) {
   const pl: any = {};
@@ -465,10 +489,10 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   // logo: copied to our storage when the championship has none yet (the admin turns it white and asks for confirmation)
   let logoNote = "";
   if (!series.logo_url) {
-    const aiC = [...(out.logo_urls || []), out.logo_url].filter((u: any) => typeof u === "string" && /^https?:/.test(u));
+    // agent 2, logo: its own search (the calendar agent doesn't look for logos any more)
     let logos: string[] = [];
     try {
-      const f = await findLogo({ ...series, website_url: site }, aiC, `${series.slug}-svg`);
+      const f = await findLogo({ ...series, website_url: site }, null, `${series.slug}-svg`);
       addUsage(usage, f.usage);
       // the pick alone when the AI picked one, otherwise the best candidates
       logos = await storeLogos(series.slug, (f.picked >= 0 ? [f.cands[f.picked]] : f.cands.slice(0, 5)).map(x => ({ url: x.url })));
@@ -477,7 +501,24 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     if (logos.length) { upd.logo_url = logos[0]; upd.logo_candidates = logos; } else logoNote = " No logo found: add one on the review page.";
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
-  if (await proposeLinks(series, out, runId, site || "")) props.push("where to watch");
+  // agent 4, where to watch: when the championship is added or checked by hand, or when a link is missing
+  if (kind !== "monthly" || !series.stream_url || !series.broadcasters_url) {
+    try {
+      const w = await ask(SYS(), linksPrompt({ ...series, website_url: site }), 5);
+      addUsage(usage, w.usage); addTrace(trace, w.trace);
+      if (await proposeLinks(series, w.out, runId, site || "")) props.push("where to watch");
+    } catch (_) { /* where to watch next time */ }
+  }
+  // agent 5, checker: every date about to be proposed is looked up again on the calendar page, with the exact words
+  const label = (e: any) => `${e.name} (${e.circuit?.name || "circuit ?"}): ${e.start_date} to ${e.end_date || e.start_date}`;
+  const tocheck = found.filter((e: any) => {
+    const match = known.find((k: any) => k.year === e.year && ((e.circuit?.name && k.venues?.name && norm(k.venues.name) === norm(e.circuit.name)) || norm(k.name) === norm(e.name) || (e.round && k.round === e.round)));
+    return !match || match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date);
+  });
+  const chk = tocheck.length ? await checkSource(out.calendar_url || site, tocheck.map(label)) : null;
+  if (chk?.usage) { addUsage(usage, chk.usage); delete (chk as any).usage; }
+  const proofOf = (e: any) => { const x = chk?.items?.find((i: any) => i.item === label(e)); return x ? { ...chk, items: [x], found: x.found ? 1 : 0, total: 1 } : null; };
+  const extra = [(out.tbc || []).length ? `Not dated yet: ${(out.tbc || []).map((t: any) => [t.name || t.circuit, t.when].filter(Boolean).join(" ")).join("; ")}.` : "", (out.doubts || []).length ? `Doubts: ${(out.doubts || []).join(" ")}` : ""].filter(Boolean).join(" ");
 
   // calendar: new races in one proposal, changed dates as separate proposals
   const fresh: any[] = [];
@@ -498,14 +539,14 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
     if (match.start_date !== e.start_date || match.end_date !== (e.end_date || e.start_date)) {
       await ins("proposals", { run_id: runId, series_id: series.id, event_id: match.id, kind: "event_change",
         payload: { start_date: e.start_date, end_date: e.end_date || e.start_date, ...(e.duration_label ? { duration_label: e.duration_label } : {}) },
-        evidence: { url: out.calendar_url || site, excerpt: `${e.name}: ${e.start_date} → ${e.end_date}` } });
+        evidence: { url: out.calendar_url || site, excerpt: `${e.name}: ${e.start_date} → ${e.end_date}`, check: proofOf(e) } });
       props.push(`date change: ${match.name}`);
     }
   }
   if (fresh.length) {
     await ins("proposals", { run_id: runId, series_id: series.id, kind: "new_season",
       payload: { events: fresh.map((e: any) => ({ round: e.round ?? null, name: e.name, start_date: e.start_date, end_date: e.end_date, duration_label: e.duration_label || null, year: e.year, circuit: e.circuit || null, ...(e.sessions.length ? { sessions: e.sessions, timetable_note: (e.timetable_url ? `Source: ${e.timetable_url}` : "") + e.zoneNote } : {}) })) },
-      evidence: { url: out.calendar_url || site, excerpt: out.notes || "" } });
+      evidence: { url: out.calendar_url || site, excerpt: [out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetable already out for ${ttFound}; the others are checked closer to each race)`);
   }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
@@ -523,7 +564,7 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[]) {
   // close to the race and still nothing: one more, deeper look with the stronger model
   const daysToStart = Math.round((new Date(ev.start_date + "T12:00:00Z").getTime() - Date.now()) / 864e5);
   if (!(out.timetable_found && (out.sessions || []).length) && daysToStart <= 10 && daysToStart >= -1) {
-    try { const deep = await ask(SYS(), user + DEEP, 10, [STRONG]); addUsage(usage, deep.usage); addTrace(trace, deep.trace); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; else if (!out.watch_url && deep.out.watch_url) out.watch_url = deep.out.watch_url; } catch (_) { /* keep the first answer */ }
+    try { const deep = await ask(SYS(), user + DEEP, 10, [STRONG]); addUsage(usage, deep.usage); addTrace(trace, deep.trace); if (deep.out.timetable_found && (deep.out.sessions || []).length) out = deep.out; } catch (_) { /* keep the first answer */ }
   }
   const ctz = v.timezone && validTz(v.timezone) ? v.timezone : "";
   let zone = ctz ? pageZone(out.times_zone, ctz) : "";
@@ -575,13 +616,22 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
     const curLens = JSON.stringify(current.map((s: any) => s.duration_min));
     const changedLens = current.length === sessions.length && JSON.parse(lens(sessions)).some((d: any, i: number) => d !== null && d !== JSON.parse(curLens)[i]);
     if (key(sessions) !== key(current) || changedLens) {
-      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) } });
+      // agent 5, checker: the times as the page shows them (before any time-zone conversion), looked up again on the source
+      const raw = (out.sessions || []).filter((x: any) => x?.label && x?.local_start).map((x: any) => `${x.label}${x.category ? ` (${x.category})` : ""}: ${x.local_start}${x.local_end ? ` to ${String(x.local_end).slice(11)}` : ""}`);
+      const chk = await checkSource(out.source_url, raw);
+      if (chk?.usage) { addUsage(usage, chk.usage); delete (chk as any).usage; }
+      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote), check: chk } });
       props.push(`timetable (${sessions.length} sessions)`);
     }
   }
-  if (!raceWeek || sameUrl(out.watch_url, series.stream_url) || sameUrl(out.watch_url, series.broadcasters_url) || !okUrl(out.watch_url)) out.watch_url = null;
-  if (out.watch_url && !sameUrl(out.watch_url, ev.watch_url)) {
-    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: { watch_url: out.watch_url }, evidence: { url: out.watch_url, excerpt: `Broadcast page for ${ev.name}` } });
+  // agent 4, where to watch this race: only in race week, when race pages get published
+  let watchUrl: string | null = null;
+  if (raceWeek) {
+    try { const w = await ask(SYS(), raceWatchPrompt(ev, series), 4); addUsage(usage, w.usage); addTrace(trace, w.trace); watchUrl = okUrl(w.out.watch_url) ? w.out.watch_url : null; } catch (_) { /* next check */ }
+  }
+  if (sameUrl(watchUrl, series.stream_url) || sameUrl(watchUrl, series.broadcasters_url)) watchUrl = null;
+  if (watchUrl && !sameUrl(watchUrl, ev.watch_url)) {
+    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: { watch_url: watchUrl }, evidence: { url: watchUrl, excerpt: `Broadcast page for ${ev.name}` } });
     props.push("this race's broadcast page");
   }
   const summary = props.length ? `Found: ${props.join(", ")}.` : out.timetable_found ? "Nothing new: timetable unchanged." : "Timetable not published yet.";
@@ -898,11 +948,13 @@ Deno.serve(async (req) => {
     const SRC = { urls: [{ url: "<official pages the agent knows>" }], agent_instructions: "<instructions for this championship, including your rejection notes>" };
     const EV = { name: "<race>", start_date: "2027-01-01", end_date: "2027-01-03" }, V = { name: "<circuit>", city: "<town>", country: "<country>", timezone: "<circuit time zone>" };
     return json({ rules: RULES, guidance: GUIDANCE, tasks: [
-      { key: "discover", title: "Adding a championship · monthly calendar check", when: "When you add a championship or click Check calendar with AI, then once a month (skipped for free when the official pages haven't changed).", text: discoverPrompt(S, SRC, new Date().getUTCFullYear()) },
-      { key: "race", title: "Race check, far from the race", when: "Once for every race of this season and next (first check), and when you click Search with AI.", text: checkPrompt(EV, S, SRC, V, false) },
-      { key: "raceweek", title: "Race check, in race week", when: "Every day from 6 days before the race (skipped while the pages are unchanged, but at least every other day), and a final check 2-3 days before.", text: checkPrompt(EV, S, SRC, V, true) },
-      { key: "deeper", title: "Deeper look", when: "Added to the race check when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
-      { key: "links", title: "Where to watch for the championship", when: "When you click Find with AI in Edit championship (also part of the monthly calendar check).", text: linksPrompt(S) },
+      { key: "discover", title: "1 · Calendar agent", when: "When you add a championship or click Check calendar with AI, then once a month (skipped for free when the official pages haven't changed). Dates and circuits for this year and next only.", text: discoverPrompt(S, SRC, new Date().getUTCFullYear()) },
+      { key: "logo", title: "2 · Logo agent", when: "When a championship has no logo yet (added, or Find logo with AI). Reads the official homepage (the homepage link in the header first), searches the web, then the AI picks among the pictures.", text: LOGO_PROMPT(S) },
+      { key: "race", title: "3 · Schedule agent", when: "One race at a time: first check for every race of this season and next, every day in race week (skipped while the pages are unchanged), and when you click Search with AI. Time zones are checked against the page's own exact timestamps when it has them.", text: checkPrompt(EV, S, SRC, V, false) },
+      { key: "deeper", title: "3b · Schedule agent, deeper look", when: "Added when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
+      { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
+      { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
+      { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion.", text: CHECK_RULES },
     ] });
   }
   if (body.action === "test_cases") {

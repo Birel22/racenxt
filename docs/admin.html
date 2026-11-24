@@ -233,6 +233,7 @@
   .drop u{color:var(--text)}
   .sw{display:flex;align-items:center;gap:8px;cursor:pointer}
   .sw input{width:auto;min-height:0}
+.ck{margin:0 0 10px}
 </style>
 </head>
 <body>
@@ -1086,6 +1087,7 @@ async function review(slug){
       <div class="bar"><div class="grow"><span class="chip warn">${KIND[p.kind] || p.kind}</span> <b>${esc(ser[p.series_id]?.short_name || "")} ${esc(p.events?.name || "")}</b><div class="muted" style="font-size:13px">${p.check_runs ? `Agent · ${p.check_runs.kind} check · ` : "By hand · "}${ago(p.created_at)}</div></div></div>
       ${p.evidence?.url ? `<div style="font-size:13px;margin-bottom:8px">Source: <a href="${esc(p.evidence.url)}" target="_blank" rel="noopener">${esc(p.evidence.url)}</a></div>` : ""}
       ${p.evidence?.excerpt ? `<blockquote class="dim" style="margin:0 0 10px;padding-left:10px;border-left:3px solid var(--line);font-size:13px">${esc(p.evidence.excerpt)}</blockquote>` : ""}
+      ${checkBox(p.evidence?.check)}
       ${p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
@@ -1335,6 +1337,16 @@ function testDetail(c, r, hist){
   </div>`;
 }
 
+// the checker's proof on a suggestion: each date or time looked up again on the source page, with the exact words
+function checkBox(c){
+  if (!c) return "";
+  if (!c.readable && !c.found) return `<div class="ck"><span class="chip warn">Checker couldn't read the source</span> <span class="muted" style="font-size:12px">Check it yourself with the link above.</span></div>`;
+  const all = c.found === c.total, none = !c.found;
+  const miss = (c.items || []).filter(i => !i.found), hit = (c.items || []).filter(i => i.found);
+  return `<div class="ck"><span class="chip ${all ? "good" : none ? "bad" : "warn"}">${all ? "✓ Checked on the source" : none ? "✗ Not found on the source" : "Partly found on the source"} · ${c.found}/${c.total}</span>
+    ${miss.length ? `<div style="font-size:13px;margin:6px 0 2px"><b>Not found on the page:</b>${miss.map(i => `<div class="dim">• ${esc(i.item)}</div>`).join("")}</div>` : ""}
+    ${hit.length ? `<details style="font-size:13px;margin-top:4px"><summary class="muted">Proof (${hit.length})</summary>${hit.map(i => `<div style="margin:4px 0"><span class="dim">${esc(i.item)}</span>${i.quote ? `<div class="muted">“${esc(i.quote)}”</div>` : ""}</div>`).join("")}</details>` : ""}</div>`;
+}
 // ---------- Users ----------
 const SOC = ["instagram","facebook","x","youtube","tiktok","website"];
 async function users(){

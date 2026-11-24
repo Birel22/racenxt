@@ -1089,10 +1089,8 @@
       const eb = document.createElement("button"); eb.type = "button"; eb.className = "rx-edit-b rx-only"; eb.innerHTML = `${PEN} Edit profile`; eb.onclick = editProfile;
       // just above "NAME RACE HUB", so the top-left corner stays free for the athlete's logo
       const ht = hero.querySelector(".hero-text"); if (ht) ht.prepend(eb); else hero.appendChild(eb);
-      // Powered by Racenxt, right under "NAME RACE HUB" (editor only; fans see it at the bottom of the page)
-      const pw = document.createElement("div"); pw.className = "rx-pow rx-only";
-      pw.innerHTML = `<span>Powered by</span><span class="rx-brand" role="img" aria-label="Racenxt">RACEN<span class="x">X</span>T</span>${p.published ? "" : `<span class="rx-status" title="Only you can see this page for now"><i></i>Hidden</span>`}`;
-      const h1 = hero.querySelector("h1"); if (h1) h1.insertAdjacentElement("afterend", pw); else (ht || hero).appendChild(pw);
+      // the page shows "Powered by Racenxt" under the name; editors also see when the page is still hidden
+      if (!p.published) { const pw = hero.querySelector(".hero-pow"); const hs = `<span class="rx-status rx-only" title="Only you can see this page for now"><i></i>Hidden</span>`; if (pw) pw.insertAdjacentHTML("beforeend", hs); else hero.querySelector("h1")?.insertAdjacentHTML("afterend", `<div class="rx-pow rx-only">${hs}</div>`); }
     }
 
     // your season

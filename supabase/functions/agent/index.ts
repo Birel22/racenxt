@@ -2,6 +2,7 @@
 //   calendar (dates and circuits, this year and next) · logo · schedule (one race at a time) · where to watch · checker (rereads the source, attaches proof) · cars (entry list + specs)
 // POST { action: "discover", series_id }  -> calendar agent, then logo, where to watch and the checker; files proposals
 // POST { action: "check_event", event_id } -> schedule agent (+ where to watch in race week) and the checker; files proposals
+// POST { action: "class_format", series_id } -> class structure: the classes and whether they share sessions, read on past timetables / results
 // POST { action: "cars", series_id }      -> cars agent: the cars on the official entry list, new ones with their specs; files a proposal
 // POST { action: "links", series_id }     -> the championship's official stream + list of TV broadcasters; files a proposal
 // POST { action: "logo", series_id }      -> logo candidates from the official homepage (no AI; the admin page picks with AI)
@@ -195,6 +196,39 @@ function normLabel(label: string) {
   m = l.match(/^(first|second|third|1st|2nd|3rd)\s+qualifying$/i); if (m) return `Qualifying ${ORD[m[1].toLowerCase()]}`;
   return l.replace(/^\w/, c => c.toUpperCase());
 }
+// ---------- classes: a session's class, in the championship's official names ----------
+const FORMAT_WORDS: Record<string, string> = {
+  shared: "the classes share practice and races; some sessions may be for one class only (e.g. qualifying per class)",
+  separate: "each class has its own practice, qualifying and races (e.g. karting categories)",
+};
+function classLine(series: any) {
+  const cls: string[] = series.classes || [];
+  if (cls.length < 2) return `If the timetable splits sessions by class or category, put the class name in "category" exactly as the timetable writes it; otherwise null.\n`;
+  return `This championship's classes: ${cls.join(", ")}${FORMAT_WORDS[series.class_format] ? ` (${FORMAT_WORDS[series.class_format]})` : ""}.
+For EVERY session, set "category" to the class it is for, using exactly these names (several separated by commas if a session is for several classes, e.g. "${cls.slice(0, 2).join(", ")}"); null only when the session is for every class. List the sessions of every class.\n`;
+}
+// "OK-Junior" stays as written unless it matches an official class; "lmp2,  LMP3" -> "LMP2, LMP3"
+function fixCategory(cat: unknown, classes: string[] | null) {
+  const raw = String(cat ?? "").trim();
+  if (!raw || /^(all|null|none|-)$/i.test(raw)) return null;
+  if (!(classes || []).length) return raw.slice(0, 60);
+  const k = (x: string) => x.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const whole = classes!.find(c => k(c) === k(raw));
+  if (whole) return whole;
+  const parts = raw.split(/\s*(?:,|\/|&|\+|;|\band\b)\s*/i).filter(Boolean);
+  const hits = parts.map(p => classes!.find(c => k(c) === k(p)));
+  return hits.every(Boolean) ? [...new Set(hits as string[])].join(", ") : raw.slice(0, 60);
+}
+// what one timetable says about the classes: how many sessions are for one class only, and which classes appear
+function classShape(sessions: any[]) {
+  const seen = new Set<string>();
+  let specific = 0;
+  for (const x of sessions) { if (!x.category) continue; specific++; String(x.category).split(/\s*,\s*/).forEach(c => c && seen.add(c)); }
+  const total = sessions.length;
+  const guess = seen.size >= 2 ? (specific / Math.max(total, 1) >= 0.75 ? "separate" : "shared") : "none";
+  return { total, specific, classes: [...seen], guess };
+}
+
 const DEF_MIN: Record<string, number> = { practice: 60, qualifying: 60, race: 60, warmup: 20, other: 60 };
 function cleanSessions(list: any[], start: string, end: string) {
   const lo = new Date(start + "T00:00:00Z").getTime() - 2 * 864e5, hi = new Date(end + "T23:59:00Z").getTime() + 864e5;
@@ -394,7 +428,7 @@ ${(src?.urls || []).length ? `Official pages we know: ${(src.urls || []).map((u:
 Dates: ${ev.start_date} to ${ev.end_date}
 Circuit: ${[v.name, v.city, v.country].filter(Boolean).join(", ")} (local time zone ${v.timezone || "unknown"})
 Today: ${new Date().toISOString().slice(0, 10)}
-${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}${src?.tt_url ? `Last time, this championship's timetable was found here: ${src.tt_url} (look at the same place for this race first).\n` : ""}${fmtText(series.weekend_format) ? `A full race weekend of this championship usually has ${fmtText(series.weekend_format)} (it can vary, e.g. sprint weekends or double headers).\n` : ""}
+${src?.agent_instructions ? `Instructions from the Racenxt team:\n${src.agent_instructions}\n` : ""}${src?.tt_url ? `Last time, this championship's timetable was found here: ${src.tt_url} (look at the same place for this race first).\n` : ""}${fmtText(series.weekend_format) ? `A full race weekend of this championship usually has ${fmtText(series.weekend_format)} (it can vary, e.g. sprint weekends or double headers).\n` : ""}${classLine(series)}
 Task:
 1. Find the official timetable (schedule) of this race weekend. Search strategy:
    a. Open the race's page on the championship website (and its documents / downloads section).
@@ -654,11 +688,13 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
       evidence: { url: out.calendar_url || site, excerpt: [fresh.some((e: any) => e.source === "press") ? `${fresh.filter((e: any) => e.source === "press").length} race(s) from reliable press (the official site doesn't give the dates yet): check them.` : "", fresh.some((e: any) => e.source === "official_image") ? `${fresh.filter((e: any) => e.source === "official_image").length} race(s) read on the official calendar picture.` : "", out.classes.length > 1 ? `Shared calendar: ${out.classes.join(", ")}. Once approved, the AI checks which classes race at each round.` : "", out.notes || "", extra].filter(Boolean).join(" "), check: chk ? (() => { const items = chk.items.filter((i: any) => fresh.some((e: any) => label(e) === i.item)); return { ...chk, items, found: items.filter((i: any) => i.found).length, total: items.length }; })() : null } });
     props.push(`${fresh.length} new race${fresh.length > 1 ? "s" : ""} (timetables are checked race by race)`);
   }
-  // agent 6, cars: its own job (own time budget) when the championship is added or checked by hand
+  // agent 6 (cars) and the class structure agent: their own jobs (own time budget) when the championship is added or checked by hand
   if (kind === "discover") {
-    try {
-      await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "cars", series_id: series.id }) });
-    } catch (_) { /* Find cars with AI by hand */ }
+    for (const action of ["class_format", "cars"]) {
+      try {
+        await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action, series_id: series.id }) });
+      } catch (_) { /* by hand from Edit championship */ }
+    }
   }
   const summary = (props.length ? `Found: ${props.join(", ")}.` : "Nothing new: the calendar matches what we have.") + logoNote;
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.calendar_url, ...urls, site]), trace: { ...trace, answer: out } };
@@ -777,6 +813,57 @@ async function carsJob(series: any, runId: string) {
   return { result: "proposal", summary: `Found: ${cars.length} car${cars.length > 1 ? "s" : ""} (${fresh} new to the library).`, usage, pages: [], trace: { ...trace, answer: out } };
 }
 
+// a timetable that contradicts the championship's class format -> a suggestion in the Review queue (never automatic)
+async function suggestClassFormat(series: any, sessions: any[], runId: string, from: string, url: unknown) {
+  const sh = classShape(sessions);
+  const cur = series.class_format || "none";
+  // one timetable can't prove there are no classes (it may cover one class only): only none -> classes, or shared <-> separate
+  if (sh.total < 4 || sh.guess === "none" || sh.guess === cur) return false;
+  const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.class_format&status=eq.pending&select=id&limit=1`);
+  if (pending) return false;
+  const classes = [...new Set([...(series.classes || []), ...sh.classes])];
+  await ins("proposals", { run_id: runId, series_id: series.id, kind: "class_format",
+    payload: { class_format: sh.guess, classes, sessions_read: sh.total, class_specific: sh.specific, examples: sessions.slice(0, 8).map((x: any) => `${x.label}${x.category ? ` · ${x.category}` : ""}`), from },
+    evidence: { url: okUrl(url) ? url : (series.website_url || ""), excerpt: `${from}: ${sh.specific} of ${sh.total} sessions are for one class only (${sh.classes.join(", ")}). The championship is set to "${cur}".` } });
+  return true;
+}
+
+// ---------- class structure agent: which classes, and do they share sessions? (reads past timetables and results) ----------
+function classFormatPrompt(series: any, year: number) {
+  return `Championship: ${series.name}${series.short_name && series.short_name !== series.name ? ` (${series.short_name})` : ""}
+Sport category: ${series.sport}
+Official website: ${series.website_url || "unknown"}
+${(series.classes || []).length ? `Classes we have so far: ${series.classes.join(", ")}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
+Task: understand how this championship's classes (categories) work. Past events are the best evidence: the next timetable may not be out yet.
+1. Open the official timetable of the most recent event of this championship already raced (${year} or ${year - 1}). If you can't find one, use the official results (classifications) of a recent event. Official sources only: the championship's or organiser's website, official documents (PDF timetables, supplementary regulations), or the official timing provider.
+2. List the classes (categories) that have their own classification under this championship's name, with the short names the championship uses (e.g. KZ2, OK, OKJ, MINI; or LMP2, LMP3, LMGT3). A separate championship that only shares the weekend is NOT a class (e.g. WorldSBK and WorldSSP, F1 and F2).
+3. Decide the format from the timetable:
+   - "none": one class only.
+   - "shared": the classes race together in the same races (and mostly the same practice); a few sessions may be for one class only (e.g. qualifying per class).
+   - "separate": each class has its own practice, qualifying and races (e.g. karting categories).
+   Count, on that timetable, the sessions for one class only and the sessions for everyone.
+JSON schema:
+{"class_format": "none"|"shared"|"separate", "classes": [string], "evidence_url": string|null, "evidence_event": string|null, "sessions_read": number|null, "class_specific": number|null, "examples": [string], "reason": string}`;
+}
+async function classFormatJob(series: any, runId: string) {
+  const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.class_format&status=eq.pending&select=id&limit=1`);
+  if (pending) return { result: "no_change", summary: "Classes: a suggestion is already waiting in the Review queue.", usage: null, pages: [] };
+  const { out, usage, trace } = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear()), 10);
+  const fmt = ["none", "shared", "separate"].includes(out.class_format) ? out.class_format : null;
+  const classes = [...new Set((Array.isArray(out.classes) ? out.classes : []).map((c: any) => String(c || "").trim()).filter(Boolean))].slice(0, 30) as string[];
+  if (!fmt || (fmt !== "none" && classes.length < 2)) return { result: "no_change", summary: "Classes: no official timetable or results found to tell.", usage, pages: [], trace: { ...trace, answer: out } };
+  const k = (x: string) => x.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const same = fmt === (series.class_format || "none") && (fmt === "none" || (classes.length === (series.classes || []).length && classes.every(c => (series.classes || []).some((x: string) => k(x) === k(c)))));
+  if (same) return { result: "no_change", summary: `Classes: unchanged (${fmt}${classes.length ? ": " + classes.join(", ") : ""}).`, usage, pages: [], trace: { ...trace, answer: out } };
+  // agent 5, checker: is each class really on that timetable / results page?
+  let chk: any = okUrl(out.evidence_url) && classes.length ? await checkSource(out.evidence_url, classes.map(c => `the class or category "${c}"`)) : null;
+  if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
+  await ins("proposals", { run_id: runId, series_id: series.id, kind: "class_format",
+    payload: { class_format: fmt, classes: fmt === "none" ? [] : classes, sessions_read: Number.isFinite(+out.sessions_read) ? +out.sessions_read : null, class_specific: Number.isFinite(+out.class_specific) ? +out.class_specific : null, examples: (out.examples || []).map(String).slice(0, 8), from: out.evidence_event ? String(out.evidence_event).slice(0, 120) : null },
+    evidence: { url: okUrl(out.evidence_url) ? out.evidence_url : (series.website_url || ""), excerpt: String(out.reason || "").slice(0, 500), check: chk } });
+  return { result: "proposal", summary: `Found: classes (${fmt}${classes.length ? ": " + classes.join(", ") : ""}).`, usage, pages: [], trace: { ...trace, answer: out } };
+}
+
 async function computeSchedule(ev: any, series: any, src: any, current: any[], models = [FAST, STRONG]) {
   const v = ev.venues || {};
   // the race's own broadcast page is only published in the days before the race
@@ -819,6 +906,7 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[], m
     if (starts(asUtc) === starts(current)) { sessions = asUtc; zoneFix = ` (times were shown in UTC: converted to local ${ctz})`; }
   }
   if (!(out.timetable_found && sessions.length)) sessions = [];
+  sessions = sessions.map((x: any) => ({ ...x, category: fixCategory(x.category, series.classes) }));
   return { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek };
 }
 async function checkEvent(ev: any, series: any, src: any, runId: string, kind = "manual") {
@@ -827,13 +915,15 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
     const same = await unchanged(`event_id=eq.${ev.id}`, kind === "daily" ? 2 : 8);
     if (same) return { result: "skipped_unchanged", summary: SKIPPED, usage: null, pages: same };
   }
-  const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min&order=local_start`);
+  const current = await db(`sessions?event_id=eq.${ev.id}&select=label,type,local_start,duration_min,category&order=local_start`);
   let { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek } = await computeSchedule(ev, series, src, current);
   const props: string[] = [];
   if (sessions.length) {
     // only real changes count: start times and lengths, not how the sessions are named
     // (an estimated length never replaces a known one)
-    const key = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16)).sort());
+    // with classes, a session moving to another class is a change too
+    const withCls = (series.classes || []).length > 1;
+    const key = (l: any[]) => JSON.stringify(l.map(s => String(s.local_start).replace("T", " ").slice(0, 16) + (withCls ? " " + (s.category || "") : "")).sort());
     const lens = (l: any[]) => JSON.stringify([...l].sort((a, b) => String(a.local_start).localeCompare(String(b.local_start))).map(s => s.end_estimated ? null : s.duration_min));
     const curLens = JSON.stringify(current.map((s: any) => s.duration_min));
     const changedLens = current.length === sessions.length && JSON.parse(lens(sessions)).some((d: any, i: number) => d !== null && d !== JSON.parse(curLens)[i]);
@@ -857,6 +947,7 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
       await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) + (out.complete === false ? " (only part of the timetable is published yet: the search goes on)" : ""), check: chk } });
       props.push(`timetable (${sessions.length} sessions)`);
     }
+    if (await suggestClassFormat(series, sessions, runId, `${ev.name} timetable`, out.source_url)) props.push("class format (from this timetable)");
   }
   // agent 4, where to watch this race: only in race week, when race pages get published
   let watchUrl: string | null = null;
@@ -1146,14 +1237,14 @@ async function startJob(b: any) {
   return json(await r.json().catch(() => ({})), r.status);
 }
 
-// the cars job, started by the calendar agent (cron secret) or by an admin; runs in the background
-async function carsStart(seriesId: string) {
+// background jobs with their own time budget (cars, class structure), started by the calendar agent or by an admin
+async function bgStart(kind: "cars" | "class_format", seriesId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(seriesId || "")) return json({ error: "bad id" }, 400);
   const [series] = await db(`series?id=eq.${seriesId}&select=*`);
   if (!series) return json({ error: "not found" }, 404);
-  const [run] = await ins("check_runs", { series_id: series.id, kind: "cars", result: "running", pages: [] });
+  const [run] = await ins("check_runs", { series_id: series.id, kind, result: "running", pages: [] });
   const job = (async () => {
-    try { const r = await carsJob(series, run.id); await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() }); }
+    try { const r = kind === "cars" ? await carsJob(series, run.id) : await classFormatJob(series, run.id); await patch("check_runs", `id=eq.${run.id}`, { result: r.result, summary: r.summary, usage: r.usage, pages: r.pages, trace: (r as any).trace || null, finished_at: new Date().toISOString() }); }
     catch (e) { await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); }
   })();
   // @ts-ignore EdgeRuntime is provided by Supabase
@@ -1169,13 +1260,13 @@ Deno.serve(async (req) => {
   if (cron) {
     // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
     const b = await req.json().catch(() => ({}));
-    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars") return tick(cron);
+    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars" && b.action !== "class_format") return tick(cron);
     const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
     if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
     if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
     await loadGuidance();
     if (b.action === "classes") return startJob(b);
-    if (b.action === "cars") return carsStart(b.series_id);
+    if (b.action === "cars" || b.action === "class_format") return bgStart(b.action, b.series_id);
     if (b.action === "test_one") {
       // one test per call, so each has the function's full time limit
       const job = runTest(b.case_id, b.run_id).catch(e => patch("agent_test_runs", `id=eq.${b.run_id}`, { status: "error", error: ((stage ? stage + ": " : "") + String((e as Error).message || e)).slice(0, 500), finished_at: new Date().toISOString() }));
@@ -1212,6 +1303,7 @@ Deno.serve(async (req) => {
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
       { key: "classes", title: "1b · Classes (shared calendars)", when: "Only for championships whose classes share one calendar without every class racing everywhere (e.g. IMSA). Right after the calendar check (or once the new races are approved), then with each later calendar check.", text: classesPrompt(S, ["<class A>", "<class B>"], "<official calendar>", [{ name: "<race>", start_date: "2027-01-01", end_date: "2027-01-03", venues: { name: "<circuit>" } }]) },
+      { key: "class_format", title: "1c · Class structure", when: "When you add a championship (right after the calendar), or Check classes with AI in Edit championship. Reads the official timetable (or results) of a recent past event: which classes, and whether they share practice and races (WEC, ELMS) or each has its own (karting). The schedule agent also suggests a change when a timetable contradicts it.", text: classFormatPrompt(S, new Date().getUTCFullYear()) },
       { key: "cars", title: "6 · Cars agent", when: "When you add a championship (right after the calendar), or Find cars with AI in Edit championship. Reads the official entry list; new cars come with their specs. Everything goes to the Review queue: untick a car to leave it out.", text: CAR_RULES + "\n\n" + carsPrompt(S, [{ name: "<cars already in the library>" }], new Date().getUTCFullYear()) },
       { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion. If nothing is confirmed, it reads again with the stronger model.", text: CHECK_RULES },
     ] });
@@ -1228,7 +1320,7 @@ Deno.serve(async (req) => {
     if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
     return json({ run_id: run.id });
   }
-  if (body.action === "cars") return carsStart(body.series_id);
+  if (body.action === "cars" || body.action === "class_format") return bgStart(body.action, body.series_id);
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID.test(body.series_id || body.event_id || "")) return json({ error: "bad id" }, 400);
   let series: any, ev: any = null;

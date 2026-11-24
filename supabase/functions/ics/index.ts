@@ -68,7 +68,9 @@ Deno.serve(async (req) => {
     const short = Object.fromEntries(entries.map((e: any) => [e.series_id, e.series?.short_name || ""]));
     const site = Object.fromEntries(entries.map((e: any) => [e.series_id, e.series?.website_url || ""]));
     const evIds = events.map((e: any) => e.id);
-    let sessions: any[] = evIds.length ? await get(`session_times?event_id=in.(${evIds.join(",")})&select=id,event_id,type,label,start_utc,end_utc&order=start_utc`) : [];
+    let sessions: any[] = evIds.length ? await get(`session_times?event_id=in.(${evIds.join(",")})&select=id,event_id,type,label,start_utc,end_utc,classes&order=start_utc`) : [];
+    // the athlete's class only (karting: each class has its own sessions; WEC/ELMS: split qualifying); untagged sessions are for everyone
+    sessions = sessions.filter((s: any) => { const e = evById[s.event_id]; const mc = e?.series_id && myCls[e.series_id + "|" + e.year]; return !mc || !(s.classes || []).length || s.classes.some((c: any) => ck(c) === mc); });
     if (ids.length) sessions = sessions.filter(s => ids.includes(s.id));
     else if (kind === "qr") sessions = sessions.filter(s => s.type === "qualifying" || s.type === "race");
     else if (kind === "r") sessions = sessions.filter(s => s.type === "race");

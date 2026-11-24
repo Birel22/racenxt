@@ -187,6 +187,8 @@
   .se-day{background:#0d0e11;border:1px solid #2d2f37;border-radius:12px;padding:12px;display:grid;gap:8px}
   .se-day h5{margin:0;font:700 14px Barlow;color:var(--text);display:flex;align-items:center}
   .se-row{display:grid;grid-template-columns:110px 1fr 92px 34px;gap:8px;align-items:center}
+  .se-row.cls{grid-template-columns:110px 1fr 120px 92px 34px} .se-row select{min-height:40px}
+  @media (max-width:600px){ .se-row.cls{grid-template-columns:96px 1fr 34px} .se-row.cls .se-c{grid-column:1/3} }
   .se-row input{min-height:40px}
   .se-row .min{position:relative} .se-row .min input{padding-right:38px} .se-row .min span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--mute);pointer-events:none}
   .se-head{display:grid;grid-template-columns:110px 1fr 92px 34px;gap:8px;font-size:12px;color:var(--mute);font-weight:600}
@@ -485,7 +487,7 @@ async function loadDisciplines(){
 }
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format,classes&order=name"),
+    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format,classes,class_format&order=name"),
     api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
@@ -727,7 +729,9 @@ async function editSchedule(s, e, ss){
   const venue = e.venue_id ? D.venues.find(v => v.id === e.venue_id) : null;
   const byDay = Object.fromEntries(dl.map(d => [d, []]));
   ss.forEach(x => { const d = String(x.local_start).slice(0,10); (byDay[d] = byDay[d] || []).push({ time: String(x.local_start).replace("T"," ").slice(11,16), label: x.label, min: x.duration_min, type: x.type, cat: x.category }); });
-  const row = x => `<div class="se-row"><input type="time" class="se-t" value="${esc(x.time || "")}" aria-label="Start time"><input class="se-l" value="${esc(x.label || "")}" placeholder="Session name" aria-label="Session name" data-type="${esc(x.type || "")}" data-cat="${esc(x.cat || "")}"><div class="min"><input type="number" min="1" class="se-m" value="${esc(String(x.min || 60))}" aria-label="Length in minutes"><span>min</span></div><button type="button" class="btn icon sm se-x" aria-label="Remove session">×</button></div>`;
+  const CL = (s.classes || []).length > 1 ? s.classes : null;
+  const clsSel = cat => { if (!CL) return ""; const c0 = String(cat || ""); const known = !c0 || CL.includes(c0); return `<select class="se-c" aria-label="Class"><option value="">All classes</option>${CL.map(c => `<option${c === c0 ? " selected" : ""}>${esc(c)}</option>`).join("")}${known ? "" : `<option selected>${esc(c0)}</option>`}</select>`; };
+  const row = x => `<div class="se-row${CL ? " cls" : ""}"><input type="time" class="se-t" value="${esc(x.time || "")}" aria-label="Start time"><input class="se-l" value="${esc(x.label || "")}" placeholder="Session name" aria-label="Session name" data-type="${esc(x.type || "")}" data-cat="${esc(x.cat || "")}">${clsSel(x.cat)}<div class="min"><input type="number" min="1" class="se-m" value="${esc(String(x.min || 60))}" aria-label="Length in minutes"><span>min</span></div><button type="button" class="btn icon sm se-x" aria-label="Remove session">×</button></div>`;
   const html = `<section class="fs"><h4><i></i>${esc(e.name)} <small>Local circuit time${venue ? " · " + esc(venue.timezone) : ""}</small></h4>
     ${Object.keys(byDay).sort().map(d => `<div class="se-day" data-day="${d}"><h5>${dayName(d)}</h5><div class="se-head"><span>Time</span><span>Session</span><span class="h-min">Length</span><span></span></div><div class="se-rows">${byDay[d].map(row).join("")}</div><div><button type="button" class="btn sm se-add">+ Add session</button></div></div>`).join("")}
     <details><summary class="muted" style="cursor:pointer;font-size:13px;font-weight:600">Paste a whole timetable instead</summary><div style="display:grid;gap:8px;margin-top:10px"><textarea id="se-paste" placeholder="One session per line, for example:\nFri 10:10 Free Practice 1 90\nSat 15:00 Race 240"></textarea><div><button type="button" class="btn sm" id="se-pasteok">Add these sessions</button></div></div></details></section>`;
@@ -749,7 +753,7 @@ async function editSchedule(s, e, ss){
       }
       $("#se-paste").value = ""; $("#se-paste").closest("details").open = false;
     };
-  }, collect(){ return { rows: $$(".se-day").flatMap(dd => [...dd.querySelectorAll(".se-row")].map(r => ({ day: dd.dataset.day, time: r.querySelector(".se-t").value, label: r.querySelector(".se-l").value.trim(), min: +r.querySelector(".se-m").value || 60, type: r.querySelector(".se-l").dataset.type, cat: r.querySelector(".se-l").dataset.cat }))).filter(x => x.time || x.label) }; } });
+  }, collect(){ return { rows: $$(".se-day").flatMap(dd => [...dd.querySelectorAll(".se-row")].map(r => ({ day: dd.dataset.day, time: r.querySelector(".se-t").value, label: r.querySelector(".se-l").value.trim(), min: +r.querySelector(".se-m").value || 60, type: r.querySelector(".se-l").dataset.type, cat: r.querySelector(".se-c") ? r.querySelector(".se-c").value : r.querySelector(".se-l").dataset.cat }))).filter(x => x.time || x.label) }; } });
   if (!r) return editRace(s, e);
   const bad = r.rows.find(x => !x.time || !x.label);
   if (bad){ alert("Each session needs a time and a name."); return editSchedule(s, e, ss); }
@@ -1032,7 +1036,7 @@ function aiSetup(n){
   const m = document.createElement("div");
   m.className = "ai-modal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true"); m.setAttribute("aria-labelledby", "ai-h");
   m.innerHTML = `<div class="ai-box"><div class="spin"></div><h2 id="ai-h">Setting up ${esc(label)}</h2><div class="dim">Usually about 30–60 seconds · <span class="t" id="ai-t">0s</span></div>
-    <ul><li>Official website</li><li>Logo</li><li>Season calendar and circuits</li><li>Where to watch</li><li>Cars (a minute later, also to Review)</li></ul>
+    <ul><li>Official website</li><li>Logo</li><li>Season calendar and circuits</li><li>Where to watch</li><li>Classes and cars (a minute later, also to Review)</li></ul>
     <div class="bar" style="justify-content:center;margin:0"><button class="btn" id="ai-bg">Keep working, notify me</button></div></div>`;
   document.body.appendChild(m);
   const t0 = Date.now(), tick = setInterval(() => { const el = $("#ai-t"); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + "s"; }, 1000);
@@ -1068,8 +1072,10 @@ async function editSeries(s, src){
       { html: dg.html } ] },
     { section:"Logo", items:[{ html: lp.html }] },
     { section:"Discipline", items:[{ html: sp.html }] },
-    { section:"Classes", sub:"Only when several classes share this calendar and not every class races at every round (e.g. IMSA). Athletes then pick their class, and their page only shows the races of their class.", items:[
-      { k:"classes_txt", l:"Classes", help:"Separate with commas, e.g. GTP, LMP2, GTD PRO, GTD. Leave empty for a one-class championship." },
+    { section:"Classes", sub:"Athletes pick their class: their page and calendar only show their class's races and sessions.", items:[
+      { k:"class_format", l:"How the classes race", type:"select", empty:false, options:[{ v:"none", l:"One class" }, { v:"shared", l:"Shared sessions (e.g. WEC, ELMS, IMSA)" }, { v:"separate", l:"Separate sessions (e.g. karting)" }], help:"Shared: the classes race together, a few sessions are split (e.g. qualifying). Separate: each class has its own practice, qualifying and races." },
+      { html:`<button type="button" class="btn sm ai" id="f-cfmt"${aiBusy("cfmt-" + s.id) ? " disabled" : ""}>Check classes with AI</button>` },
+      { k:"classes_txt", l:"Classes", help:"Separate with commas, with the championship's own short names, e.g. GTP, LMP2, GTD PRO, GTD or KZ2, OK, OKJ, MINI." },
       ...((s.classes || []).length > 1 ? [{ html:`<button type="button" class="btn sm ai" id="f-cls"${aiBusy("cls-" + s.id) ? " disabled" : ""}>Check which class races where with AI</button>` }] : []) ] },
     { section:"Cars", sub:"The cars on the official entry list. New ones come with their specs; you review everything first.", items:[
       { html:`<button type="button" class="btn sm ai" id="f-cars"${aiBusy("cars-" + s.id) ? " disabled" : ""}>Find cars with AI</button>` } ] },
@@ -1080,9 +1086,9 @@ async function editSeries(s, src){
       { k:"broadcasters_url", l:"TV broadcasters", type:"url", help:"The official page listing the TV channels by country. Fans see it as “TV broadcast” on every race without an Event broadcast." },
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
-  ], { ...s, classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
+  ], { ...s, class_format: s.class_format || "none", classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
     validate: dg.validate,
-    after(){ lp.after(); sp.after(); dg.after(); if ($("#f-cls")) $("#f-cls").onclick = () => { runAgent({ action:"classes", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cls-" + s.id); $("#f-cls").disabled = true; $("#f-cls").textContent = "Checking… results go to the Review queue"; }; $("#f-cars").onclick = () => { runAgent({ action:"cars", series_id:s.id }, `Cars ${s.short_name || s.name}`, "cars-" + s.id); $("#f-cars").disabled = true; $("#f-cars").textContent = "Searching… results go to the Review queue"; }; $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
+    after(){ lp.after(); sp.after(); dg.after(); if ($("#f-cls")) $("#f-cls").onclick = () => { runAgent({ action:"classes", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cls-" + s.id); $("#f-cls").disabled = true; $("#f-cls").textContent = "Checking… results go to the Review queue"; }; $("#f-cfmt").onclick = () => { runAgent({ action:"class_format", series_id:s.id }, `Classes ${s.short_name || s.name}`, "cfmt-" + s.id); $("#f-cfmt").disabled = true; $("#f-cfmt").textContent = "Checking… results go to the Review queue"; }; $("#f-cars").onclick = () => { runAgent({ action:"cars", series_id:s.id }, `Cars ${s.short_name || s.name}`, "cars-" + s.id); $("#f-cars").disabled = true; $("#f-cars").textContent = "Searching… results go to the Review queue"; }; $("#f-links").onclick = () => { runAgent({ action:"links", series_id:s.id }, `Where to watch ${s.short_name || s.name}`, "links-" + s.id); $("#f-links").disabled = true; $("#f-links").textContent = "Searching… results go to the Review queue"; }; },
     collect(){ return { website_url: ($("#f_website_url")?.value || "").trim() || null, urls: $("#f_urls")?.value || "", instr: $("#f_instr")?.value || "" }; }
   });
   if (!r) return;
@@ -1091,6 +1097,8 @@ async function editSeries(s, src){
   const { urls, instr, fmt_practice, fmt_qualifying, fmt_race, classes_txt, ...row } = r;
   const cls = [...new Set((classes_txt || "").split(",").map(x => x.trim()).filter(Boolean))];
   row.classes = cls.length > 1 ? cls : null;
+  if (row.class_format !== "none" && !row.classes){ alert("List at least two classes, or choose One class."); return editSeries(s, src); }
+  if (!row.classes) row.class_format = "none";
   const fmt = Object.fromEntries([["practice", fmt_practice], ["qualifying", fmt_qualifying], ["race", fmt_race]].filter(([, v]) => v !== "" && v != null && +v >= 0).map(([k, v]) => [k, Math.round(+v)]));
   row.weekend_format = Object.keys(fmt).length ? fmt : null;
   for (const k of ["stream_url", "broadcasters_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }
@@ -1112,7 +1120,7 @@ async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes", cars:"Cars" };
+  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes", cars:"Cars", class_format:"Class format" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1134,6 +1142,7 @@ async function review(slug){
         : p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
         : p.kind === "classes" ? classesView(p.payload) + `<pre class="now" hidden></pre>`
         : p.kind === "cars" ? carsView(p) + `<pre class="now" hidden></pre>`
+        : p.kind === "class_format" ? classFormatView(p) + `<pre class="now" hidden></pre>`
         : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
         : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
         : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
@@ -1148,6 +1157,7 @@ async function review(slug){
     const box = document.querySelector(`[data-p="${p.id}"]`);
     if (p.kind === "logo"){ logoProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     if (p.kind === "cars"){ carsProposal(p, box, only && ps.length === 1 ? only : null); continue; }
+    if (p.kind === "class_format"){ classFormatProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     current(p).then(t => { const n = box.querySelector(".now"); if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
     box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
@@ -1186,6 +1196,33 @@ function carsView(p){
     </div>`).join("")}</div>
     <div class="dim" style="font-size:12.5px;margin-top:8px">Approve adds the new cars to the library and links every ticked car to this championship. Untick a car to leave it out; Edit to fix a spec first.</div>`;
 }
+// the class structure the agent found (or a timetable that contradicts the current setting)
+const CF_LABEL = { none:"One class", shared:"Shared sessions", separate:"Separate sessions" };
+function classFormatView(p){
+  const pl = p.payload || {}, s = D.series.find(x => x.id === p.series_id) || {};
+  const now = s.class_format || "none";
+  return `<div class="diff"><div><label class="f">Now</label><div class="pre-l"><b>${CF_LABEL[now]}</b>${(s.classes || []).length ? `<div class="dim" style="margin-top:4px">${esc(s.classes.join(", "))}</div>` : ""}</div></div>
+    <div><label class="f">Proposed</label><div class="pre-l"><b>${CF_LABEL[pl.class_format] || esc(pl.class_format)}</b>${(pl.classes || []).length ? `<div style="margin-top:4px">${(pl.classes || []).map(c => `<span class="chip">${esc(c)}</span>`).join(" ")}</div>` : ""}</div></div></div>
+    ${pl.sessions_read ? `<div class="dim" style="font-size:13px;margin-top:8px">${pl.from ? esc(pl.from) + ": " : ""}${pl.class_specific ?? "?"} of ${pl.sessions_read} sessions are for one class only.</div>` : ""}
+    ${(pl.examples || []).length ? `<details style="margin-top:6px"><summary class="dim" style="cursor:pointer;font-size:13px">Sessions it read</summary><ul class="dim" style="margin:6px 0 0;padding-left:18px;font-size:13px">${pl.examples.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}
+    <div class="dim" style="font-size:12.5px;margin-top:8px">Approve sets how this championship's classes race; its sessions are tagged with their class right away. Edit to rename a class first.</div>`;
+}
+function classFormatProposal(p, box, only){
+  const done = async () => { await loadRef(); if (only) location.hash = `#/championships/${only.slug}`; else route(); };
+  box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_class_format", { p_id:p.id }); await done(); }, "Classes saved");
+  box.querySelector('[data-act="edit"]').onclick = async () => {
+    const pl = p.payload || {};
+    const r = await drawer("Edit classes", [
+      { k:"class_format", l:"How the classes race", type:"select", empty:false, options:[{ v:"none", l:"One class" }, { v:"shared", l:"Shared sessions" }, { v:"separate", l:"Separate sessions" }] },
+      { k:"classes_txt", l:"Classes", help:"Separate with commas, with the championship's own short names." }
+    ], { class_format: pl.class_format || "none", classes_txt: (pl.classes || []).join(", ") }, { ok:"Approve with changes" });
+    if (!r) return;
+    const classes = [...new Set((r.classes_txt || "").split(",").map(x => x.trim()).filter(Boolean))];
+    if (r.class_format !== "none" && classes.length < 2) return alert("List at least two classes, or choose One class.");
+    guard(async () => { await rpc("apply_class_format", { p_id:p.id, p_payload:{ ...pl, class_format:r.class_format, classes } }); await done(); }, "Classes saved");
+  };
+  box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
+}
 function carsProposal(p, box, only){
   const picked = () => (p.payload.cars || []).map((c, i) => ({ ...c, keep: !!box.querySelector(`[data-car="${i}"]`)?.checked }));
   const done = () => { if (only) location.hash = `#/championships/${only.slug}`; else route(); };
@@ -1210,9 +1247,17 @@ function tzLine(tz, date){
   return `All times in <b>local circuit time</b> · ${esc(tz)}${off ? ` (${esc(off === "UTC" ? "UTC+0" : off)})` : ""}`;
 }
 const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","TV broadcasters"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
+// a timetable as text; grouped by class when the sessions have classes (karting: one block per class)
+function ttText(list){
+  const line = s => `${String(s.local_start).slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}${s.end_estimated ? "  (end not published)" : ""}`;
+  const cats = [...new Set(list.map(s => s.category || ""))];
+  if (cats.length < 2) return list.map(s => line(s) + (s.category ? "  · " + s.category : "")).join("\n");
+  const order = cats.sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+  return order.map(c => `── ${c || "All classes"} (${list.filter(s => (s.category || "") === c).length}) ──\n` + list.filter(s => (s.category || "") === c).map(line).join("\n")).join("\n\n");
+}
 function pretty(p){
   const pl = p.payload || {};
-  if (p.kind === "timetable") return (pl.sessions || []).map(s => `${String(s.local_start).slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}${s.end_estimated ? "  (end not published)" : ""}${s.category ? "  · " + s.category : ""}`).join("\n");
+  if (p.kind === "timetable") return ttText(pl.sessions || []);
   if (p.kind === "watch_link") return pl.watch_url || "";
   if (p.kind === "event_change") return [pl.start_date && `${fmtRange(pl.start_date, pl.end_date || pl.start_date)} ${pl.start_date.slice(0,4)}`, pl.name, pl.duration_label, pl.circuit?.name].filter(Boolean).join("\n");
   return JSON.stringify(pl, null, 2);
@@ -1320,7 +1365,7 @@ async function usage(){
   const mCost = mRuns.reduce((a, r) => a + runCost(r.usage), 0);
   const done = runs.filter(r => r.usage);
   const avg = done.length ? done.reduce((a, r) => a + runCost(r.usage), 0) / done.length : 0;
-  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)", classes:"Classes", cars:"Cars" };
+  const KIND = { discover:"Calendar (setup)", manual:"Race check (by hand)", initial:"Race (first check)", icon:"Icon drawing", weekly:"Race week (auto)", daily:"Race week (auto)", final:"Final check (auto)", monthly:"Calendar (auto)", classes:"Classes", cars:"Cars", class_format:"Class structure" };
   const RES = { proposal:["warn","Found changes"], no_change:["good","Nothing new"], error:["bad","Error"], running:["","Running"], skipped_unchanged:["","No change · free"] };
   $("#main").innerHTML = `<div class="ph"><h1>AI usage</h1></div>
     <div class="kpis">

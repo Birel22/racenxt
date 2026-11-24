@@ -77,7 +77,8 @@
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),
         note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", carKey, links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
       });
-      const ss = byEvent[e.id];
+      // sessions of the athlete's class + sessions for everyone (karting: each class has its own; WEC/ELMS: split qualifying)
+      const ss = (byEvent[e.id] || []).filter(x => !mc || !(x.classes || []).length || x.classes.some(c => ck(c) === mc));
       if (ss && ss.length) {
         TT[id] = {
           src: official[sl] || "", tz: ss[0].timezone, missing: [],

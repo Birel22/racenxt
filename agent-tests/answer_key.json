@@ -358,7 +358,7 @@
       "not_races": [
         "Pre-season test Barcelona 17-19 Feb 2026"
       ],
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204"
     },
     {
       "id": "f2-2027-calendar",
@@ -453,7 +453,7 @@
         }
       ],
       "notes": "Only the order and months are announced, no exact dates: the agent must add the 14 rounds without inventing dates (dates TBC).",
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204",
       "note": "Dates are public (confirmed by Louis, 24 Nov 2026)."
     },
     {
@@ -498,8 +498,8 @@
       ],
       "notes": "Louis's screenshot in CET ('My time' selected): f2-lusail-2026-cet.png. The raw page (what the agent reads, no browser) shows the times in UTC (11:00, 15:00, 16:15, 12:00), neither track time nor the viewer's time, and doesn't say so. This is the earlier time-zone mistake: the agent must treat fiaformula2.com raw times as UTC and convert to track time (Qatar UTC+3).",
       "timezone": "local track time = Qatar (UTC+3). Stored as local time.",
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
-      "event_id": "5d2a1d6f-0d80-4676-95c6-fc2b1277bc92"
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204",
+      "event_id": "4a701601-e909-44af-bebc-30f3d62d8ab8"
     },
     {
       "id": "f2-2026-abudhabi-schedule",
@@ -533,8 +533,8 @@
           "end": "14:20"
         }
       ],
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
-      "event_id": "f8b2f131-d77e-4311-8f0d-1b160388f973",
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204",
+      "event_id": "cd802676-7bcc-43c9-8df1-720e1b612ae3",
       "note": "Published on formula1.com (local time); confirmed by Louis."
     },
     {
@@ -735,12 +735,12 @@
         "stream_url": "F1 TV (https://f1tv.formula1.com)"
       },
       "notes": "The broadcasters page is on the official F2 site, under Information.",
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef"
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204"
     },
     {
       "id": "logo-f2",
       "task": "logo",
-      "series_id": "d12cdbbf-7b4e-459a-ad7b-4822c4acbfef",
+      "series_id": "11dc9565-2104-40da-81ac-221702d98204",
       "reference": "agent-tests/logos/f2.png",
       "note": "Reference: the logo as shown on the official site (screenshot from Louis). Colour and background don't matter; the design and name must match."
     },

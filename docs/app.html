@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261124-220813"></script>
-<script src="rnx-social.js?v=20261124-220813"></script>
-<script src="rnx-auth.js?v=20261124-220813"></script>
-<script src="rnx-ui.js?v=20261124-220813"></script>
+<script src="config.js?v=20261124-221238"></script>
+<script src="rnx-social.js?v=20261124-221238"></script>
+<script src="rnx-auth.js?v=20261124-221238"></script>
+<script src="rnx-ui.js?v=20261124-221238"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -429,20 +429,24 @@ function obStep(){
     if (n < 3){ OB.step++; obStep(); window.scrollTo(0, 0); return; }
     $("#o-next").disabled = true; $("#o-next").textContent = "Creating your page…";
     try {
-      const id = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" });
+      // a second try after an error carries on: the page and the championships already saved aren't created again
+      const id = OB.createdId || (OB.createdId = await rpc("create_profile", { p_slug: OB.slug, p_display_name: `${OB.first} ${OB.last}`, p_first_name: OB.first, p_sport: "motorsport" }));
+      OB.savedEntries = OB.savedEntries || new Set();
       const row = { last_name: OB.last, socials: { ...OB.socials, ...(OB.website ? { website: OB.website } : {}) }, contact_email: OB.email || null, updated_at: new Date().toISOString() };
       if (OB.photo){ let pic; try { pic = await heroPhoto(OB.photo); } catch(e){ pic = OB.photo; } row.photo_url = await upload(pic, `profiles/${id}-${Date.now()}.jpg`); if (OB.pos) row.photo_pos = OB.pos; }
       if (OB.logo?.out){ const stamp = Date.now(); if (OB.logo.src) row.logo_src_url = await upload(OB.logo.src, `profiles/${id}-logo-${stamp}-src.png`); row.logo_url = await upload(OB.logo.out, `profiles/${id}-logo-${stamp}-${OB.logo.mode}.png`); row.logo_style = OB.logo.mode; }
       await upd("profiles", id, row);
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){
+        if (OB.savedEntries.has(sid)) { ci++; continue; }
         let yr = YEAR; try { const up = await api(`events?series_id=eq.${sid}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
         const d = OB.det[sid] || {};
         let vehicle_id = d.vehicle?.id || null;
-        if (!vehicle_id && d.newCar) { try { const [v] = await ins("vehicles", { name: d.newCar, status: "pending", suggested: !!d.suggest, created_by_profile: id }); vehicle_id = v.id; } catch(e){} }
+        if (!vehicle_id && d.newCarId) vehicle_id = d.newCarId;
+        if (!vehicle_id && d.newCar) { try { const [v] = await ins("vehicles", { name: d.newCar, status: "pending", suggested: !!d.suggest, created_by_profile: id }); vehicle_id = d.newCarId = v.id; } catch(e){} }
         let car_photo_url = null;
         if (d.photo) { try { car_photo_url = await upload(await carPic(d.photo), `cars/${id}-${Date.now()}.jpg`); } catch(e){} }
-        await ins("entries", { profile_id:id, series_id:sid, year:yr, category: d.category || null, vehicle_id, car_number: d.car_number || null, team: d.team || null, teammates: d.teammates?.length ? d.teammates : null, car_photo_url, color: COLORS[ci++ % COLORS.length] });
+        await ins("entries", { profile_id:id, series_id:sid, year:yr, category: d.category || null, vehicle_id, car_number: d.car_number || null, team: d.team || null, teammates: d.teammates || [], car_photo_url, color: COLORS[ci++ % COLORS.length] }); OB.savedEntries.add(sid);
       }
       localStorage.setItem(CUR, id);
       location.replace(PAGE_BASE + OB.slug);

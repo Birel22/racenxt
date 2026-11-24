@@ -1,5 +1,6 @@
-/* Racenxt sign-in: password, or a 6-digit code by email (also how new accounts are created).
-   rnxAuth(container, { title, sub, brandSub, onSession(session), onOfferPassword }) draws the sign-in into container.
+/* Racenxt sign-in: two clear tabs, "Create account" (email + a password you choose, confirmed by a code by email)
+   and "Sign in" (email + password). Both also offer a 6-digit code by email instead of a password.
+   rnxAuth(container, { title, sub, mode: "signup"|"signin", onSession(session), offerPassword }) draws it into container.
    rnxSetPassword({ token, first }) opens "choose a password". Sessions are { access_token, refresh_token, expires_at }. */
 (function () {
   const C = window.RNX_CONFIG;
@@ -25,6 +26,10 @@
   .rxa .lnk{background:none;border:0;color:#FF5A1F;font:600 14px Barlow,sans-serif;cursor:pointer;padding:6px 0;justify-self:start}
   .rxa .code{letter-spacing:.5em;text-align:center;font:700 28px 'Barlow Condensed',Barlow,sans-serif;padding:0 0 0 .5em}
   .rxa .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .rxa .tabs{display:grid;grid-template-columns:1fr 1fr;padding:4px;background:#0d0e11;border:1px solid #2a2d35;border-radius:14px}
+  .rxa .tabs button{height:42px;border:0;border-radius:10px;background:none;color:#a9abb2;font:700 15px Barlow,system-ui,sans-serif;cursor:pointer}
+  .rxa .tabs button[aria-selected="true"]{background:#23262d;color:#f4f4f2}
+  .rxa .hint{font-size:13px;color:#8e919b;margin-top:-6px}
   .rxa-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(5,6,8,.72);display:flex;align-items:flex-end;justify-content:center}
   .rxa-box{width:100%;max-width:440px;background:#16181d;border:1px solid #2a2d35;border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));margin-bottom:var(--kb,0px);animation:rxaUp .32s cubic-bezier(.2,.85,.25,1)}
   @media (min-width:700px){.rxa-ov{align-items:center}.rxa-box{border-radius:22px}}
@@ -58,32 +63,87 @@
     let email = o.email || localStorage.getItem("rnx_last_email") || "";
     const show = (sel, txt, cls) => { const m = el.querySelector(sel); m.className = "msg" + (cls ? " " + cls : ""); m.innerHTML = txt; };
 
-    function step1(note) {
+    // "signup" for new people (no remembered email), "signin" for people who've been here
+    let mode = o.mode === "signin" || o.mode === "signup" ? o.mode : (localStorage.getItem("rnx_last_email") ? "signin" : "signup");
+    const tabs = () => `<div class="tabs" role="tablist"><button type="button" role="tab" data-m="signup" aria-selected="${mode === "signup"}">Create account</button><button type="button" role="tab" data-m="signin" aria-selected="${mode === "signin"}">Sign in</button></div>`;
+    const bindTabs = () => el.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { if (b.dataset.m === mode) return; const v = el.querySelector("#rxa-e")?.value.trim(); if (v) email = v; mode = b.dataset.m; step1(); });
+    const eyeOn = (btn, inp) => { btn.onclick = () => { const on = inp.type === "password"; inp.type = on ? "text" : "password"; btn.textContent = on ? "Hide" : "Show"; }; };
+
+    function step1(note, cls) {
+      return mode === "signup" ? signupForm(note, cls) : signinForm(note, cls);
+    }
+
+    function signupForm(note, cls) {
       el.innerHTML = `<form class="rxa" id="rxa-f" novalidate>
-        <h2>${esc(o.title || "Sign in")}</h2>${o.sub ? `<div class="sub">${o.sub}</div>` : ""}
+        <h2>${esc(o.title || "Create your account")}</h2>${o.sub ? `<div class="sub">${o.sub}</div>` : ""}
+        ${tabs()}
+        <label>Email<input id="rxa-e" type="email" autocomplete="email" inputmode="email" autocapitalize="off" value="${esc(email)}" required></label>
+        <label>Choose a password<span class="pw"><input id="rxa-p" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters"><button type="button" id="rxa-eye">Show</button></span></label>
+        <button class="b pri" id="rxa-in">Create account</button>
+        <div class="hint">We'll email you a 6-digit code to confirm it's your address.</div>
+        <div class="or">or</div>
+        <button type="button" class="b" id="rxa-code">No password: email me a code</button>
+        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>
+      </form>`;
+      bindTabs();
+      const e = el.querySelector("#rxa-e"), p = el.querySelector("#rxa-p");
+      eyeOn(el.querySelector("#rxa-eye"), p);
+      el.querySelector("#rxa-f").onsubmit = async ev => {
+        ev.preventDefault(); if (!okEmail(e)) return;
+        if (p.value.length < 8) { show("#rxa-m", "Choose a password of at least 8 characters, or use “No password: email me a code”.", "bad"); p.focus(); return; }
+        const b = el.querySelector("#rxa-in"); b.disabled = true; b.textContent = "Creating your account…";
+        const r = await post(`signup?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { email, password: p.value, data: { has_password: true } });
+        b.disabled = false; b.textContent = "Create account";
+        if (!r.ok) {
+          const x = await errText(r);
+          if (x.code === "user_already_exists" || /already registered/i.test(x.msg)) { mode = "signin"; return step1("You already have an account with this email: sign in.", "ok"); }
+          show("#rxa-m", r.status === 429 ? "Too many tries. Wait a minute and try again." : x.code === "weak_password" ? "That password is too easy to guess. Try a longer one, mixing words and numbers." : x.code === "signup_disabled" ? "New accounts are closed for now." : /email/i.test(x.code) ? "Check the email address and try again." : "Couldn't create the account. Try again in a moment.", "bad");
+          return;
+        }
+        const j = await r.json();
+        // email confirmation off: signed in right away
+        if (j.access_token) { const s = await second(sess(j)); return s ? o.onSession(s) : step1("Sign-in cancelled."); }
+        // an existing address comes back with no identities (the server doesn't say so, to protect privacy)
+        const u = j.user || j;
+        if (u && Array.isArray(u.identities) && u.identities.length === 0) { mode = "signin"; return step1("You already have an account with this email: sign in with your password, or get a code.", "ok"); }
+        step2(false, "signup");
+      };
+      el.querySelector("#rxa-code").onclick = async () => { if (!okEmail(e)) return; await sendCode(); };
+      (email ? p : e).focus({ preventScroll: true });
+    }
+
+    function signinForm(note, cls) {
+      el.innerHTML = `<form class="rxa" id="rxa-f" novalidate>
+        <h2>${esc(o.signinTitle || "Welcome back")}</h2>
+        ${tabs()}
         <label>Email<input id="rxa-e" type="email" autocomplete="username email" inputmode="email" autocapitalize="off" value="${esc(email)}" required></label>
-        <label>Password<span class="pw"><input id="rxa-p" type="password" autocomplete="current-password" placeholder="If you set one"><button type="button" id="rxa-eye">Show</button></span></label>
+        <label>Password<span class="pw"><input id="rxa-p" type="password" autocomplete="current-password"><button type="button" id="rxa-eye">Show</button></span></label>
         <button class="b pri" id="rxa-in">Sign in</button>
         <div class="or">or</div>
         <button type="button" class="b" id="rxa-code">Email me a sign-in code</button>
-        <div class="msg" id="rxa-m">${note ? esc(note) : "New here or no password? The code signs you in, and creates your account if it's your first time."}</div>
+        <div class="hint">No password, or forgot it? The code signs you in.</div>
+        <div class="msg${cls ? " " + cls : ""}" id="rxa-m">${note ? esc(note) : ""}</div>
       </form>`;
+      bindTabs();
       const e = el.querySelector("#rxa-e"), p = el.querySelector("#rxa-p");
-      el.querySelector("#rxa-eye").onclick = () => { const on = p.type === "password"; p.type = on ? "text" : "password"; el.querySelector("#rxa-eye").textContent = on ? "Hide" : "Show"; };
-      const okEmail = () => { email = e.value.trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { show("#rxa-m", "Type your email address first.", "bad"); e.focus(); return false; } localStorage.setItem("rnx_last_email", email); return true; };
+      eyeOn(el.querySelector("#rxa-eye"), p);
       el.querySelector("#rxa-f").onsubmit = async ev => {
-        ev.preventDefault(); if (!okEmail()) return;
+        ev.preventDefault(); if (!okEmail(e)) return;
         if (!p.value) { show("#rxa-m", "Type your password, or use “Email me a sign-in code”.", "bad"); p.focus(); return; }
         const b = el.querySelector("#rxa-in"); b.disabled = true; b.textContent = "Signing in…";
         const r = await post("token?grant_type=password", { email, password: p.value });
         b.disabled = false; b.textContent = "Sign in";
         if (r.ok) { const s = await second(sess(await r.json())); return s ? o.onSession(s) : step1("Sign-in cancelled."); }
         const x = await errText(r);
-        show("#rxa-m", r.status === 429 ? "Too many tries. Wait a minute, or use a sign-in code." : x.code === "email_not_confirmed" ? "Confirm your email first: use “Email me a sign-in code”." : "Wrong email or password. Forgot it? Use “Email me a sign-in code”.", "bad");
+        show("#rxa-m", r.status === 429 ? "Too many tries. Wait a minute, or use a sign-in code."
+          : x.code === "email_not_confirmed" ? "Your email isn't confirmed yet: use “Email me a sign-in code”, it confirms it too."
+          : `Wrong email or password. Forgot it? Use “Email me a sign-in code”. New here? <button type="button" class="lnk" id="rxa-tosu" style="padding:0">Create an account</button>`, "bad");
+        const tosu = el.querySelector("#rxa-tosu"); if (tosu) tosu.onclick = () => { mode = "signup"; step1(); };
       };
-      el.querySelector("#rxa-code").onclick = async () => { if (!okEmail()) return; await sendCode(); };
+      el.querySelector("#rxa-code").onclick = async () => { if (!okEmail(e)) return; await sendCode(); };
       (email ? p : e).focus({ preventScroll: true });
     }
+    const okEmail = e => { email = e.value.trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { show("#rxa-m", "Type your email address first.", "bad"); e.focus(); return false; } localStorage.setItem("rnx_last_email", email); return true; };
 
     async function sendCode(again) {
       const b = el.querySelector("#rxa-code") || el.querySelector("#rxa-again"); if (b) b.disabled = true;
@@ -96,12 +156,13 @@
       step2(again);
     }
 
-    function step2(again) {
+    function step2(again, kind) {
+      const signup = kind === "signup";
       el.innerHTML = `<form class="rxa" id="rxa-f2" novalidate>
-        <h2>Check your email</h2>
-        <div class="sub">We sent a code to <b style="color:#f4f4f2">${esc(email)}</b>. It can take a minute; check spam too.</div>
+        <h2>${signup ? "Confirm your email" : "Check your email"}</h2>
+        <div class="sub">We sent a ${signup ? "confirmation" : ""} code to <b style="color:#f4f4f2">${esc(email)}</b>. It can take a minute; check spam too.</div>
         <label>Sign-in code<input id="rxa-c" class="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="10" placeholder="••••••"></label>
-        <button class="b pri" id="rxa-ok">Sign in</button>
+        <button class="b pri" id="rxa-ok">${signup ? "Confirm" : "Sign in"}</button>
         <div class="msg${again ? " ok" : ""}" id="rxa-m">${again ? "New code sent." : "You can also tap the link in the email."}</div>
         <div class="row"><button type="button" class="lnk" id="rxa-back">← Other email</button><button type="button" class="lnk" id="rxa-again">Send a new code</button></div>
       </form>`;
@@ -109,9 +170,9 @@
       const go = async () => {
         const t = c.value.replace(/\D/g, ""); if (t.length < 6) { show("#rxa-m", "Type the code from the email.", "bad"); c.focus(); return; }
         const b = el.querySelector("#rxa-ok"); b.disabled = true; b.textContent = "Checking…";
-        let r = await post("verify", { type: "email", email, token: t });
-        if (!r.ok) r = await post("verify", { type: "signup", email, token: t });
-        b.disabled = false; b.textContent = "Sign in";
+        let r = await post("verify", { type: signup ? "signup" : "email", email, token: t });
+        if (!r.ok) r = await post("verify", { type: signup ? "email" : "signup", email, token: t });
+        b.disabled = false; b.textContent = signup ? "Confirm" : "Sign in";
         if (!r.ok) { show("#rxa-m", "That code doesn't work. Check it, or send a new one (each new code replaces the last).", "bad"); c.select(); return; }
         const j = await r.json(); let s = await second(sess(j)); if (!s) return step1("Sign-in cancelled.");
         const hasPw = !!(j.user && j.user.user_metadata && j.user.user_metadata.has_password);
@@ -122,8 +183,14 @@
       c.oninput = () => { c.value = c.value.replace(/\D/g, "").slice(0, 10); if (c.value.length === 6) go(); };
       el.querySelector("#rxa-f2").onsubmit = ev => { ev.preventDefault(); go(); };
       el.querySelector("#rxa-back").onclick = () => step1();
-      el.querySelector("#rxa-again").onclick = () => sendCode(true);
+      el.querySelector("#rxa-again").onclick = () => signup ? resendSignup() : sendCode(true);
       c.focus({ preventScroll: true });
+    }
+    // a new confirmation code for an account created with a password
+    async function resendSignup() {
+      const r = await post(`resend?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { type: "signup", email });
+      if (r.ok) return step2(true, "signup");
+      show("#rxa-m", r.status === 429 ? "Too many emails in a short time. Wait a minute and try again." : "Couldn't send a new code. Try again in a moment.", "bad");
     }
     // accounts with two-step sign-in: the authenticator code comes next (null if cancelled)
     async function second(s) {

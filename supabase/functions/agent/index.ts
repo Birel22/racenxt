@@ -205,7 +205,8 @@ function classLine(series: any) {
   const cls: string[] = series.classes || [];
   if (cls.length < 2) return `If the timetable splits sessions by class or category, put the class name in "category" exactly as the timetable writes it; otherwise null.\n`;
   return `This championship's classes: ${cls.join(", ")}${FORMAT_WORDS[series.class_format] ? ` (${FORMAT_WORDS[series.class_format]})` : ""}.
-For EVERY session, set "category" to the class it is for, using exactly these names (several separated by commas if a session is for several classes, e.g. "${cls.slice(0, 2).join(", ")}"); null only when the session is for every class. List the sessions of every class.\n`;
+For EVERY session, set "category" to the class it is for, using exactly these names (several separated by commas if a session is for several classes, e.g. "${cls.slice(0, 2).join(", ")}"); null only when the session is for every class. List the sessions of every class.
+In "complete_classes", list the classes whose timetable is fully published (every session with a real time), even when other classes' timetables are still missing; "complete" is true only when every class is complete.\n`;
 }
 // "OK-Junior" stays as written unless it matches an official class; "lmp2,  LMP3" -> "LMP2, LMP3"
 function fixCategory(cat: unknown, classes: string[] | null) {
@@ -437,7 +438,7 @@ Task:
    List every on-track session of THIS championship (all its classes/categories): practice, qualifying, hyperpole, warm-up, races. Skip support series and non-track events.
 If the timetable is not published yet, set "timetable_found": false and an empty list. If only part of it is published (e.g. practice only, or sessions still TBC), give what is published and set "complete": false.
 JSON schema:
-{"timetable_found": boolean, "complete": boolean, "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
+{"timetable_found": boolean, "complete": boolean, "complete_classes": [string], "source_url": string|null, "race_page_url": string|null, "excerpt": string|null, "times_zone": "local"|"UTC"|string|null, "zone_label": string|null,
  "sessions": [{"label": string, "type": "practice"|"qualifying"|"race"|"warmup"|"other", "local_start": "YYYY-MM-DD HH:MM", "local_end": "YYYY-MM-DD HH:MM"|null, "duration_min": number|null, "category": string|null}]}`;
 }
 const fmtText = (f: any) => { if (!f || typeof f !== "object") return ""; const n: Record<string, string> = { practice: "practice", qualifying: "qualifying", race: "race" }; return Object.entries(f).filter(([k, v]) => n[k] && +(v as any) > 0).map(([k, v]) => `${v} ${n[k]} session${+(v as any) > 1 ? "s" : ""}`).join(", "); };
@@ -907,6 +908,7 @@ async function computeSchedule(ev: any, series: any, src: any, current: any[], m
   }
   if (!(out.timetable_found && sessions.length)) sessions = [];
   sessions = sessions.map((x: any) => ({ ...x, category: fixCategory(x.category, series.classes) }));
+  out.complete_classes = (Array.isArray(out.complete_classes) ? out.complete_classes : []).flatMap((c: any) => String(fixCategory(c, series.classes) || "").split(/\s*,\s*/)).filter(Boolean);
   return { out, usage, trace, sessions, zoneNote, zoneFix, raceWeek };
 }
 async function checkEvent(ev: any, series: any, src: any, runId: string, kind = "manual") {
@@ -944,7 +946,7 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
           }
         } catch (_) { /* keep the first answer */ }
       }
-      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) + (out.complete === false ? " (only part of the timetable is published yet: the search goes on)" : ""), check: chk } });
+      await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "timetable", payload: { sessions }, evidence: { url: out.source_url || series.website_url || "", excerpt: (out.excerpt || "") + (zoneFix || zoneNote) + (out.complete === false ? ` (only part of the timetable is published yet${(out.complete_classes || []).length ? `; complete: ${out.complete_classes.join(", ")}` : ""}: the search goes on)` : ""), check: chk } });
       props.push(`timetable (${sessions.length} sessions)`);
     }
     if (await suggestClassFormat(series, sessions, runId, `${ev.name} timetable`, out.source_url)) props.push("class format (from this timetable)");
@@ -1298,7 +1300,7 @@ Deno.serve(async (req) => {
     return json({ rules: RULES, guidance: GUIDANCE, tasks: [
       { key: "discover", title: "1 · Calendar agent", when: "When you add a championship or click Check calendar with AI, then once a month (skipped for free when the official pages haven't changed). Dates and circuits for this year and next only.", text: discoverPrompt(S, SRC, new Date().getUTCFullYear()) },
       { key: "logo", title: "2 · Logo agent", when: "When a championship has no logo yet (added, or Find logo with AI). Reads the official homepage (the homepage link in the header first), searches the web, then the AI picks among the pictures.", text: LOGO_PROMPT(S) },
-      { key: "race", title: "3 · Schedule agent", when: "Only races a published athlete takes part in. After a calendar is approved: races one by one in date order, until 2 have no timetable. Then nothing until D-30: once a week, twice a week from D-14, every day in race week, until the timetable is complete (every kind of session the championship usually has); a final check at D-3/D-2. Skipped for free while the pages are unchanged. It looks first where the championship's timetable was found last time. If the checker can't confirm anything on the source, it searches once more with the stronger model.", text: checkPrompt(EV, S, SRC, V, false) },
+      { key: "race", title: "3 · Schedule agent", when: "Only races a published athlete takes part in. After a calendar is approved: races one by one in date order, until 2 have no timetable. Then nothing until D-30: once a week, twice a week from D-14, every day in race week, until the timetable is complete (every kind of session the championship usually has; with classes, judged class by class for the classes your athletes race in); a final check at D-3/D-2. Skipped for free while the pages are unchanged. It looks first where the championship's timetable was found last time. If the checker can't confirm anything on the source, it searches once more with the stronger model.", text: checkPrompt(EV, S, SRC, V, false) },
       { key: "deeper", title: "3b · Schedule agent, deeper look", when: "Added when the race is less than 10 days away and the first search found no timetable. Uses the stronger model.", text: DEEP.trim() },
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },

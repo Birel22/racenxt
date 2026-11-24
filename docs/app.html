@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261123-214128"></script>
-<script src="rnx-social.js?v=20261123-214128"></script>
-<script src="rnx-auth.js?v=20261123-214128"></script>
-<script src="rnx-ui.js?v=20261124-1335"></script>
+<script src="config.js?v=20261124-212536"></script>
+<script src="rnx-social.js?v=20261124-212536"></script>
+<script src="rnx-auth.js?v=20261124-212536"></script>
+<script src="rnx-ui.js?v=20261124-212536"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -138,6 +138,19 @@
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
   .tile{position:relative;display:grid;gap:10px;justify-items:center;align-content:center;min-height:118px;padding:14px 10px;border-radius:16px;border:1.5px solid var(--line2);background:var(--panel);cursor:pointer;text-align:center}
   .tile .lg{height:40px} .tile .tn{font-size:14px;font-weight:600;line-height:1.25}
+  .tile .tc{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);min-height:0} .tile .tc:empty{display:none}
+  .cls-ov{position:fixed;inset:0;z-index:60;background:rgba(5,6,8,.62);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center;animation:clsF .25s ease}
+  .cls-box{width:100%;max-width:520px;max-height:85dvh;overflow-y:auto;background:#16181d;border:1px solid #2c2f37;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:clsU .32s cubic-bezier(.2,.85,.25,1)}
+  @media (min-width:700px){ .cls-ov{align-items:center} .cls-box{border-radius:22px} }
+  .cls-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+  .cls-k{font:700 12px 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--acc)}
+  .cls-top h2{margin:2px 0 0;font:700 24px 'Barlow Condensed',Barlow,sans-serif;text-transform:uppercase}
+  .cls-x{width:36px;height:36px;border-radius:50%;border:1px solid #2f323a;background:#1f2228;color:#f2f2ef;display:grid;place-items:center;cursor:pointer;flex:none}
+  .cls-list{display:grid;gap:8px}
+  .cls-row{min-height:56px;padding:0 16px;border-radius:14px;border:1px solid #2a2d35;background:#1d2026;color:#f2f2ef;font:600 17px Barlow,system-ui,sans-serif;text-align:left;cursor:pointer}
+  .cls-row:hover,.cls-row:focus-visible{background:#23262d;border-color:#3a3d46;outline:none}
+  @keyframes clsU{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}} @keyframes clsF{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){ .cls-ov,.cls-box{animation:none} }
   .tile[aria-checked="true"]{border-color:var(--acc);background:rgba(255,90,31,.08)}
   .tile[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:9px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;line-height:22px;font-weight:700}
 .ob-lgrow{display:grid;grid-template-columns:auto 1fr;column-gap:14px;row-gap:6px;align-items:center}.ob-lgbox{grid-column:1;grid-row:1}.ob-lgbtns{grid-column:2;grid-row:1;display:grid;gap:8px;justify-self:start}.ob-lgx{grid-column:1;grid-row:2;justify-self:center;background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
@@ -296,7 +309,7 @@ function openMenu(e){
 function login(msg){
   $("#app").innerHTML = `<div class="center"><div class="auth"><div class="brand" style="font-size:46px">RACEN<span class="x">X</span>T</div><div class="dim">Everything in one place</div>
     <div class="card" id="lbox"></div></div></div>`;
-  rnxAuth($("#lbox"), { title: "Your Race Hub", sub: "One page for your season: calendar, schedules, where to watch, your car and partners. Kept up to date for you.", note: msg, onSession: s => { S.set(s); boot(); } });
+  rnxAuth($("#lbox"), { mode: /[?&]new\b/.test(location.search) ? "signup" : /[?&]signin\b/.test(location.search) ? "signin" : undefined, title: "Create your Race Hub", sub: "One page for your season: calendar, schedules, where to watch, your car and partners. Kept up to date for you.", note: msg, onSession: s => { S.set(s); boot(); } });
 }
 
 const slugify = t => (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -318,11 +331,11 @@ async function heroPhoto(file){
   cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
   return await new Promise(r => cv.toBlob(r, "image/jpeg", .88));
 }
-const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set() };
+const OB = { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set(), cls:{} };
 let FRAMER = null;
 async function onboarding(another){
   if (another) Object.assign(OB, { step:1, first:"", last:"", slug:"", touched:false, avail:false, photo:null, photoUrl:"", pos:null, logo:null, socials:{}, website:"", email:"", picked:new Set() });
-  if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url&order=name"); } catch(e){}
+  if (!ST.series.length) try { ST.series = await api("series?select=id,slug,name,short_name,sport,logo_url,classes,class_format&order=name"); } catch(e){}
   try { const ds = await api("disciplines?select=key,name,icon_svg&order=sort,name"); if (ds.length) SPORT = Object.fromEntries(ds.map(d => [d.key, { l:d.name, i:d.icon_svg }])); } catch(e){}
   OB.another = another;
   // new pages can be closed for now (admin setting); the database refuses them anyway
@@ -352,7 +365,7 @@ function obStep(){
   if (n === 3){
     const groups = Object.keys(SPORT).map(k => [k, ST.series.filter(s => s.sport === k)]).filter(g => g[1].length);
     body = `<div class="field"><label class="f" for="o-q">Search</label><input id="o-q" type="search" autocomplete="off"></div>
-      <div id="o-champs">${groups.map(([k, list]) => `<div class="grp" data-g>${esc(SPORT[k].l)}</div><div class="tiles">${list.map(s => `<button type="button" class="tile" role="checkbox" aria-checked="${OB.picked.has(s.id)}" data-s="${s.id}"><span class="lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s.short_name.slice(0,5))}</span>`}</span><span class="tn">${esc(s.name)}</span></button>`).join("")}</div>`).join("")}</div>
+      <div id="o-champs">${groups.map(([k, list]) => `<div class="grp" data-g>${esc(SPORT[k].l)}</div><div class="tiles">${list.map(s => `<button type="button" class="tile" role="checkbox" aria-checked="${OB.picked.has(s.id)}" data-s="${s.id}"><span class="lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span class="ph">${esc(s.short_name.slice(0,5))}</span>`}</span><span class="tn">${esc(s.name)}</span><span class="tc" data-tc="${s.id}">${OB.cls[s.id] ? esc(OB.cls[s.id]) : ""}</span></button>`).join("")}</div>`).join("")}</div>
       <div class="muted" style="font-size:14px;text-align:center">Can't find yours? Write to us and we'll add it.</div>`;
   }
   const next = n < 3 ? `<button class="btn pri block" id="o-next">Continue</button>` : `<button class="btn pri block" id="o-next">${OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"}</button>`;
@@ -375,7 +388,17 @@ function obStep(){
   if (n === 2 && window.rnxSocialWatch) SOCIALS.forEach(s => rnxSocialWatch($("#o-" + s.k), s.k, token));
   if (n === 3){
     $("#o-q").oninput = e => { const q = e.target.value.trim().toLowerCase(); $$("#o-champs .tile").forEach(b => { const s = ST.series.find(x => x.id === b.dataset.s); b.hidden = q && !(s.name + " " + s.short_name).toLowerCase().includes(q); }); $$("#o-champs [data-g]").forEach(g => { const any = [...g.nextElementSibling.children].some(b => !b.hidden); g.hidden = !any; g.nextElementSibling.hidden = !any; }); };
-    $$("#o-champs .tile").forEach(b => b.onclick = () => { const id = b.dataset.s; OB.picked.has(id) ? OB.picked.delete(id) : OB.picked.add(id); b.setAttribute("aria-checked", OB.picked.has(id)); $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub"; });
+    // a championship with classes (karting categories, IMSA/WEC classes): the athlete's class is asked right away,
+    // because their page and calendar only show that class's races and sessions
+    $$("#o-champs .tile").forEach(b => b.onclick = async () => {
+      const id = b.dataset.s, ser = ST.series.find(x => x.id === id), cls = (ser?.classes || []).length > 1 ? ser.classes : null;
+      if (OB.picked.has(id)) { OB.picked.delete(id); delete OB.cls[id]; }
+      else if (cls) { const c = await pickClass(ser, cls); if (!c) return; OB.picked.add(id); OB.cls[id] = c; }
+      else OB.picked.add(id);
+      b.setAttribute("aria-checked", OB.picked.has(id));
+      const tc = b.querySelector("[data-tc]"); if (tc) tc.textContent = OB.cls[id] || "";
+      $("#o-next").textContent = OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub";
+    });
   }
   $("#o-next").onclick = async () => {
     obSave();
@@ -397,7 +420,7 @@ function obStep(){
       const picked = [...OB.picked]; let ci = 0;
       for (const sid of picked){
         let yr = YEAR; try { const up = await api(`events?series_id=eq.${sid}&end_date=gte.${TODAY}&select=year&order=start_date&limit=1`); if (up[0]) yr = up[0].year; } catch(e){}
-        await ins("entries", { profile_id:id, series_id:sid, year:yr, color: COLORS[ci++ % COLORS.length] });
+        await ins("entries", { profile_id:id, series_id:sid, year:yr, category: OB.cls[sid] || null, color: COLORS[ci++ % COLORS.length] });
       }
       localStorage.setItem(CUR, id);
       location.replace(PAGE_BASE + OB.slug);
@@ -413,6 +436,24 @@ function obLogo(){
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) OB.logo = { src: r.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgc")) $("#ob-lgc").onclick = async () => { const r = await ed({ src: OB.logo.src, current: url, mode: OB.logo.mode }); if (r) OB.logo = { src: OB.logo.src, out: r.out, mode: r.mode }; obLogo(); };
   if ($("#ob-lgx")) $("#ob-lgx").onclick = () => { OB.logo = null; obLogo(); };
+}
+// "Your class in WSK Super Master Series": one tap. Resolves with the class, or null if closed.
+function pickClass(ser, classes){
+  return new Promise(res => {
+    const back = document.activeElement;
+    const ov = document.createElement("div"); ov.className = "cls-ov";
+    ov.innerHTML = `<div class="cls-box" role="dialog" aria-modal="true" aria-labelledby="cls-h">
+      <div class="cls-top"><div><div class="cls-k">${esc(ser.short_name || "")}</div><h2 id="cls-h">Your class</h2></div><button type="button" class="cls-x" aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <p class="muted" style="margin:0 0 12px;font-size:14.5px">${ser.class_format === "separate" ? "Each class has its own sessions: your page shows only yours." : "Your page shows the races and sessions of your class."}</p>
+      <div class="cls-list">${classes.map(c => `<button type="button" class="cls-row" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</div></div>`;
+    const close = v => { ov.remove(); document.removeEventListener("keydown", key); document.body.style.overflow = ""; back?.focus?.(); res(v); };
+    const key = e => { if (e.key === "Escape") close(null); if (e.key === "Tab"){ const f = [...ov.querySelectorAll("button")]; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0){ e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1){ e.preventDefault(); f[0].focus(); } } };
+    ov.onclick = e => { if (e.target === ov) close(null); };
+    ov.querySelector(".cls-x").onclick = () => close(null);
+    ov.querySelectorAll(".cls-row").forEach(b => b.onclick = () => close(b.dataset.c));
+    document.addEventListener("keydown", key); document.body.style.overflow = "hidden";
+    document.body.appendChild(ov); ov.querySelector(".cls-row").focus();
+  });
 }
 const obPick = () => new Promise(res => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0"; document.body.appendChild(i); i.onchange = () => { res(i.files[0] || null); setTimeout(() => i.remove(), 1000); }; i.click(); });
 function obSave(){

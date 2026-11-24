@@ -837,22 +837,28 @@ Sport category: ${series.sport}
 Official website: ${series.website_url || "unknown"}
 ${(series.classes || []).length ? `Classes we have so far: ${series.classes.join(", ")}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
 ${src?.agent_instructions ? `Instructions from the Racenxt team (they take priority):\n${src.agent_instructions}\n` : ""}Task: understand how this championship's classes (categories) work. Past events are the best evidence: the next timetable may not be out yet.
-1. Open the official timetable of the most recent event of this championship already raced (${year} or ${year - 1}). If you can't find one, use the official results (classifications) of a recent event. Official sources only: the championship's or organiser's website, official documents (PDF timetables, supplementary regulations), or the official timing provider.
-2. List the classes (categories) of this championship, with the short names the championship uses (e.g. KZ2, OK, OKJ, MINI; or Hypercar, LMP2, LMP3, LMGT3).
+Official sources only: the championship's or organiser's website, official documents (PDF results, timetables, entry lists, supplementary regulations), or the official timing provider.
+1. The classes: open the official RESULTS (race classification) of the most recent race of this championship already raced (${year} or ${year - 1}). Results list every car with its class / category / cup column (e.g. "Pro", "Gold", "Silver", "Bronze", "Pro-Am", "LMP2"): collect every value of that column. If the championship has different kinds of events (e.g. GT World Challenge Sprint and Endurance rounds), read the results of one event of each kind, because some categories only race in one kind (e.g. the Gold Cup only in Endurance). The latest entry list helps too.
+2. List the classes (categories) of this championship, with the short names the championship uses (e.g. KZ2, OK, OKJ, MINI; or Hypercar, LMP2, LMP3, LMGT3; or Pro, Gold, Silver, Bronze).
    A class is any group with its own classification and podium under this championship's name: a different kind of car (e.g. Hypercar, LMP2, LMGT3; KZ2, OK karts), or a category by FIA driver rating in the same cars (e.g. GT World Challenge Pro / Gold / Silver / Bronze Cup, ELMS LMP2 Pro/Am, EEPC Bronze Cup). Driver-rating categories race in the same sessions, so they are "shared" (an extra session for one of them, e.g. a Bronze-driver practice, is fine).
    NOT classes: separate championships that only share the weekend, each with its own title (e.g. MotoGP, Moto2 and Moto3; WorldSBK and WorldSSP; F1 and F2).
-3. Decide the format from the timetable:
+3. Decide the format from the official timetable of a recent event:
    - "none": one class only.
    - "shared": the classes race together in the same races (and mostly the same practice); a few sessions may be for one class only (e.g. qualifying per class).
    - "separate": each class has its own practice, qualifying and races (e.g. karting categories).
    Count, on that timetable, the sessions for one class only and the sessions for everyone.
 JSON schema:
-{"class_format": "none"|"shared"|"separate", "classes": [string], "evidence_url": string|null, "evidence_event": string|null, "sessions_read": number|null, "class_specific": number|null, "examples": [string], "reason": string}`;
+{"class_format": "none"|"shared"|"separate", "classes": [string], "evidence_url": string|null, "evidence_event": string|null, "results_urls": [string], "sessions_read": number|null, "class_specific": number|null, "examples": [string], "reason": string}`;
 }
+const CLASS_DEEP = `\nA first look found fewer than two classes. Look harder before answering "none": open the official race results (classification) of the last two or three races, also PDFs and the official timing provider's results, and read the class / category / cup column of every car.`;
 async function classFormatJob(series: any, runId: string, src: any = null) {
   const [pending] = await db(`proposals?series_id=eq.${series.id}&kind=eq.class_format&status=eq.pending&select=id&limit=1`);
   if (pending) return { result: "no_change", summary: "Classes: a suggestion is already waiting in the Review queue.", usage: null, pages: [] };
-  const { out, usage, trace } = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear(), src), 10);
+  let { out, usage, trace } = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear(), src), 12);
+  // fewer than two classes found: one deeper look in the results with the stronger model
+  if (!(Array.isArray(out.classes) && out.classes.filter(Boolean).length >= 2)) {
+    try { const d = await ask(SYS(), classFormatPrompt(series, new Date().getUTCFullYear(), src) + CLASS_DEEP, 14, [STRONG]); addUsage(usage, d.usage); addTrace(trace, d.trace); if (Array.isArray(d.out.classes) && d.out.classes.filter(Boolean).length >= 2) out = d.out; } catch (_) { /* keep the first answer */ }
+  }
   const fmt = ["none", "shared", "separate"].includes(out.class_format) ? out.class_format : null;
   const classes = [...new Set((Array.isArray(out.classes) ? out.classes : []).map((c: any) => String(c || "").trim()).filter(Boolean))].slice(0, 30) as string[];
   if (!fmt || (fmt !== "none" && classes.length < 2)) return { result: "no_change", summary: "Classes: no official timetable or results found to tell.", usage, pages: [], trace: { ...trace, answer: out } };
@@ -860,7 +866,8 @@ async function classFormatJob(series: any, runId: string, src: any = null) {
   const same = fmt === (series.class_format || "none") && (fmt === "none" || (classes.length === (series.classes || []).length && classes.every(c => (series.classes || []).some((x: string) => k(x) === k(c)))));
   if (same) return { result: "no_change", summary: `Classes: unchanged (${fmt}${classes.length ? ": " + classes.join(", ") : ""}).`, usage, pages: [], trace: { ...trace, answer: out } };
   // agent 5, checker: is each class really on that timetable / results page?
-  let chk: any = okUrl(out.evidence_url) && classes.length ? await checkSource(out.evidence_url, classes.map(c => `the class or category "${c}"`)) : null;
+  const proofUrl = (Array.isArray(out.results_urls) ? out.results_urls : []).find(okUrl) || out.evidence_url;
+  let chk: any = okUrl(proofUrl) && classes.length ? await checkSource(proofUrl, classes.map(c => `the class or category "${c}"`)) : null;
   if (chk?.usage) { addUsage(usage, chk.usage); delete chk.usage; }
   await ins("proposals", { run_id: runId, series_id: series.id, kind: "class_format",
     payload: { class_format: fmt, classes: fmt === "none" ? [] : classes, sessions_read: Number.isFinite(+out.sessions_read) ? +out.sessions_read : null, class_specific: Number.isFinite(+out.class_specific) ? +out.class_specific : null, examples: (out.examples || []).map(String).slice(0, 8), from: out.evidence_event ? String(out.evidence_event).slice(0, 120) : null },
@@ -1308,7 +1315,7 @@ Deno.serve(async (req) => {
       { key: "links", title: "4 · Where-to-watch agent (championship)", when: "When a championship is added or checked by hand, or a link is missing.", text: linksPrompt(S) },
       { key: "raceweek", title: "4b · Where-to-watch agent (this race)", when: "Race week only: a page made for that race weekend, if there is one.", text: raceWatchPrompt(EV, S) },
       { key: "classes", title: "1b · Classes (shared calendars)", when: "Only for championships whose classes share one calendar without every class racing everywhere (e.g. IMSA). Right after the calendar check (or once the new races are approved), then with each later calendar check.", text: classesPrompt(S, ["<class A>", "<class B>"], "<official calendar>", [{ name: "<race>", start_date: "2027-01-01", end_date: "2027-01-03", venues: { name: "<circuit>" } }]) },
-      { key: "class_format", title: "1c · Class structure", when: "When you add a championship (right after the calendar), or Check classes with AI in Edit championship. Reads the official timetable (or results) of a recent past event: which classes, and whether they share practice and races (WEC, ELMS) or each has its own (karting). The schedule agent also suggests a change when a timetable contradicts it.", text: classFormatPrompt(S, new Date().getUTCFullYear()) },
+      { key: "class_format", title: "1c · Class structure", when: "When you add a championship (right after the calendar), or Check classes with AI in Edit championship. Reads the official results of recent races (the class / cup column, one event of each kind) for the classes, and a recent timetable for whether they share practice and races (WEC, ELMS, GT World Challenge cups) or each has its own (karting). Fewer than two classes found: one deeper look with the stronger model. The schedule agent also suggests a change when a timetable contradicts it.", text: classFormatPrompt(S, new Date().getUTCFullYear()) },
       { key: "cars", title: "6 · Cars agent", when: "When you add a championship (right after the calendar), or Find cars with AI in Edit championship. Reads the official entry list; new cars come with their specs. Everything goes to the Review queue: untick a car to leave it out.", text: CAR_RULES + "\n\n" + carsPrompt(S, [{ name: "<cars already in the library>" }], new Date().getUTCFullYear()) },
       { key: "checker", title: "5 · Checker", when: "Before anything goes to the Review queue: opens the source page again and checks each date or time, with the exact words. You see the result on each suggestion. If nothing is confirmed, it reads again with the stronger model.", text: CHECK_RULES },
     ] });

@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
 <script src="config.js?v=20261123-214128"></script>
 <script src="rnx-auth.js?v=20261123-214128"></script>
-<script src="rnx-ui.js?v=20261124-1300"></script>
+<script src="rnx-ui.js?v=20261124-1335"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -228,8 +228,9 @@
   .seg button .sp-ic{width:28px;max-height:16px;margin-right:6px;vertical-align:-3px}
   .drop{border:1.5px dashed var(--line2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;cursor:pointer;background:var(--panel2);min-height:96px}
   .drop:hover,.drop.over{border-color:var(--acc)}
-  .drop .pv{width:140px;height:64px;flex:none;border-radius:8px;background:#0b0c0f;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .drop .pv img{max-width:124px;max-height:52px;object-fit:contain}
+  .drop .pv{width:200px;height:84px;flex:none;border-radius:8px;background:#7f7f7f;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .drop .pv img{max-width:180px;max-height:68px;object-fit:contain}
+  .drop .pv span{color:#f4f4f2 !important;padding:0 8px;text-align:center}
   .drop .pv span{font-size:11px;color:var(--mute)}
   .drop u{color:var(--text)}
   .lg-row{display:flex;flex-wrap:wrap;gap:8px}
@@ -808,7 +809,7 @@ function logoPicker(s, opts = {}){
     $(`#${P}-pv`).innerHTML = msg ? `<span>${esc(msg)}</span>` : u ? `<img src="${esc(u)}" alt="Logo">` : "<span>No logo</span>";
     $(`#${P}-adj`).disabled = st.busy || !(st.file || st.L || (!st.remove && s.logo_url && !opts.review));
     if ($(`#${P}-rm`)) $(`#${P}-rm`).disabled = st.busy || !(st.L || (!st.remove && s.logo_url));
-    $(`#${P}-cands`).innerHTML = st.cands.length > 1 ? `<div class="muted" style="font-size:12px;margin:10px 0 6px">Pictures found on the official site: click another one to use it</div><div class="lg-row">${st.cands.map((c, i) => `<button type="button" class="lg-c" data-i="${i}" title="Use this picture"><img src="${esc(c)}" alt="Picture ${i + 1}"></button>`).join("")}</div>` : "";
+    $(`#${P}-cands`).innerHTML = st.cands.length ? `<div class="muted" style="font-size:12px;margin:10px 0 6px">${st.cands.length > 1 ? "Pictures found by the AI (as found, on grey): click one to use it" : "Picture found by the AI (as found, on grey)"}</div><div class="lg-row">${st.cands.map((c, i) => `<button type="button" class="lg-c" data-i="${i}" title="Use this picture"><img src="${esc(c)}" alt="Picture ${i + 1}"></button>`).join("")}</div>` : "";
     $$(`#${P}-cands .lg-c`).forEach(b => b.onclick = () => useUrl(st.cands[+b.dataset.i], true));
   };
   const edit = async o => { const r = await logoEd(o); if (r){ st.L = { src: r.src || st.L?.src || null, srcUrl: r.src ? null : (st.L?.srcUrl ?? null), out: r.out, mode: r.mode }; st.remove = false; } draw(); return r; };
@@ -819,8 +820,11 @@ function logoPicker(s, opts = {}){
     try {
       st.file = await asBlob(u);
       if (open){ st.busy = false; await edit({ file: st.file, mode: st.L?.mode || "original" }); return; }
-      const r = await rnxAutoLogo(st.file, token, "original"); st.L = { src: r.src, srcUrl: null, out: r.out, mode: r.mode }; st.remove = false;
-    } catch(e){ st.file = null; draw("Couldn't read this picture"); st.busy = false; return; }
+      let r;
+      try { r = await rnxAutoLogo(st.file, token, "original"); }
+      catch(e){ const whole = await rnxProcessLogo(await rnxRaster(st.file), "original"); r = { src: whole, out: whole, mode: "original" }; } // no framing: the whole picture
+      st.L = { src: r.src, srcUrl: null, out: r.out, mode: r.mode }; st.remove = false;
+    } catch(e){ st.busy = false; draw("Couldn't prepare this picture: use Adjust, or click it below"); return; }
     st.busy = false; draw();
   };
   const adjust = () => {

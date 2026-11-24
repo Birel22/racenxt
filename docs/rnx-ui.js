@@ -147,8 +147,19 @@
     const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
     return { img, cv, data: cv.toDataURL("image/jpeg", .85).split(",")[1] };
   }
+  // drawings (SVG) become a sharp picture first: browsers crop SVGs unreliably (sometimes blank)
+  async function raster(file) {
+    if (!/svg/.test((file && file.type) || "")) return file;
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); });
+    const iw = img.naturalWidth || 600, ih = img.naturalHeight || 300, k = 1600 / Math.max(iw, ih);
+    const cv = document.createElement("canvas"); cv.width = Math.round(iw * k); cv.height = Math.round(ih * k);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    return await new Promise(r => cv.toBlob(r, "image/png"));
+  }
+  window.rnxRaster = raster;
   window.rnxLogoCropper = async function (box, file, getToken) {
     style();
+    file = await raster(file);
     const { img, cv, data } = await small(file, 1024);
     const url = URL.createObjectURL(file);
     box.innerHTML = `<div class="rxc"><div class="rxc-stage"><img src="${url}" alt=""><div class="rxc-box" hidden><i class="rxc-h tl"></i><i class="rxc-h tr"></i><i class="rxc-h bl"></i><i class="rxc-h br"></i></div></div><div class="rxc-msg"><span class="rxc-dot"></span>Finding the logo…</div></div>`;
@@ -207,7 +218,7 @@
       async crop() {
         const W = img.naturalWidth, H = img.naturalHeight, sx = b.l * W, sy = b.t * H, sw = Math.max(1, (b.r - b.l) * W), sh = Math.max(1, (b.b - b.t) * H);
         // drawings (SVG) are redrawn sharp at a good size instead of their small native size
-        const up = /svg/.test(file.type || "") ? Math.max(1, 1600 / Math.max(sw, sh)) : 1;
+        const up = 1;
         const cv = document.createElement("canvas"); cv.width = Math.round(sw * up); cv.height = Math.round(sh * up);
         cv.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         return await new Promise(r => cv.toBlob(r, "image/png"));

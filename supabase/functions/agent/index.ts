@@ -830,7 +830,7 @@ const SPEC_FIELDS = ["engine", "hybrid", "power", "drivetrain", "max_rpm", "gear
 async function specsJob(runId: string) {
   // library cars and cars suggested for it, with no specs yet (an athlete's own car stays theirs: not looked up).
   // Not kart chassis: a kart brand has many chassis and no single spec sheet.
-  const cars = await db(`vehicles?or=(status.eq.approved,suggested.eq.true)&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&category=neq.kart%20chassis&kind=is.distinct.kart&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
+  const cars = await db(`vehicles?and=(or(status.eq.approved,suggested.eq.true),or(category.is.null,category.neq.kart%20chassis))&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
   if (cars.length) await patch("vehicles", `id=in.(${cars.map((c: any) => c.id).join(",")})`, { specs_tried_at: new Date().toISOString() });   // looked up once
   const done = newUsage(); let filled = 0; const pages: string[] = [];
   const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a|-)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;

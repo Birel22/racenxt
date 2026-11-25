@@ -831,8 +831,8 @@ The sheet:
   · engine_cc: displacement in cc (cm³), a whole number (a 5.5 L engine is 5500, a 125 cc kart engine is 125).
   · engine_layout: one of V6, V8, V10, V12, inline-3, inline-4, inline-6, flat-4, flat-6, V4, V-twin, parallel-twin, single-cylinder.
   · engine_aspiration: exactly one of "naturally aspirated", "turbo", "twin-turbo", "supercharged".
-  · engine_maker: ONLY when the engine is built by a company other than the car's manufacturer, with its model if known ("Gibson GK428", "Mecachrome V634"); otherwise null.
-- hybrid: only if the car has a hybrid system: a short line with where it drives and its power, e.g. "Rear-axle electric motor, 50 kW". null if the car has none.
+  · engine_maker: ONLY when the engine is built by a company other than the car's manufacturer: the company and its engine model code if known, nothing else, no brackets ("Gibson GK428", "Mecachrome V634"); otherwise null.
+- hybrid: only if the car has a hybrid system: a short line with where it drives and its power as ONE number in kW (the higher if a range is given), e.g. "Rear-axle electric motor, 50 kW". No brand names in brackets. null if the car has none.
 - power: required. ONE number, never a range: if two figures or a range are given, take the higher. For a hybrid, the combined total (engine + electric). Give the number in the unit the source uses in "power_value" and that unit in "power_unit" ("hp", "bhp", "kW" or "PS"); we convert it.
 - drivetrain: required. "rwd", "awd" or "fwd". Karts are "rwd".
 - gearbox: important. "gears": the number of forward gears (null for a kart with no gearbox). "gearbox_detail": the type, then the maker in brackets if known, e.g. "sequential, paddle-shift (Xtrac)"; "direct drive" for a kart with no gearbox.

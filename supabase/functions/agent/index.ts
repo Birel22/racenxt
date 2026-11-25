@@ -55,21 +55,21 @@ function priceOf(model: string, inp: number, out: number) {
 const newUsage = (): Usage => ({ input: 0, output: 0, searches: 0, fetches: 0, cost_usd: 0 });
 function addUsage(a: Usage, b: Usage) { a.input += b.input; a.output += b.output; a.searches += b.searches; a.fetches += b.fetches; a.cost_usd = Math.round((a.cost_usd + b.cost_usd) * 10000) / 10000; a.model = a.model ? `${a.model} + ${b.model}` : b.model; return a; }
 // Ask with Haiku first; if the answer isn't usable JSON, ask Sonnet once.
-async function ask(system: string, user: string, maxFetch = 8, models = [FAST, STRONG]) {
+async function ask(system: string, user: string, maxFetch = 8, models = [FAST, STRONG], maxSearch = 4) {
   const total = newUsage(), trace: Trace = { searches: [], opened: [] };
   let last = "";
   for (const model of models) {
     try {
-      const r = await claude(model, system, user, maxFetch);
+      const r = await claude(model, system, user, maxFetch, maxSearch);
       addUsage(total, r.usage); addTrace(trace, r.trace);
       return { out: parseJson(r.text), usage: total, trace };
     } catch (e) { last = String((e as Error).message || e); /* try the stronger model */ }
   }
   throw new Error(last || "The AI's answer couldn't be read");
 }
-async function claude(model: string, system: string, user: string, maxFetch: number) {
+async function claude(model: string, system: string, user: string, maxFetch: number, maxSearch = 4) {
   const tools: any[] = [
-    { type: "web_search_20250305", name: "web_search", max_uses: 4 },
+    { type: "web_search_20250305", name: "web_search", max_uses: maxSearch },
     // smaller page extracts keep each request short (and under Haiku's 100k price step)
     { type: "web_fetch_20250910", name: "web_fetch", max_uses: maxFetch, max_content_tokens: 15000 },
   ];
@@ -753,12 +753,11 @@ async function classesJob(series: any, src: any, runId: string, body: any) {
 // ---------- check_event: timetable + where to watch ----------
 // the timetable the AI finds for one race, cleaned up and in circuit time. Nothing is filed here.
 // ---------- agent 6, cars: which cars race in a championship (from its official entry list), with their specs ----------
-const CAR_RULES = `You are the cars agent of Racenxt, an app that shows athletes' seasons to their fans. Each athlete picks their car from a shared library.
+const CAR_RULES = `You are the cars agent of Racelocker, an app that shows athletes' seasons to their fans. Each athlete picks their car from a shared library.
+Your only job is to find WHICH cars race in a championship. Their specs are looked up afterwards by another agent: don't search for specs.
 Rules:
 - Which cars race: only from the championship's OFFICIAL entry list (its own website, its organiser's, or the official timing provider). Entry lists often show the car only as a picture or in a team column: read the car model wherever the official page gives it.
-- Specs: the manufacturer's or constructor's own official page first (customer-racing pages, technical sheets, press kits). If a figure isn't there, the racing team's own page or reliable motorsport press may be used. Never use racing games or simulators, fan sites, forums or sellers.
-- Never guess a figure: null when no source gives it. Power and weight of balanced classes (e.g. GT3) depend on the Balance of Performance: say "subject to BoP".
-- One entry per car model, with the MANUFACTURER's official model name (e.g. "Ferrari 296 GT3 Evo", "Porsche 911 GT3 R", "ORECA 07", "Ligier JS P325"), not the name a championship gives it: the WEC's "LMGT3" names are GT3 cars ("Mercedes-AMG LMGT3" is the "Mercedes-AMG GT3 Evo", "BMW M4 LMGT3 Evo" is the "BMW M4 GT3 Evo"). When the car is already in our library under its real name, use that name. Evolutions with their own name are separate models only when the entry list tells them apart.
+- One entry per car model, with the MANUFACTURER's real model name (e.g. "Ferrari 296 GT3 Evo", "Porsche 911 GT3 R", "ORECA 07", "Ligier JS P325", "Cadillac V-Series.R"), never the name a championship's class gives it: the WEC's "LMGT3" names are GT3 cars ("Mercedes-AMG LMGT3" is the "Mercedes-AMG GT3 Evo", "BMW M4 LMGT3 Evo" is the "BMW M4 GT3 Evo"). The name includes the brand, written the way the manufacturer writes it. When the car is already in our library under its real name, use that name. Evolutions with their own name are separate models only when the entry list tells them apart.
 - Be economical: open each page at most once and stop as soon as you have the answer.
 - Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
 function carsPrompt(series: any, library: any[], year: number) {
@@ -769,12 +768,10 @@ ${(series.classes || []).length ? `Classes: ${series.classes.join(", ")}\n` : ""
 Cars already in our library (use these exact names in "library_name" when it's the same model): ${library.map((v: any) => v.name).join("; ") || "none"}
 Task:
 1. Find the championship's official entry list for ${year} (if the ${year} season hasn't started or has no entry list yet, the most recent one published; ${year + 1} if it's already published).
-2. List every car MODEL in it: official model name, manufacturer, category (e.g. "LMP2", "LMP3", "GT3", "Hypercar", "Formula", "Superbike"), the classes of this championship it races in, and how many cars of that model are entered.
-3. For each model that is NOT already in our library, find its specs: engine (layout, displacement, aspiration), hybrid system (null if none), power, drivetrain ("rwd", "awd" or "fwd"), max rpm, gearbox, weight, dimensions (length × width × height, wheelbase), and the address of the page the specs come from. For models already in our library, skip the specs.
+2. List every car MODEL in it: the manufacturer's real model name, manufacturer, the classes of this championship it races in, and how many cars of that model are entered.
 JSON schema:
 {"entry_list_url": string|null, "season": number|null,
- "cars": [{"name": string, "manufacturer": string|null, "category": string|null, "classes": [string], "count": number|null, "library_name": string|null,
-   "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}],
+ "cars": [{"name": string, "manufacturer": string|null, "classes": [string], "count": number|null, "library_name": string|null}],
  "notes": string}`;
 }
 // same rule as private.vehicle_key() (migration 0041): letters and digits only, LMGT3 = GT3
@@ -795,11 +792,10 @@ async function carsJob(series: any, runId: string) {
     seen.add(carKey(name));
     const lib = byKey.get(carKey(c.library_name || "")) || byKey.get(carKey(name));
     const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;
-    const dt = String(c.drivetrain || "").toLowerCase();
     cars.push(lib
       ? { name: lib.name, vehicle_id: lib.id, in_library: true, linked: linked.has(lib.id), manufacturer: str(c.manufacturer), category: str(c.category), classes: (c.classes || []).map(String).slice(0, 8), count: Number.isFinite(+c.count) ? +c.count : null }
-      : { name, in_library: false, manufacturer: str(c.manufacturer), category: str(c.category), classes: (c.classes || []).map(String).slice(0, 8), count: Number.isFinite(+c.count) ? +c.count : null,
-          engine: str(c.engine), hybrid: str(c.hybrid), power: str(c.power), drivetrain: ["rwd", "awd", "fwd"].includes(dt) ? dt : null, max_rpm: str(c.max_rpm), gearbox: str(c.gearbox), weight: str(c.weight), dimensions: str(c.dimensions), spec_url: okUrl(c.spec_url) ? c.spec_url : null });
+      // a new car joins the library without specs: the spec agent looks them up right away (Vehicles › Specs to review)
+      : { name, in_library: false, manufacturer: str(c.manufacturer), category: str(c.category), classes: (c.classes || []).map(String).slice(0, 8), count: Number.isFinite(+c.count) ? +c.count : null });
   }
   // nothing to do: every car is already in the library and linked to this championship
   if (!cars.length || cars.every(c => c.in_library && c.linked)) {
@@ -815,42 +811,110 @@ async function carsJob(series: any, runId: string) {
   return { result: "proposal", summary: `Found: ${cars.length} car${cars.length > 1 ? "s" : ""} (${fresh} new to the library).`, usage, pages: [], trace: { ...trace, answer: out } };
 }
 
-// ---------- specs: cars that arrive in the library without specs get them looked up once (cheap model, a few cars per call) ----------
-const SPEC_RULES = `You find the technical specs of racing cars for Racenxt, an app that shows athletes' cars to their fans.
+// ---------- specs: the car spec sheet (decided 25 Nov 2026), one car per question, checked by an admin before fans see it ----------
+// Every figure comes back as a number in a fixed unit; the database writes the text fans see (migration 0046).
+const SPEC_RULES = `You fill in the spec sheet of ONE racing car or motorbike for Racelocker, an app that shows athletes' cars to their fans.
+Every figure you give is published after an admin checks it, so it must be right, sourced and written exactly as asked.
+
+Sources, in this order:
+1. The manufacturer's or constructor's own official pages: technical sheets, customer-racing pages, press kits, homologation documents.
+2. The championship's, organiser's or governing body's official technical pages (FIA, ACO, IMSA, SRO…).
+3. The racing team's official pages.
+4. Reliable motorsport press (e.g. sportscar365.com, dailysportscar.com, motorsport.com, autosport.com, the-race.com, racecar-engineering.com, endurance-info.com).
+Never racing games, simulators, fan wikis, forums, sellers or classified ads. An encyclopedia page may help you find an official source but is never the source itself.
+
+The sheet:
+- name: the manufacturer's real model name, with the brand as the manufacturer writes it ("Cadillac V-Series.R", "BMW M4 GT3 Evo"), never a championship's class name ("LMGT3"). If the name we give you is not the real model name, put the real one in "suggested_name"; otherwise null.
+- manufacturer: the brand only ("Cadillac", "ORECA", "Ligier").
+- kind: what the vehicle is: "proto" (prototype: Hypercar, LMDh, GTP, LMP2, LMP3), "gt" (GT car), "formula" (single-seater), "kart" or "bike".
+- engine: required.
+  · engine_cc: displacement in cc (cm³), a whole number (a 5.5 L engine is 5500, a 125 cc kart engine is 125).
+  · engine_layout: one of V6, V8, V10, V12, inline-3, inline-4, inline-6, flat-4, flat-6, V4, V-twin, parallel-twin, single-cylinder.
+  · engine_aspiration: exactly one of "naturally aspirated", "turbo", "twin-turbo", "supercharged".
+  · engine_maker: ONLY when the engine is built by a company other than the car's manufacturer, with its model if known ("Gibson GK428", "Mecachrome V634"); otherwise null.
+- hybrid: only if the car has a hybrid system: a short line with where it drives and its power, e.g. "Rear-axle electric motor, 50 kW". null if the car has none.
+- power: required. ONE number, never a range: if two figures or a range are given, take the higher. For a hybrid, the combined total (engine + electric). Give the number in the unit the source uses in "power_value" and that unit in "power_unit" ("hp", "bhp", "kW" or "PS"); we convert it.
+- drivetrain: required. "rwd", "awd" or "fwd". Karts are "rwd".
+- gearbox: important. "gears": the number of forward gears (null for a kart with no gearbox). "gearbox_detail": the type, then the maker in brackets if known, e.g. "sequential, paddle-shift (Xtrac)"; "direct drive" for a kart with no gearbox.
+- weight: required. ONE number in kg. If several weights are given (dry, minimum, with driver, with fuel), take the lightest: the dry or regulation minimum weight. Pounds: give "weight_value" and "weight_unit": "lb"; we convert.
+- dimensions: length, width and height are required, wheelbase is optional but look for it. In millimetres. Inches: give the numbers and "dimension_unit": "in"; we convert.
+- bop: true if the car races in a class whose performance is balanced by a Balance of Performance (GT3 incl. LMGT3, GTD and GTD Pro; GT4; TCR; Hypercar: LMH, LMDh and GTP). false for spec or open classes (LMP2, LMP3, F2, F3, karts, most single-seaters and bikes). A BoP car still gets its manufacturer's power and weight figures.
+- sources: for every figure you give, the address of the page it comes from ({"engine": url, "power": url, "weight": url, "dimensions": url, "gearbox": url, "hybrid": url}).
+
 Rules:
-- Sources: the manufacturer's or constructor's own official page first (customer-racing pages, technical sheets, press kits); then the championship's or team's official pages or reliable motorsport press. Never racing games, simulators, fan wikis, forums or sellers.
-- Never guess a figure: null when no source gives it. Power and weight of balanced classes (GT3, LMGT3, GTD, Hypercar/LMDh) depend on the Balance of Performance: say "subject to BoP".
-- Short values, like a spec sheet: "3.5 L V6 twin-turbo", "~500 kW (680 hp) combined, subject to BoP", "1,030 kg minimum", "4,995 × 2,000 × 1,060 mm, wheelbase 3,148 mm".
-- Be economical: one search per car at most, open each page at most once.
+- Never guess and never estimate from a similar car: a figure no source gives is null, and say what is missing in "notes".
+- The figures must be for THIS model (and this evolution: an "Evo" can differ from the original).
+- Search and read as much as you need to fill the required fields (up to 6 searches and 6 pages), and stop once the sheet is complete.
 - Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
-const specsPrompt = (cars: any[]) => `Cars:\n${cars.map((c, i) => `${i + 1}. ${c.name}${c.manufacturer ? ` (${c.manufacturer})` : ""}${c.category ? ` · ${c.category}` : ""}`).join("\n")}
-For each car: engine (layout, displacement, aspiration), hybrid system (null if none), power, drivetrain ("rwd", "awd" or "fwd"), max rpm, gearbox, weight, dimensions (length × width × height, wheelbase), and the address of the page the specs come from.
-JSON schema: {"cars": [{"name": string, "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}]}`;
-const SPEC_FIELDS = ["engine", "hybrid", "power", "drivetrain", "max_rpm", "gearbox", "weight", "dimensions"];
+const specsPrompt = (c: any) => `Car: ${c.name}${c.manufacturer ? ` (manufacturer: ${c.manufacturer})` : ""}
+${(c.classes || []).length ? `Races in classes: ${c.classes.join(", ")}\n` : ""}${c.kind ? `Kind set in our app: ${c.kind} (correct it if wrong)\n` : ""}${c.known ? `Already known (check, and keep unless a better source says otherwise): ${c.known}\n` : ""}Today: ${new Date().toISOString().slice(0, 10)}
+JSON schema:
+{"suggested_name": string|null, "manufacturer": string|null, "kind": "proto"|"gt"|"formula"|"kart"|"bike"|null,
+ "engine_cc": number|null, "engine_layout": string|null, "engine_aspiration": "naturally aspirated"|"turbo"|"twin-turbo"|"supercharged"|null, "engine_maker": string|null,
+ "hybrid": string|null, "power_value": number|null, "power_unit": "hp"|"bhp"|"kW"|"PS"|null, "drivetrain": "rwd"|"awd"|"fwd"|null,
+ "gears": number|null, "gearbox_detail": string|null, "weight_value": number|null, "weight_unit": "kg"|"lb"|null,
+ "length": number|null, "width": number|null, "height": number|null, "wheelbase": number|null, "dimension_unit": "mm"|"in"|null,
+ "bop": boolean|null, "sources": {"engine": string|null, "hybrid": string|null, "power": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null},
+ "notes": string}`;
+const LAYOUTS = ["V6", "V8", "V10", "V12", "inline-3", "inline-4", "inline-6", "flat-4", "flat-6", "V4", "V-twin", "parallel-twin", "single-cylinder"];
+const ASPIRATION = ["naturally aspirated", "turbo", "twin-turbo", "supercharged"];
+const KINDS = ["proto", "gt", "formula", "kart", "bike"];
+// the required figures of the sheet (gearbox, hybrid and wheelbase are not required)
+const SPEC_REQUIRED = ["kind", "engine_cc", "engine_layout", "engine_aspiration", "power_hp", "drivetrain", "weight_kg", "length_mm", "width_mm", "height_mm"];
+// turn the AI's answer into the sheet: numbers in our units, fixed words, anything out of range dropped
+function specSheet(o: any) {
+  const num = (x: unknown, lo: number, hi: number) => { const n = Math.round(Number(x)); return Number.isFinite(n) && n >= lo && n <= hi ? n : null; };
+  const txt = (x: unknown, max = 120) => (typeof x === "string" && x.trim() && !/^(null|none|unknown|n\/a|-)$/i.test(x.trim())) ? x.trim().slice(0, max) : null;
+  const pick = (x: unknown, list: string[]) => { const v = String(x ?? "").trim().toLowerCase(); return list.find(l => l.toLowerCase() === v) || null; };
+  const s: any = {};
+  s.kind = pick(o.kind, KINDS);
+  s.engine_cc = num(o.engine_cc, 20, 20000);
+  s.engine_layout = pick(String(o.engine_layout ?? "").replace(/^(i|l|straight)[- ]?(\d)$/i, "inline-$2"), LAYOUTS);
+  s.engine_aspiration = pick(String(o.engine_aspiration ?? "").replace(/^(na|n\/a|atmospheric)$/i, "naturally aspirated").replace(/^twin[- ]?turbo(charged)?$/i, "twin-turbo").replace(/^turbo(charged)?$/i, "turbo"), ASPIRATION);
+  s.engine_maker = txt(o.engine_maker, 60);
+  s.hybrid = txt(o.hybrid, 120);
+  const pv = Number(o.power_value), pu = String(o.power_unit || "hp").toLowerCase();
+  const hp = !Number.isFinite(pv) || pv <= 0 ? null : pu === "kw" ? pv / 0.7457 : pu === "ps" ? pv * 0.7355 / 0.7457 : pv;
+  s.power_hp = hp == null ? null : num(hp, 1, 5000);
+  s.drivetrain = pick(o.drivetrain, ["rwd", "awd", "fwd"]);
+  s.gears = num(o.gears, 1, 12);
+  s.gearbox_detail = txt(o.gearbox_detail, 80);
+  const wv = Number(o.weight_value);
+  s.weight_kg = Number.isFinite(wv) && wv > 0 ? num(String(o.weight_unit || "kg").toLowerCase() === "lb" ? wv * 0.45359237 : wv, 20, 5000) : null;
+  const k = String(o.dimension_unit || "mm").toLowerCase() === "in" ? 25.4 : 1;
+  const dim = (x: unknown, lo: number, hi: number) => { const n = Number(x); return Number.isFinite(n) && n > 0 ? num(n * k, lo, hi) : null; };
+  s.length_mm = dim(o.length, 500, 10000); s.width_mm = dim(o.width, 300, 5000); s.height_mm = dim(o.height, 300, 5000); s.wheelbase_mm = dim(o.wheelbase, 300, 8000);
+  s.bop = typeof o.bop === "boolean" ? o.bop : null;
+  const src = o.sources && typeof o.sources === "object" ? o.sources : {};
+  s.sources = Object.fromEntries(Object.entries(src).filter(([, u]) => okUrl(u)).map(([f, u]) => [f, String(u)]));
+  s.suggested_name = txt(o.suggested_name, 80);
+  s.manufacturer = txt(o.manufacturer, 60);
+  s.notes = txt(o.notes, 400);
+  return s;
+}
+// a short line of what a car already has, so the agent checks it rather than starting from zero
+const knownSpecs = (v: any) => [v.engine && `engine ${v.engine}`, v.power && `power ${v.power}`, v.weight && `weight ${v.weight}`, v.dimensions && `dimensions ${v.dimensions}`, v.gearbox && `gearbox ${v.gearbox}`, v.hybrid && `hybrid ${v.hybrid}`].filter(Boolean).join("; ");
 async function specsJob(runId: string) {
-  // library cars and cars suggested for it, with no specs yet (an athlete's own car stays theirs: not looked up).
-  // Not kart chassis: a kart brand has many chassis and no single spec sheet.
-  const cars = await db(`vehicles?and=(or(status.eq.approved,suggested.eq.true),or(category.is.null,category.neq.kart%20chassis))&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
-  if (cars.length) await patch("vehicles", `id=in.(${cars.map((c: any) => c.id).join(",")})`, { specs_tried_at: new Date().toISOString() });   // looked up once
-  const done = newUsage(); let filled = 0; const pages: string[] = [];
-  const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a|-)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;
-  for (let i = 0; i < cars.length; i += 6) {
-    const batch = cars.slice(i, i + 6);
+  // up to 3 cars per run (one question each, on the strong model); the 15-minute tick picks up the rest and the weekly retries
+  const cars = await db("rpc/cars_needing_specs", { method: "POST", body: JSON.stringify({ p_limit: 3 }) });
+  const done = newUsage(), pages: string[] = [];
+  let filled = 0, complete = 0;
+  for (const v of cars || []) {
+    await patch("vehicles", `id=eq.${v.id}`, { specs_tried_at: new Date().toISOString(), specs_attempts: (v.specs_attempts || 0) + 1 });
     let out: any = null;
-    try { const r = await ask(SPEC_RULES, specsPrompt(batch), 8); addUsage(done, r.usage); out = r.out; } catch (_) { continue; }
-    for (const c of Array.isArray(out?.cars) ? out.cars : []) {
-      const v = batch.find((b: any) => carKey(b.name) === carKey(String(c?.name || ""))) || batch[(out.cars as any[]).indexOf(c)];
-      if (!v) continue;
-      const row: any = {};
-      for (const k of SPEC_FIELDS) { const val = k === "drivetrain" ? (["rwd", "awd", "fwd"].includes(String(c[k] || "").toLowerCase()) ? String(c[k]).toLowerCase() : null) : str(c[k]); if (val) row[k] = val; }
-      if (!Object.keys(row).length) continue;
-      if (okUrl(c.spec_url)) { row.spec_url = c.spec_url; pages.push(c.spec_url); }
-      // nothing is published yet: it waits for an admin (Vehicles › Specs to review)
-      await patch("vehicles", `id=eq.${v.id}`, { specs_pending: { ...row, found_at: new Date().toISOString() } });
-      filled++;
-    }
+    try { const r = await ask(SPEC_RULES, specsPrompt({ ...v, known: knownSpecs(v) }), 6, [STRONG], 6); addUsage(done, r.usage); out = r.out; } catch (_) { continue; }
+    const s = specSheet(out || {});
+    const found = Object.keys(s).filter(k => s[k] != null && !["sources", "notes", "suggested_name", "manufacturer"].includes(k) && !(k === "bop" && s[k] === false));
+    if (!found.length) continue;
+    // what the sheet still misses once these figures are in (an admin sees it; a later try looks again)
+    const missing = SPEC_REQUIRED.filter(k => s[k] == null && v[k] == null);
+    Object.values(s.sources).forEach((u: any) => pages.push(u));
+    // nothing is published yet: it waits for an admin (Vehicles › Specs to review)
+    await patch("vehicles", `id=eq.${v.id}`, { specs_pending: { ...s, missing, found_at: new Date().toISOString() } });
+    filled++; if (!missing.length) complete++;
   }
-  return { result: filled ? "proposal" : "no_change", summary: cars.length ? `Specs: found for ${filled} of ${cars.length} car${cars.length > 1 ? "s" : ""}.` : "Specs: every car already has its specs.", usage: done, pages: pages.slice(0, 20) };
+  const n = (cars || []).length;
+  return { result: filled ? "proposal" : "no_change", summary: n ? `Specs: found for ${filled} of ${n} car${n > 1 ? "s" : ""}${filled ? ` (${complete} complete)` : ""}.` : "Specs: every car already has its specs.", usage: done, pages: [...new Set(pages)].slice(0, 20) };
 }
 async function specsStart() {
   const [run] = await ins("check_runs", { series_id: null, kind: "specs", result: "running", pages: [] });
@@ -1288,6 +1352,10 @@ async function tick(secret: string) {
     const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     started.push({ ...d, status: r.status });
   }
+  // car specs: a new car or a weekly retry (cars_needing_specs decides), when no specs run is going
+  const [busy] = await db(`check_runs?kind=eq.specs&result=eq.running&ran_at=gte.${new Date(Date.now() - 15 * 60000).toISOString()}&select=id&limit=1`).catch(() => [null]);
+  const [need] = busy ? [null] : await db("rpc/cars_needing_specs", { method: "POST", body: JSON.stringify({ p_limit: 1 }) }).catch(() => [null]);
+  if (need) { await specsStart(); started.push({ kind: "specs" }); }
   return json({ started });
 }
 

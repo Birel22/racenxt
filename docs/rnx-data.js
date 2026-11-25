@@ -7,7 +7,7 @@
   // Car specs: the fixed list from the admin library (old free-form lists still work)
   const DRIVE = { awd: "All-wheel drive (AWD)", rwd: "Rear-wheel drive (RWD)", fwd: "Front-wheel drive (FWD)" };
   const carSpecs = v => {
-    const list = [["Engine", v.engine], ["Hybrid system", v.hybrid], ["Power", v.power], ["Drivetrain", DRIVE[v.drivetrain] || ""], ["Max rpm", v.max_rpm], ["Gearbox", v.gearbox], ["Weight", v.weight], ["Dimensions", v.dimensions]].filter(x => x[1]);
+    const list = [["Engine", v.engine], ["Hybrid system", v.hybrid], ["Power", v.power], ["Drivetrain", DRIVE[v.drivetrain] || ""], ["Gearbox", v.gearbox], ["Weight", v.weight], ["Dimensions", v.dimensions]].filter(x => x[1]);
     return list.length ? list : (v.specs || []).map(x => [x.label, x.value]);
   };
   const get = p => fetch(C.url + "/rest/v1/" + p, { headers: H }).then(r => { if (!r.ok) throw new Error(r.status + " " + p); return r.json(); });
@@ -42,7 +42,7 @@
       if (en.vehicles) {
         // specs from the library, photo = the user's own livery
         carOf[s.slug] = en.id;
-        cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles), kind: window.rnxVehKind ? rnxVehKind(en.vehicles, s.sport) : "" };
+        cars[en.id] = { name: en.vehicles.name, img: en.car_photo_url || "", specs: carSpecs(en.vehicles), bop: !!en.vehicles.bop, kind: window.rnxVehKind ? rnxVehKind(en.vehicles, s.sport) : "" };
       }
     }
     // the athlete's own events (no championship), grouped by kind
@@ -71,7 +71,7 @@
       const id = e.ext_key || e.id.slice(0, 8);
       // a custom event can have its own car
       let carKey = "";
-      if (!e.series_id && e.vehicles) { carKey = "e-" + e.id.slice(0, 8); carOf[carKey] = carKey; label[carKey] = e.name; cars[carKey] = { name: e.vehicles.name, img: e.car_photo_url || "", specs: carSpecs(e.vehicles), kind: window.rnxVehKind ? rnxVehKind(e.vehicles, "") : "" }; }
+      if (!e.series_id && e.vehicles) { carKey = "e-" + e.id.slice(0, 8); carOf[carKey] = carKey; label[carKey] = e.name; cars[carKey] = { name: e.vehicles.name, img: e.car_photo_url || "", specs: carSpecs(e.vehicles), bop: !!e.vehicles.bop, kind: window.rnxVehKind ? rnxVehKind(e.vehicles, "") : "" }; }
       EVENTS.push({
         s: e.start_date, e: e.end_date, series: sl, id, uuid: e.id, name: e.name, dur: e.duration_label || "",
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),

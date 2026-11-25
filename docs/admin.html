@@ -1335,7 +1335,6 @@ function logoProposal(p, box, only){
   box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions; you can add a logo by hand in Edit championship)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
 }
 // cars the agent found on the entry list: tick the ones to keep; new ones show their specs and where they come from
-const CAR_SPECS = [["engine","Engine"],["hybrid","Hybrid"],["power","Power"],["drivetrain","Drive"],["max_rpm","Max rpm"],["gearbox","Gearbox"],["weight","Weight"],["dimensions","Dimensions"]];
 function carsView(p){
   const pl = p.payload || {}, cars = pl.cars || [];
   return `<label class="f">${cars.length} car model${cars.length === 1 ? "" : "s"}${pl.season ? ` · ${pl.season} entry list` : ""}</label>
@@ -1343,8 +1342,8 @@ function carsView(p){
       <label class="car-hd"><input type="checkbox" data-car="${i}" ${c.keep === false ? "" : "checked"}> <b>${esc(c.name)}</b>
         ${c.in_library ? `<span class="chip good">${c.linked ? "In library · linked" : "In library"}</span>` : `<span class="chip warn">New car</span>`}
         <span class="muted">${esc([c.category, (c.classes || []).filter(x => x !== c.category).join(", "), c.count ? `${c.count} car${c.count > 1 ? "s" : ""}` : ""].filter(Boolean).join(" · "))}</span></label>
-      ${c.in_library ? "" : `<div class="car-specs">${CAR_SPECS.map(([k, l]) => `<div><span class="muted">${l}</span><span>${c[k] ? esc(k === "drivetrain" ? c[k].toUpperCase() : c[k]) : '<span class="dim">–</span>'}</span></div>`).join("")}</div>
-        ${c.spec_url ? `<div style="font-size:12.5px;margin-top:6px">Specs from ${linkHtml(c.spec_url)}</div>` : `<div class="dim" style="font-size:12.5px;margin-top:6px">No spec source given</div>`}`}
+      ${c.in_library ? "" : `<div class="car-specs"><span class="muted">Specs are looked up once you approve: Vehicles › Specs to review.</span></div>
+        ${c.spec_url ? `<div style="font-size:12.5px;margin-top:6px">Specs from ${linkHtml(c.spec_url)}</div>` : ""}`}
     </div>`).join("")}</div>
     <div class="dim" style="font-size:12.5px;margin-top:8px">Approve adds the new cars to the library and links every ticked car to this championship. Untick a car to leave it out; Edit to fix a spec first.</div>`;
 }
@@ -1722,70 +1721,111 @@ async function editVenue(v){
   if (r.country_code) r.country_code = r.country_code.toUpperCase();
   await guard(async () => { try { v ? await upd("venues", v.id, r) : await ins("venues", r); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Circuit saved");
 }
-// Vehicle specs: one fixed list, used by every user page
-const VFIELDS = [
-  { k:"engine", l:"Engine", help:"For example: Gibson GK428 4.2 L V8, naturally aspirated" },
-  { k:"hybrid", l:"Hybrid system", help:"Leave empty if there's none" },
-  { k:"power", l:"Power", help:"For example: 680 hp (500 kW)" },
-  { k:"max_rpm", l:"Max rpm", help:"For example: 9,000 rpm" },
-  { k:"gearbox", l:"Gearbox", help:"For example: 7-speed sequential" },
-  { k:"weight", l:"Weight", help:"For example: 1,030 kg" },
-  { k:"dimensions", l:"Dimensions", help:"For example: 5,100 × 2,000 mm (L × W)" }
-];
+// Vehicle specs: the car spec sheet (25 Nov 2026). Figures are numbers in fixed units; the database writes fans' text from them.
 const DRIVE = { awd:"AWD", rwd:"RWD", fwd:"FWD" };
+const LAYOUTS = ["V6","V8","V10","V12","inline-3","inline-4","inline-6","flat-4","flat-6","V4","V-twin","parallel-twin","single-cylinder"];
+const ASPIRATION = ["naturally aspirated","turbo","twin-turbo","supercharged"];
+const SPEC_REQ = ["kind","engine_cc","engine_layout","engine_aspiration","power_hp","drivetrain","weight_kg","length_mm","width_mm","height_mm"];
+const SPEC_NUM = ["engine_cc","power_hp","gears","weight_kg","length_mm","width_mm","height_mm","wheelbase_mm"];
+const SPEC_COLS = ["engine_maker","engine_cc","engine_layout","engine_aspiration","hybrid","power_hp","drivetrain","gears","gearbox_detail","weight_kg","length_mm","width_mm","height_mm","wheelbase_mm"];
+// the same wording as the database (private.vehicle_spec_text), for previews
+const nf = n => Number(n).toLocaleString("en-US");
+const fmtSpec = {
+  engine: s => (s.engine_cc || s.engine_layout || s.engine_aspiration) ? [s.engine_maker, s.engine_cc ? (s.engine_cc >= 1000 ? (Math.round(s.engine_cc / 100) / 10).toFixed(1) + " L" : s.engine_cc + " cc") : "", s.engine_layout, s.engine_aspiration].filter(Boolean).join(" ") : "",
+  power: s => s.power_hp ? `${nf(s.power_hp)} hp (${nf(Math.round(s.power_hp * 0.7457))} kW)` : "",
+  gearbox: s => [s.gears ? `${s.gears}-speed` : "", s.gearbox_detail].filter(Boolean).join(" "),
+  weight: s => s.weight_kg ? `${nf(s.weight_kg)} kg` : "",
+  dimensions: s => (s.length_mm && s.width_mm && s.height_mm) ? `${nf(s.length_mm)} × ${nf(s.width_mm)} × ${nf(s.height_mm)} mm${s.wheelbase_mm ? `, wheelbase ${nf(s.wheelbase_mm)} mm` : ""}` : ""
+};
+// does a library car still miss a required figure of the sheet?
+const specsMissing = v => SPEC_REQ.filter(k => v[k] == null || v[k] === "");
 async function vehicles(){
   const rank = v => v.status === "approved" ? 1 : v.suggested ? 0 : 2;
   const rows = [...D.vehicles].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   listPage("Vehicles", rows, [
     { l:"Vehicle", f:v => `<b>${esc(v.name)}</b>${(v.classes || []).length ? `<div class="vcls">${v.classes.map(c => `<span>${esc(c)}</span>`).join("")}</div>` : ""}` },
     { l:"Type", f:v => { const k = rnxVehKind(v, ""), t = RNX_VK[k]; return `<span class="vk${v.kind ? "" : " guess"}" title="${v.kind ? "" : "Guessed from its classes: open it to set the type"}">${t.svg}<small>${t.l}</small></span>`; } },
+    { l:"Specs", f:v => { if (v.status !== "approved" && !v.suggested) return '<span class="muted">—</span>'; const m = specsMissing(v); return v.specs_pending ? '<span class="chip warn">To review</span>' : m.length ? `<span class="chip" title="Missing: ${esc(m.join(", "))}">${m.length} missing</span>` : '<span class="chip good">Complete</span>'; } },
     { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : v.suggested ? '<span class="chip warn">Suggested by a user · to review</span>' : '<span class="chip">A user\'s own car</span>' }
   ], () => editVehicle(), editVehicle, "+ Add vehicle");
-  // specs: looked up by themselves when a car joins the library; this runs it now for any car still without
-  const miss = D.vehicles.filter(v => (v.status === "approved" || v.suggested) && !v.engine && !v.power && !v.weight && !v.specs_pending).length;
+  // specs: looked up by themselves when a car joins the library (retried weekly, 3 tries); this runs it now
+  const miss = D.vehicles.filter(v => (v.status === "approved" || v.suggested) && v.category !== "kart chassis" && !v.specs_pending && specsMissing(v).length).length;
   // specs the agent found: nothing is on fans' pages until approved here
   const pend = D.vehicles.filter(v => v.specs_pending);
   if (pend.length) {
-    const SPL = { engine:"Engine", hybrid:"Hybrid", power:"Power", drivetrain:"Drivetrain", max_rpm:"Max rpm", gearbox:"Gearbox", weight:"Weight", dimensions:"Dimensions" };
     const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
+    const src = (sp, f) => sp.sources?.[f] ? ` <a class="spk-src" href="${esc(sp.sources[f])}" target="_blank" rel="noopener" title="${esc(sp.sources[f])}">${esc(host(sp.sources[f]))} ↗</a>` : "";
+    const line = (l, val, req, sp, f) => `<span>${l}${req ? " *" : ""}</span>${val ? `<b>${esc(val)}${src(sp, f)}</b>` : `<b class="un">${req ? "not found" : "—"}</b>`}`;
     $(".ph").insertAdjacentHTML("afterend", `<section class="spr"><h3>Specs to review <span class="muted" style="font:500 14px Barlow;text-transform:none;letter-spacing:0">${pend.length} car${pend.length > 1 ? "s" : ""} · found by the agent, not on fans' pages until you approve</span></h3>
-      <div class="spr-grid">${pend.map(v => { const sp = v.specs_pending, k = rnxVehKind(v, ""); return `<div class="card rv" data-spv="${v.id}">
+      <div class="spr-grid">${pend.map(v => { const sp = v.specs_pending, k = sp.kind || rnxVehKind(v, ""); return `<div class="card rv" data-spv="${v.id}">
         <div class="rv-h"><span class="rv-lg vk">${RNX_VK[k].svg}</span><div class="rv-t"><b>${esc(v.name)}</b><small>${esc([(v.classes || []).join(" · "), sp.found_at ? ago(sp.found_at) : ""].filter(Boolean).join(" · "))}</small></div><span class="rv-k t-id">Specs</span></div>
-        <div class="rv-b"><div class="kv spk">${Object.entries(SPL).map(([f, l]) => `<span>${l}</span>${sp[f] ? `<b>${esc(f === "drivetrain" ? (DRIVE[sp[f]] || sp[f]) : sp[f])}</b>` : `<b class="un">not found</b>`}`).join("")}</div>
-          ${sp.spec_url ? `<div class="rv-src"><span class="rv-lbl">Source</span><a href="${esc(sp.spec_url)}" target="_blank" rel="noopener" title="${esc(sp.spec_url)}">${esc(host(sp.spec_url))} ↗</a></div>` : `<div class="rv-src"><span class="rv-lbl">Source</span><span class="muted">none given: check before approving</span></div>`}</div>
+        <div class="rv-b">
+          ${sp.suggested_name && sp.suggested_name !== v.name ? `<div class="rv-src"><span class="rv-lbl">Name</span><span>The agent thinks the real model name is <b>${esc(sp.suggested_name)}</b>: change it in Edit if right.</span></div>` : ""}
+          <div class="kv spk">
+            ${line("Type", sp.kind ? RNX_VK[sp.kind].l + (v.kind && v.kind !== sp.kind ? ` (now ${RNX_VK[v.kind].l})` : "") : "", true)}
+            ${line("Engine", fmtSpec.engine(sp), true, sp, "engine")}
+            ${line("Hybrid", sp.hybrid, false, sp, "hybrid")}
+            ${line("Power", fmtSpec.power(sp), true, sp, "power")}
+            ${line("Drivetrain", sp.drivetrain ? DRIVE[sp.drivetrain] : "", true)}
+            ${line("Gearbox", fmtSpec.gearbox(sp), false, sp, "gearbox")}
+            ${line("Weight", fmtSpec.weight(sp), true, sp, "weight")}
+            ${line("Dimensions", fmtSpec.dimensions(sp) || [sp.length_mm, sp.width_mm, sp.height_mm].map(x => x ? nf(x) : "?").join(" × ").replace(/^\? × \? × \?$/, ""), true, sp, "dimensions")}
+            ${line("BoP", sp.bop === true ? "Yes · note at the bottom of the specs" : sp.bop === false ? "No" : "", false)}
+          </div>
+          ${(sp.missing || []).length ? `<div class="rv-src"><span class="rv-lbl">Missing</span><span class="muted">${esc(sp.missing.join(", "))}${v.specs_attempts < 3 ? " · looked for again in a week" : ""}</span></div>` : ""}
+          ${sp.notes ? `<div class="rv-src"><span class="rv-lbl">Notes</span><span class="muted">${esc(sp.notes)}</span></div>` : ""}
+          ${Object.keys(sp.sources || {}).length ? "" : `<div class="rv-src"><span class="rv-lbl">Source</span><span class="muted">none given: check before approving</span></div>`}</div>
         <div class="rv-f"><span class="rv-hint"></span><button class="btn bad" data-sa="reject">Reject</button><button class="btn" data-sa="edit">Edit</button><button class="btn good" data-sa="approve">Approve</button></div></div>`; }).join("")}</div></section>`);
     $$("[data-spv]").forEach(card => {
       const v = pend.find(x => x.id === card.dataset.spv), sp = v.specs_pending;
-      const fields = () => { const row = { specs_pending: null }; for (const f of Object.keys(SPL)) if (sp[f]) row[f] = sp[f]; if (sp.spec_url) row.spec_source = sp.spec_url; return row; };
+      // what the agent found replaces the car's figures; what it didn't find stays as it was
+      const fields = () => { const row = { specs_pending: null }; for (const f of SPEC_COLS) if (sp[f] != null && sp[f] !== "") row[f] = sp[f];
+        if (sp.kind) row.kind = sp.kind; if (typeof sp.bop === "boolean") row.bop = sp.bop; if (sp.manufacturer && !v.manufacturer) row.manufacturer = sp.manufacturer;
+        if (Object.keys(sp.sources || {}).length) row.spec_sources = { ...(v.spec_sources || {}), ...sp.sources }; return row; };
       card.querySelector('[data-sa="approve"]').onclick = () => guard(async () => { await upd("vehicles", v.id, fields()); await loadRef(); route(); }, "Specs published");
       card.querySelector('[data-sa="reject"]').onclick = () => guard(async () => { await upd("vehicles", v.id, { specs_pending: null }); await loadRef(); route(); }, "Specs rejected");
       card.querySelector('[data-sa="edit"]').onclick = () => editVehicle({ ...v, ...fields(), __pending: true });
     });
   }
-  if (miss) { $("#l-add").insertAdjacentHTML("beforebegin", `<button class="btn ai" id="v-specs"${aiBusy("specs") ? " disabled" : ""} title="Cars joining the library get their specs looked up by themselves. This looks them up now for the ${miss} still without.">Find missing specs · ${miss}</button>`);
+  if (miss) { $("#l-add").insertAdjacentHTML("beforebegin", `<button class="btn ai" id="v-specs"${aiBusy("specs") ? " disabled" : ""} title="Cars joining the library get their specs looked up by themselves, and again each week (3 tries) while a required figure is missing. This looks them up now.">Find missing specs · ${miss}</button>`);
     $("#v-specs").onclick = () => { runAgent({ action:"specs" }, "Car specs", "specs"); $("#v-specs").disabled = true; $("#v-specs").textContent = "Looking up specs…"; }; }
 }
 async function editVehicle(v){
   let drive = v?.drivetrain || "", vkind = v?.kind || "";
   // a double only matters for library cars (an athlete's own car stays theirs)
   const g = sameGuard(() => $("#f_approved")?.checked === false ? { strong:[], similar:[] } : findSameCar($("#f_name")?.value, v?.id), "car", x => `#/vehicles`);
-  const driveHtml = `<div><label class="f">Drivetrain</label><div class="seg" id="dv-pick" role="radiogroup" aria-label="Drivetrain">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" class="${drive === k ? "on" : ""}" aria-checked="${drive === k}">${l}</button>`).join("")}</div><div class="help">All-wheel, rear-wheel or front-wheel drive. Tap again to clear.</div></div>`;
-  const r = await drawer(v ? v.name : "Add vehicle", [
-    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"As fans know it, for example: Cadillac V-Series.R" }, { html: g.html },
-      { html: `<div><label class="f">Type</label><div class="vkp" id="vk-pick" role="radiogroup" aria-label="Type">${Object.entries(RNX_VK).map(([k, t]) => `<button type="button" role="radio" data-k="${k}" class="${vkind === k ? "on" : ""}" aria-checked="${vkind === k}">${t.svg}${t.l}</button>`).join("")}</div><div class="help">The icon fans tap to see the specs.${vkind ? "" : ` Not set: shown as ${RNX_VK[rnxVehKind(v || {}, "")].l} (guessed from the classes).`}</div></div>` }, { k:"classes", l:"Classes", help:"Every class name it races under, separated by commas. For example: GT3, GTD, GTD Pro, LMGT3. Athletes racing in one of these classes see this car first. One car, several names: no copy per class." }] },
-    { section:"Specs", sub:"Shown on every page that uses this car", items:[
-      VFIELDS[0], VFIELDS[1], VFIELDS[2], { html: driveHtml },
-      { row:[VFIELDS[3], VFIELDS[4]] }, { row:[VFIELDS[5], VFIELDS[6]] } ] },
+  const driveHtml = `<div><label class="f">Drivetrain *</label><div class="seg" id="dv-pick" role="radiogroup" aria-label="Drivetrain">${Object.entries(DRIVE).map(([k, l]) => `<button type="button" role="radio" data-d="${k}" class="${drive === k ? "on" : ""}" aria-checked="${drive === k}">${l}</button>`).join("")}</div><div class="help">All-wheel, rear-wheel or front-wheel drive. Karts are RWD. Tap again to clear.</div></div>`;
+  // a car from before the sheet: its old text, to help fill the figures in
+  const old = v && !v.engine_cc && !v.power_hp && [v.engine, v.power, v.gearbox, v.weight, v.dimensions].some(Boolean)
+    ? `<div class="help" style="grid-column:1/-1">Before the spec sheet: ${esc([v.engine, v.power, v.gearbox, v.weight, v.dimensions].filter(Boolean).join(" · "))}</div>` : "";
+  const r = await drawer(v?.name || "Add vehicle", [
+    { section:"Vehicle", items:[{ k:"name", l:"Name", req:true, help:"The manufacturer's real model name, with the brand, for example: Cadillac V-Series.R. Never a championship's class name (\"LMGT3\")." }, { html: g.html },
+      { k:"manufacturer", l:"Manufacturer", help:"The brand only, for example: Cadillac" },
+      { html: `<div><label class="f">Type *</label><div class="vkp" id="vk-pick" role="radiogroup" aria-label="Type">${Object.entries(RNX_VK).map(([k, t]) => `<button type="button" role="radio" data-k="${k}" class="${vkind === k ? "on" : ""}" aria-checked="${vkind === k}">${t.svg}${t.l}</button>`).join("")}</div><div class="help">The icon fans tap to see the specs. Proposed by the agent, checked by you.${vkind ? "" : ` Not set: shown as ${RNX_VK[rnxVehKind(v || {}, "")].l} (guessed from the classes).`}</div></div>` },
+      { k:"classes", l:"Classes", help:"Every class name it races under, separated by commas. For example: GT3, GTD, GTD Pro, LMGT3. Athletes racing in one of these classes see this car first. One car, several names: no copy per class." }] },
+    { section:"Engine", sub:"Shown as: 5.5 L V8 naturally aspirated", items:[ ...(old ? [{ html: old }] : []),
+      { row:[{ k:"engine_cc", l:"Displacement (cc) *", type:"number", help:"5.5 L = 5500. Under 1,000 cc it's shown in cc (125 cc)." }, { k:"engine_layout", l:"Layout *", type:"select", options: LAYOUTS.map(x => ({ v:x, l:x })) }] },
+      { row:[{ k:"engine_aspiration", l:"Aspiration *", type:"select", options: ASPIRATION.map(x => ({ v:x, l:x })) }, { k:"engine_maker", l:"Engine maker", help:"Only if not the car's manufacturer: Gibson GK428" }] },
+      { k:"hybrid", l:"Hybrid system", help:"Only if the car has one: Rear-axle electric motor, 50 kW" } ] },
+    { section:"Power and drive", items:[
+      { k:"power_hp", l:"Power (hp) *", type:"number", help:"One number, the higher if there are two. Combined for a hybrid. kW is added by itself (1 hp = 0.7457 kW)." }, { html: driveHtml },
+      { row:[{ k:"gears", l:"Gears", type:"number", help:"Forward gears. Empty for a kart with no gearbox." }, { k:"gearbox_detail", l:"Gearbox type", help:"sequential, paddle-shift (Xtrac) · direct drive" }] } ] },
+    { section:"Weight and size", items:[
+      { k:"weight_kg", l:"Weight (kg) *", type:"number", help:"One number, the lightest (dry / minimum)." },
+      { row:[{ k:"length_mm", l:"Length (mm) *", type:"number" }, { k:"width_mm", l:"Width (mm) *", type:"number" }] },
+      { row:[{ k:"height_mm", l:"Height (mm) *", type:"number" }, { k:"wheelbase_mm", l:"Wheelbase (mm)", type:"number" }] },
+      { k:"bop", l:"Balance of Performance", type:"bool", l2:"Subject to BoP: one note at the bottom of the specs" } ] },
     { section:"Catalogue", items:[{ k:"approved", l:"Availability", type:"bool", l2:"In the catalogue: every user can pick it" }] }
-  ], { ...(v || {}), classes: (v?.classes || []).join(", "), approved: v ? v.status === "approved" : true }, { onDelete: !!v, deleteText:"Delete this vehicle? Pages using it will show no car.",
+  ], { ...(v || {}), classes: (v?.classes || []).join(", "), approved: v ? v.status === "approved" : true }, { onDelete: !!v?.id, deleteText:"Delete this vehicle? Pages using it will show no car.",
     validate: g.validate,
     after(){ ["#f_name", "#f_approved"].forEach(q => { $(q)?.addEventListener("input", g.draw); $(q)?.addEventListener("change", g.draw); }); g.draw(); $$("#vk-pick button").forEach(b => b.onclick = () => { vkind = b.dataset.k; $$("#vk-pick button").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); }); $$("#dv-pick button").forEach(b => b.onclick = () => { drive = drive === b.dataset.d ? "" : b.dataset.d; $$("#dv-pick button").forEach(x => { x.classList.toggle("on", x.dataset.d === drive); x.setAttribute("aria-checked", x.dataset.d === drive); }); }); } });
   if (!r) return;
   if (r.__delete) return guard(async () => { await del("vehicles", v.id); route(); }, "Deleted");
-  const row = { name:r.name, drivetrain: drive || null, status: r.approved ? "approved" : "pending", ...(vkind ? { kind: vkind } : {}), ...(v?.__pending ? { specs_pending: null, ...(v.spec_source ? { spec_source: v.spec_source } : {}) } : {}) };
-  VFIELDS.forEach(f => row[f.k] = r[f.k] || null);
+  const row = { name:r.name, manufacturer: r.manufacturer || null, drivetrain: drive || null, bop: !!r.bop, status: r.approved ? "approved" : "pending", ...(vkind ? { kind: vkind } : {}),
+    ...(v?.__pending ? { specs_pending: null, ...(v.spec_sources ? { spec_sources: v.spec_sources } : {}) } : {}) };
+  SPEC_COLS.filter(k => k !== "drivetrain").forEach(k => { const x = r[k]; row[k] = SPEC_NUM.includes(k) ? (x == null || !Number.isFinite(+x) ? null : Math.round(+x)) : (x || null); });
   if ((v && "classes" in v) || (r.classes || "").trim()) row.classes = [...new Set((r.classes || "").split(",").map(x => x.trim()).filter(Boolean))];
-  await guard(async () => { try { v ? await upd("vehicles", v.id, row) : await ins("vehicles", row); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Vehicle saved");
+  await guard(async () => { try { v?.id ? await upd("vehicles", v.id, row) : await ins("vehicles", row); } catch(e){ throw new Error(dupMsg(e)); } await loadRef(); route(); }, "Vehicle saved");
 }
 
 // ---------- start ----------

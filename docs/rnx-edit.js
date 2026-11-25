@@ -6,7 +6,7 @@
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   const YEAR = new Date().getFullYear(), TODAY = new Date().toISOString().slice(0, 10);
   const COLORS = ["#FF5A1F", "#E8352F", "#F2B20F", "#5FCF6E", "#1FB5A8", "#2F80ED", "#7B61FF", "#D946EF", "#F4F4F2", "#8A8D96"];
-  const VFIELDS = [["engine", "Engine"], ["hybrid", "Hybrid system"], ["power", "Power"], ["max_rpm", "Max rpm"], ["gearbox", "Gearbox"], ["weight", "Weight"], ["dimensions", "Dimensions"]];
+  const VFIELDS = [["engine", "Engine"], ["hybrid", "Hybrid system"], ["power", "Power"], ["gearbox", "Gearbox"], ["weight", "Weight"], ["dimensions", "Dimensions"]];
   const DRIVE = { awd: "AWD", rwd: "RWD", fwd: "FWD" };
   const PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>';
   const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';

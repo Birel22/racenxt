@@ -571,13 +571,13 @@ if (!RNX) return;
 // ===== Langue / Language =====
 rnxDecorate(RNX);
 const I18N = {
-  en:{wTitle:"Where to watch", wLinks:"Links", searchEv:"Search events", searchPh:"Search an event, a place…", noEv:"No event found", wStream:"Official stream", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
+  en:{wTitle:"Where to watch", wLinks:"Links", searchEv:"Search events", searchPh:"Search an event, a place…", noEv:"No event found", wStream:"Official stream", wTiming:"Live timing", wSubTimingRace:"This race’s live timing", wSubTimingAll:"Positions and lap times, live", wTv:"TV broadcast", wSubRace:"Channels for this race", wSubAll:"Channels in your country", wOpens:"Opens the official website", wClose:"Close", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Season 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz with his Cadillac Hypercar",
       socials:"Social media", website:"Website", partners:"Partners", filterBy:"Filter by championship", all:"All", lmFull:"24 Hours of Le Mans",
       disclaimer:"Dates are provisional and subject to change.", poweredBy:"Powered by", shareLocal:"local time,", shareSoon:"Schedule: coming soon", shareMore:"Where to watch, times in your own time zone + add to your calendar:", close:"Close", next:"Next", raceLength:"Race length", maps:"View on Google Maps",
       schedule:"Schedule", watch:"Where to watch", nextRace:"Next event", now:"Right now", racing:"Racing 🏁", season:"Season 2027", over:"Over — thanks for the support!",
       days:"days", hours:"hours", min:"min", sec:"sec", notYet:"Not published yet.<br>Schedules usually come out a few weeks before the race.",
       official:"View on the official website ↗", localTrack:"Local track time", partialLM:"practice, qualifying and Hyperpole not published yet", locale:"en-GB", timeMode:"Time zone", trackTime:"Track time", myTime:"My time", yourTime:"Your local time", addOne:"Add to my calendar", addAll:"Add all to my calendar", calNote:"Saved in your phone’s calendar in your own time zone, with an alert 15 minutes before each session.", selectAll:"Select all", carShort:"Car", drivers:"Drivers", raceWord:"Event", seasonDone:"Season complete", share:"Share", shareText:"Follow Louis at {race}, {dates} 🏁", copied:"Link copied", filter:"Filter", allChamps:"All events", n_imsa:"IMSA WeatherTech Championship", n_elms:"European Le Mans Series", n_alms:"Asian Le Mans Series", n_lm:"Le Mans 24 Hours", nextSession:"Next session", endsAround:"Ends around", then:"then", yourTimeShort:"your time", carSpecs:"Car specs", bopNote:"Power and weight subject to Balance of Performance.", more:"More", moreRaces:"More events", cancel:"Cancel", calHint:"Tap the calendar icon next to a session to add it — you can then select several at once. Saved in your own time zone, with an alert 15 minutes before.", selectNone:"Clear selection", pickNone:"Select sessions to add", addOneSel:"Add 1 session to my calendar", addN:"Add {n} sessions to my calendar", subscribe:"Subscribe to the calendar", incomplete:"Incomplete schedule — not published yet:", cat_fp:"free practice", cat_q:"qualifying", cat_r:"race", subTitle:"Subscribe to Louis’s calendar", subIntro:"Pick what you want on your phone. Race weekends are always included, and new schedules are added automatically.", sub_all:"Everything", sub_all_d:"Free practice, qualifying and races", sub_qr:"Qualifying & races", sub_qr_d:"No free practice", sub_r:"Races only", sub_r_d:"Just the race starts", subNote:"All race weekends and schedules, updated automatically on your phone."},
-  fr:{wTitle:"Où regarder", wLinks:"Liens", searchEv:"Chercher un événement", searchPh:"Chercher un événement, un lieu…", noEv:"Aucun événement trouvé", wStream:"Stream officiel", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
+  fr:{wTitle:"Où regarder", wLinks:"Liens", searchEv:"Chercher un événement", searchPh:"Chercher un événement, un lieu…", noEv:"Aucun événement trouvé", wStream:"Stream officiel", wTiming:"Live timing", wSubTimingRace:"Le live timing de cette course", wSubTimingAll:"Classement et temps au tour, en direct", wTv:"Diffusion TV", wSubRace:"Chaînes pour cette course", wSubAll:"Chaînes dans ton pays", wOpens:"Ouvre le site officiel", wClose:"Fermer", docTitle:"Louis Race Hub", eyebrow:"Louis Delétraz · Saison 2027", title:"Louis <em>Race Hub</em>", photoAlt:"Louis Delétraz à côté de sa Cadillac Hypercar",
       socials:"Réseaux sociaux", website:"Site web", partners:"Partenaires", filterBy:"Filtrer par championnat", all:"Tout", lmFull:"24 Heures du Mans",
       disclaimer:"Dates indicatives, susceptibles de changer.", poweredBy:"Propulsé par", shareLocal:"heure locale,", shareSoon:"Horaires : bientôt disponibles", shareMore:"Où regarder, les horaires à ton heure + ajout au calendrier :", close:"Fermer", next:"Prochaine", raceLength:"Durée de course", maps:"Voir sur Google Maps",
       schedule:"Horaires", watch:"Où regarder", nextRace:"Prochain événement", now:"En ce moment", racing:"En course 🏁", season:"Saison 2027", over:"Terminée — merci pour le soutien !",
@@ -890,13 +890,18 @@ function seasonProgress(){
   el.setAttribute("aria-label", `${done} / ${total}`);
 }
 // Where to watch
-const WATCH = RNX.watch, TV = RNX.tv || {};
+const WATCH = RNX.watch, TV = RNX.tv || {}, TIMING = RNX.timing || {};
+// live timing: this race's own page if it has one, else the championship's
+const timingOf = ev => ev.timing || TIMING[ev.series] || "";
+// during the race weekend (first day to last day, local date)
+const raceWeekend = ev => { const d = new Date(), t = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; return !!ev.s && ev.s <= t && t <= (ev.e || ev.s); };
 const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15l13-7.5z"/></svg>';
 const W_ICON = {
   stream: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="currentColor" d="M10 8.3v7.4l6.2-3.7z"/></svg>',
   tv: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="6" width="18.4" height="12.4" rx="2.4"/><path d="M8.5 21h7M9 2.8l3 3.2 3-3.2"/></svg>',
   out: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
-  x: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  timing: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 2h4M12 2v3"/></svg>'
 };
 const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
 // Where to watch: the championship's Official stream + TV broadcast (this race's own page if it has one, else the channels by country)
@@ -909,21 +914,24 @@ const lkIcon = l => { const t = (l || "").toLowerCase(); return /watch|stream|tv
 // the small link icon on a custom event's card: opens its links in the same popup
 const linkBtn = ev => ev.links && ev.links.length ? `<button type="button" class="lk-btn wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog" aria-label="${T("wLinks")} – ${esc0(L(ev.name))}" title="${T("wLinks")}">${LKI.link}</button>` : "";
 function watchLinks(ev){
-  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
+  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "", lt = timingOf(ev);
+  // race weekend: live timing one tap away, next to Watch
+  const ltBtn = lt && raceWeekend(ev) ? `<a class="watch ghost" href="${esc0(lt)}" target="_blank" rel="noopener">${W_ICON.timing}${T("wTiming")}</a>` : "";
+  if (!st && !tv && lt) return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>` + ltBtn;
   if (!st && !tv) return ev.links && ev.links.length ? `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${LKI.link}${T("wLinks")}</button>` : "";
-  return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>`;
+  return `<button type="button" class="watch wbtn" data-i="${EVENTS.indexOf(ev)}" aria-haspopup="dialog">${PLAY}${T("watch")}</button>` + ltBtn;
 }
 let wLast = null;
 function openWatch(ev, from){
-  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "";
+  const st = WATCH[ev.series] || "", tv = ev.watch || TV[ev.series] || "", lt = timingOf(ev);
   const row = (href, icon, title, sub) => `<a class="ws-row" href="${esc0(href)}" target="_blank" rel="noopener"><span class="ws-ic">${W_ICON[icon]}</span><span class="ws-t"><b>${title}</b><small>${esc0(sub)}</small></span><span class="ws-go">${W_ICON.out}</span></a>`;
   const el = document.createElement("div");
   el.className = "ws"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "ws-h");
   el.style.setProperty("--c", (RNX.color && RNX.color[ev.series]) || "#ff6a1f");
   el.innerHTML = `<div class="ws-back" data-close></div><div class="ws-card"><span class="ws-grab" aria-hidden="true"></span>
-    <div class="ws-head"><div><small>${st || tv ? T("wTitle") : T("wLinks")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
-    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}${(ev.links || []).map(l => `<a class="ws-row" href="${esc0(l.url)}" target="_blank" rel="noopener"><span class="ws-ic">${lkIcon(l.label)}</span><span class="ws-t"><b>${esc0(l.label)}</b><small>${esc0(hostOf(l.url))}</small></span><span class="ws-go">${W_ICON.out}</span></a>`).join("")}</div>
-    ${st || tv ? `<p class="ws-note">${T("wOpens")}</p>` : ""}</div>`;
+    <div class="ws-head"><div><small>${st || tv || lt ? T("wTitle") : T("wLinks")}</small><h3 id="ws-h">${esc0(L(ev.name))}</h3></div><button type="button" class="ws-x" data-close aria-label="${T("wClose")}">${W_ICON.x}</button></div>
+    <div class="ws-list">${st ? row(st, "stream", T("wStream"), hostOf(st)) : ""}${tv ? row(tv, "tv", T("wTv"), ev.watch ? T("wSubRace") : T("wSubAll")) : ""}${lt ? row(lt, "timing", T("wTiming"), ev.timing ? T("wSubTimingRace") : T("wSubTimingAll")) : ""}${(ev.links || []).map(l => `<a class="ws-row" href="${esc0(l.url)}" target="_blank" rel="noopener"><span class="ws-ic">${lkIcon(l.label)}</span><span class="ws-t"><b>${esc0(l.label)}</b><small>${esc0(hostOf(l.url))}</small></span><span class="ws-go">${W_ICON.out}</span></a>`).join("")}</div>
+    ${st || tv || lt ? `<p class="ws-note">${T("wOpens")}</p>` : ""}</div>`;
   document.body.appendChild(el);
   wLast = from || null;
   document.documentElement.classList.add("ws-lock");

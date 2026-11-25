@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-013928"></script>
-<script src="rnx-auth.js?v=20261125-013928"></script>
-<script src="rnx-ui.js?v=20261125-013928"></script>
+<script src="config.js?v=20261125-015143"></script>
+<script src="rnx-auth.js?v=20261125-015143"></script>
+<script src="rnx-ui.js?v=20261125-015143"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -242,6 +242,43 @@
   @keyframes sp{to{transform:rotate(360deg)}}
   @media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
   .btn.ai::before{content:"✦";color:var(--acc);margin-right:6px}
+  /* review cards */
+  .card.rv{padding:0;margin-bottom:14px;overflow:hidden}
+  .rv-h{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .rv-lg{width:46px;height:30px;flex:none;display:grid;place-items:center} .rv-lg img{max-width:46px;max-height:30px;object-fit:contain} .rv-lg span{font:700 12px 'Barlow Condensed';letter-spacing:.06em;color:var(--dim);border:1px solid var(--line2);border-radius:6px;padding:2px 5px}
+  .rv-t{flex:1;min-width:0;display:grid;gap:1px} .rv-t b{font-size:16px;font-weight:600;line-height:1.25} .rv-t small{font-size:12.5px;color:var(--mute)}
+  .rv-k{flex:none;align-self:flex-start;padding:3px 9px;border-radius:999px;font:700 11px Barlow;letter-spacing:.08em;text-transform:uppercase;border:1px solid}
+  .rv-k.t-cal{color:#FF8A5C;border-color:rgba(255,90,31,.35);background:rgba(255,90,31,.08)} .rv-k.t-tt{color:#7fb2ff;border-color:rgba(47,123,255,.35);background:rgba(47,123,255,.08)}
+  .rv-k.t-tv{color:#7ddf9a;border-color:rgba(95,207,110,.35);background:rgba(95,207,110,.08)} .rv-k.t-id{color:#c7a3ff;border-color:rgba(160,110,255,.35);background:rgba(160,110,255,.08)} .rv-k.t-bad{color:#ff8a7a;border-color:rgba(232,53,47,.4);background:rgba(232,53,47,.08)}
+  .rv-b{padding:14px 16px;display:grid;gap:12px}
+  .rv-src{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13.5px}
+  .rv-src a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--line2);word-break:break-all} .rv-src a:hover{border-color:var(--acc)}
+  .rv-lbl,.rv-ch{font:700 11px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+  .rv-src details{flex-basis:100%} .rv-src summary,.rv-more summary{cursor:pointer;color:var(--dim);font-size:13px}
+  .rv-src blockquote{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--line2);background:var(--panel2);border-radius:0 8px 8px 0;font-size:13px;color:var(--dim);white-space:pre-wrap}
+  .rv-diff{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  @media (max-width:700px){.rv-diff{grid-template-columns:minmax(0,1fr)}}
+  .rv-col{display:grid;gap:6px;align-content:start;min-width:0}
+  .rv-col > .now,.rv-col > .pv{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);font-size:14px;line-height:1.45;min-height:44px;word-break:break-word}
+  .rv-col.prop > .rv-ch{color:var(--acc)} .rv-col.prop > .pv{border-color:rgba(255,90,31,.35);background:rgba(255,90,31,.04)}
+  .rv-col pre{margin:0;padding:0;border:0;background:none;font-size:12.5px;max-height:none}
+  .rv-none{color:var(--mute);font-size:13.5px}
+  .tt{display:grid;gap:2px}
+  .tt-d{font:700 11px Barlow;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:8px 0 2px} .tt-d:first-child{margin-top:0}
+  .tt-r{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:3px 6px;margin:0 -6px;border-radius:6px;font-size:13.5px}
+  .tt-tm{font-variant-numeric:tabular-nums;color:var(--dim);white-space:nowrap} .tt-tm i{font-style:normal;color:var(--warn);margin-left:2px}
+  .tt-c{font-size:11.5px;color:var(--dim);border:1px solid var(--line2);border-radius:999px;padding:0 7px;white-space:nowrap}
+  .tt-r.new{background:rgba(255,90,31,.12)} .tt-r.new .tt-l{color:var(--text);font-weight:600}
+  .rv-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin-top:-4px} .rv-legend i{width:14px;height:10px;border-radius:3px;background:rgba(255,90,31,.25)}
+  .kv{display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 10px;font-size:14px} .kv span{color:var(--mute);font-size:12.5px;padding-top:1px} .kv b{font-weight:500} .kv b.chg{color:var(--acc);font-weight:700} .kv b.un{color:var(--mute);font-weight:400;font-style:italic}
+  .rv-races{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:2px;font-size:13px} .rv-races li{display:grid;grid-template-columns:130px 1fr;gap:10px} .rv-races span{color:var(--mute)}
+  .rv-f{display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--line);background:var(--panel2)}
+  .rv-hint{flex:1;min-width:0;font-size:12.5px;color:var(--mute)}
+  .rv-f .btn{height:38px}
+  @media (max-width:560px){.rv-hint{display:none}.rv-f .btn{flex:1}.rv-h{display:grid;grid-template-columns:46px minmax(0,1fr);column-gap:12px;row-gap:4px}.rv-lg{grid-row:1/3}.rv-k{grid-column:2;grid-row:1;justify-self:start}.rv-t{grid-column:2;grid-row:2}}
+  .rv-f .btn{justify-content:center}
+  .rv .ck > div{margin:4px 0 0 !important}
+  .rv .ck{font-size:13px}
   .evlist{display:grid;gap:4px;font-size:13px;margin:0;padding:0;list-style:none}
   .evlist li{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
   .evlist li:last-child{border-bottom:0}
@@ -1190,6 +1227,36 @@ async function editSeries(s, src){
   }, "Saved");
 }
 
+// ---------- review cards: one clear, compact layout for every kind ----------
+const KIND_TONE = { logo:"id", new_event:"cal", event_change:"cal", event_cancelled:"bad", timetable:"tt", watch_link:"tv", new_season:"cal", series_links:"tv", classes:"id", cars:"id", class_format:"id" };
+const rvLogo = s => s?.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc((s?.short_name || "?").slice(0, 5))}</span>`;
+const dLong = d => d ? new Date(String(d).slice(0, 10) + "T12:00:00Z").toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short", year:"numeric", timeZone:"UTC" }) : "";
+function rvHead(p, kind, title, sub){
+  const s = D.series.find(x => x.id === p.series_id);
+  return `<div class="rv-h"><span class="rv-lg">${rvLogo(s)}</span><div class="rv-t"><b>${title}</b><small>${sub}</small></div><span class="rv-k t-${KIND_TONE[p.kind] || "id"}">${esc(kind)}</span></div>`;
+}
+const rvWho = p => `${p.check_runs ? `Found by the agent · ${esc(p.check_runs.kind)} check` : "Added by hand"} · ${ago(p.created_at)}`;
+function rvSource(p){
+  const ev = p.evidence || {}; if (!ev.url && !ev.excerpt && !ev.check) return "";
+  let host = ""; try { const u = new URL(ev.url); host = u.hostname.replace(/^www\./, "") + (u.pathname.length > 1 ? u.pathname.replace(/\/$/, "") : ""); } catch(e){ host = ev.url || ""; }
+  return `<div class="rv-src">${ev.url ? `<span class="rv-lbl">Source</span><a href="${esc(ev.url)}" target="_blank" rel="noopener" title="${esc(ev.url)}">${esc(host.length > 64 ? host.slice(0, 62) + "…" : host)} ↗</a>` : ""}
+    ${ev.excerpt ? `<details><summary>What the page says</summary><blockquote>${esc(ev.excerpt)}</blockquote></details>` : ""}</div>${checkBox(ev.check)}`;
+}
+const rvDiff = (now, prop) => `<div class="rv-diff"><div class="rv-col"><div class="rv-ch">Now</div><div class="now">${now}</div></div><div class="rv-col prop"><div class="rv-ch">Proposed</div><div class="pv">${prop}</div></div></div>`;
+const rvFoot = (edit) => `<div class="rv-f"><span class="rv-hint">Reject asks why: the agent learns from it.</span><button class="btn bad" data-act="reject">Reject</button>${edit ? `<button class="btn" data-act="edit">${edit}</button>` : ""}<button class="btn good" data-act="approve">Approve</button></div>`;
+// a timetable as a clean list, one block per day; rows the race doesn't have yet are marked
+const ttKey = s => String(s.local_start).replace(" ", "T").slice(0, 16) + "|" + String(s.label || "").toLowerCase().trim();
+function ttTable(list){
+  if (!list.length) return `<div class="rv-none">No sessions yet</div>`;
+  const day = s => String(s.local_start).replace(" ", "T").slice(0, 10), hm = s => String(s.local_start).replace(" ", "T").slice(11, 16);
+  const days = [...new Set(list.map(day))];
+  return `<div class="tt">${days.map(d => `<div class="tt-d">${esc(dLong(d).replace(/ \d{4}$/, ""))}</div>${list.filter(x => day(x) === d).map(x => `<div class="tt-r" data-k="${esc(ttKey(x))}"><span class="tt-tm">${hm(x)}–${endOf(x.local_start, x.duration_min)}${x.end_estimated ? `<i title="End time not published">*</i>` : ""}</span><span class="tt-l">${esc(x.label || "")}</span>${x.category ? `<span class="tt-c">${esc(x.category)}</span>` : ""}</div>`).join("")}`).join("")}</div>`;
+}
+// a race's details as label / value rows; values that change are highlighted
+const EVK = [["date", "Date"], ["name", "Name"], ["len", "Length"], ["circuit", "Circuit"]];
+const evObj = e => ({ date: e.start_date ? `${fmtRange(e.start_date, e.end_date || e.start_date)} ${String(e.start_date).slice(0, 4)}` : "", name: e.name || "", len: e.duration_label || "", circuit: e.venues?.name || e.circuit?.name || "" });
+const evKV = (o, base) => `<div class="kv">${EVK.map(([k, l]) => `<span>${l}</span>${o[k] ? `<b class="${base && base[k] !== o[k] ? "chg" : ""}">${esc(o[k])}</b>` : `<b class="un">${base ? "unchanged" : "–"}</b>`}`).join("")}</div>`;
+
 // ---------- Review queue ----------
 async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
@@ -1203,25 +1270,26 @@ async function review(slug){
   const inGroup = new Set(grouped.flat().map(p => p.id));
   const single = ps.filter(p => !inGroup.has(p.id));
   $("#main").innerHTML = (only ? `<a class="back" href="#/review">${I.back}Whole review queue</a>` : "") + `<div class="ph"><h1>${only ? `Review ${esc(only.short_name || only.name)}` : "Review queue"}</h1>${only ? `<a class="btn" href="#/championships/${esc(only.slug)}">Open championship</a>` : `<button class="btn" id="rv-new">+ Create a change by hand</button>`}</div>` +
-    grouped.map((g, gi) => `<div class="card" style="margin-bottom:12px" data-g="${gi}">
-      <div class="bar"><div class="grow"><span class="chip warn">Event broadcast</span> <b>${esc(ser[g[0].series_id]?.short_name || "")} · same link for ${g.length} races</b><div class="muted" style="font-size:13px">Agent · ${ago(g[g.length - 1].created_at)}</div></div></div>
-      <div style="font-size:15px;margin:2px 0 10px">${linkHtml(g[0].payload.watch_url)}</div>
-      <details><summary class="dim" style="cursor:pointer;font-size:13px">Races it applies to</summary><ul class="dim" style="margin:6px 0 0;padding-left:18px;font-size:13px;columns:2">${g.map(p => `<li>${esc(p.events?.name || "")}${p.events?.start_date ? ` <span class="muted">${esc(new Date(p.events.start_date + "T12:00:00Z").toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" }))}</span>` : ""}</li>`).join("")}</ul></details>
-      <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject all ${g.length}</button><button class="btn good" data-act="approve">Approve for all ${g.length} races</button></div></div>`).join("") +
-    (single.length || grouped.length ? single.map(p => `<div class="card" style="margin-bottom:12px" data-p="${p.id}">
-      <div class="bar"><div class="grow"><span class="chip warn">${KIND[p.kind] || p.kind}</span> <b>${esc(ser[p.series_id]?.short_name || "")} ${esc(p.events?.name || "")}</b><div class="muted" style="font-size:13px">${p.check_runs ? `Agent · ${p.check_runs.kind} check · ` : "By hand · "}${ago(p.created_at)}</div></div></div>
-      ${p.evidence?.url ? `<div style="font-size:13px;margin-bottom:8px">Source: <a href="${esc(p.evidence.url)}" target="_blank" rel="noopener">${esc(p.evidence.url)}</a></div>` : ""}
-      ${p.evidence?.excerpt ? `<blockquote class="dim" style="margin:0 0 10px;padding-left:10px;border-left:3px solid var(--line);font-size:13px">${esc(p.evidence.excerpt)}</blockquote>` : ""}
-      ${checkBox(p.evidence?.check)}
-      ${p.kind === "logo" ? `<div id="lgrv-${p.id}-box"></div>`
-        : p.kind === "new_season" || p.kind === "new_event" ? `<label class="f">${(p.payload.events || [p.payload]).length} race${(p.payload.events || [p.payload]).length > 1 ? "s" : ""} to add</label>${seasonList(p.payload.events ? p.payload : { events:[p.payload] })}<pre class="now" hidden></pre>`
-        : p.kind === "classes" ? classesView(p.payload) + `<pre class="now" hidden></pre>`
-        : p.kind === "cars" ? carsView(p) + `<pre class="now" hidden></pre>`
-        : p.kind === "class_format" ? classFormatView(p) + `<pre class="now" hidden></pre>`
-        : p.kind === "series_links" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${seriesLinks(p.payload, true)}</div></div></div>`
-        : p.kind === "watch_link" ? `<div class="diff"><div><label class="f">Now</label><div class="now pre-l">Loading…</div></div><div><label class="f">Proposed</label><div class="pre-l">${linkHtml(pretty(p))}</div></div></div>`
-        : (p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>` : "") + `<div class="diff"><div><label class="f">Now</label><pre class="now">Loading…</pre></div><div><label class="f">Proposed</label><pre>${esc(pretty(p))}</pre></div></div>`}
-      <div class="bar" style="margin-top:10px;justify-content:flex-end"><button class="btn bad" data-act="reject">Reject</button><button class="btn" data-act="edit">${p.kind === "logo" ? "Adjust" : "Edit"}</button><button class="btn good" data-act="approve">Approve</button></div></div>`).join("")
+    grouped.map((g, gi) => `<div class="card rv" data-g="${gi}">
+      ${rvHead(g[0], "Event broadcast", `${esc(ser[g[0].series_id]?.short_name || "")} · one link for ${g.length} races`, rvWho(g[g.length - 1]))}
+      <div class="rv-b"><div class="rv-col prop"><div class="rv-ch">Proposed link</div><div class="pv">${linkHtml(g[0].payload.watch_url)}</div></div>
+      <details class="rv-more"><summary>The ${g.length} races</summary><ul class="rv-races">${g.map(p => `<li><span>${esc(p.events?.start_date ? dLong(p.events.start_date) : "")}</span><b>${esc(p.events?.name || "")}</b></li>`).join("")}</ul></details></div>
+      <div class="rv-f"><span class="rv-hint">Approve or reject for all ${g.length} at once.</span><button class="btn bad" data-act="reject">Reject all</button><button class="btn good" data-act="approve">Approve all ${g.length}</button></div></div>`).join("") +
+    (single.length || grouped.length ? single.map(p => { const pl = p.payload || {}, nEv = (pl.events || [pl]).length;
+      const title = `${esc(ser[p.series_id]?.short_name || "")}${p.events?.name ? ` · ${esc(p.events.name)}` : ""}`;
+      const sub = `${p.events?.start_date ? esc(dLong(p.events.start_date)) + " · " : ""}${rvWho(p)}`;
+      const body = p.kind === "logo" ? `<div id="lgrv-${p.id}-box"></div>`
+        : p.kind === "new_season" || p.kind === "new_event" ? `<div class="rv-ch">${nEv} race${nEv > 1 ? "s" : ""} to add</div>${seasonList(pl.events ? pl : { events:[pl] })}<div class="now" hidden></div>`
+        : p.kind === "classes" ? classesView(pl) + `<div class="now" hidden></div>`
+        : p.kind === "cars" ? carsView(p) + `<div class="now" hidden></div>`
+        : p.kind === "class_format" ? classFormatView(p) + `<div class="now" hidden></div>`
+        : p.kind === "series_links" ? rvDiff("Loading…", seriesLinks(pl, true))
+        : p.kind === "watch_link" ? rvDiff("Loading…", linkHtml(pretty(p)))
+        : p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>${rvDiff("Loading…", ttTable(pl.sessions || []))}<div class="rv-legend"><i></i>New or changed</div>`
+        : p.kind === "event_change" ? rvDiff("Loading…", evKV(evObj(pl)))
+        : rvDiff("Loading…", `<pre>${esc(pretty(p))}</pre>`);
+      return `<div class="card rv" data-p="${p.id}">${rvHead(p, KIND[p.kind] || p.kind, title, sub)}
+      <div class="rv-b">${rvSource(p)}${body}</div>${rvFoot(p.kind === "logo" ? "Adjust" : "Edit")}</div>`; }).join("")
     : `<div class="card empty">Nothing to review. Agents' findings will appear here for approval.</div>`);
   grouped.forEach((g, gi) => {
     const box = document.querySelector(`[data-g="${gi}"]`);
@@ -1233,7 +1301,15 @@ async function review(slug){
     if (p.kind === "logo"){ logoProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     if (p.kind === "cars"){ carsProposal(p, box, only && ps.length === 1 ? only : null); continue; }
     if (p.kind === "class_format"){ classFormatProposal(p, box, only && ps.length === 1 ? only : null); continue; }
-    current(p).then(t => { const n = box.querySelector(".now"); if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
+    const n = box.querySelector(".now");
+    if (p.kind === "timetable") (p.event_id ? api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min,category&order=local_start`) : Promise.resolve([])).then(ss => {
+      n.innerHTML = ttTable(ss); const have = new Set(ss.map(ttKey));
+      box.querySelectorAll(".prop .tt-r").forEach(r => r.classList.toggle("new", !have.has(r.dataset.k)));
+    }).catch(() => { n.textContent = "—"; });
+    else if (p.kind === "event_change") (p.event_id ? api(`events?id=eq.${p.event_id}&select=name,start_date,end_date,duration_label,venues(name)`) : Promise.resolve([])).then(([e]) => {
+      const now = e ? evObj(e) : {}; n.innerHTML = e ? evKV(now) : "—"; box.querySelector(".prop .pv").innerHTML = evKV(evObj(p.payload || {}), now);
+    }).catch(() => { n.textContent = "—"; });
+    else current(p).then(t => { if (!n) return; if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
     box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
     box.querySelector('[data-act="edit"]').onclick = async () => {

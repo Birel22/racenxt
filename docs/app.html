@@ -7,10 +7,10 @@
 <title>Racenxt · Your Race Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-005751"></script>
-<script src="rnx-social.js?v=20261125-005751"></script>
-<script src="rnx-auth.js?v=20261125-005751"></script>
-<script src="rnx-ui.js?v=20261125-005751"></script>
+<script src="config.js?v=20261125-010404"></script>
+<script src="rnx-social.js?v=20261125-010404"></script>
+<script src="rnx-auth.js?v=20261125-010404"></script>
+<script src="rnx-ui.js?v=20261125-010404"></script>
 <style>
   :root{--bg:#0b0c0f;--panel:#15161b;--panel2:#1b1c22;--field:#0d0e11;--line:#2a2c33;--line2:#3b3e47;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f}
   *{box-sizing:border-box}
@@ -132,19 +132,26 @@
   .wrap:has(> .ob){padding-bottom:0}
   .ob-list{display:grid;gap:16px}
   .ob-foot{display:flex;gap:10px;position:sticky;bottom:0;padding:10px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(11,12,15,0),var(--bg) 24px)}
-  .ob-foot .btn{height:52px} .ob-foot .btn.pri{flex:1} .ob-foot .btn.ghost{flex:none;padding:0 22px}
+  .ob-foot .btn{height:52px} .ob-foot .btn.pri{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .ob-cnt{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;margin-left:8px;border-radius:999px;background:rgba(255,255,255,.22);font-size:14px} .ob-foot .btn.ghost{flex:none;padding:0 22px}
   #o-mine:empty,#o-all:empty{display:none}
   /* sheets on the sign-up: a small gap so the search box's top edge and focus ring are never cut under the title */
   .cls-box > #cs-b{padding-top:4px}
   .cs-q{top:-4px !important;padding-top:4px}
   #cs-b > .field,#cs-b > .cs-two,#cs-b > .cs-sug{margin-bottom:14px}
   #cs-b > .field:last-child{margin-bottom:4px}
-  .ob-media{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
-  .ob-media .rxt-btn,.ob-media .rxt{width:100%}
-  .ob-media .rxt{aspect-ratio:5/6} .ob-media .rxt.rxt-st{aspect-ratio:auto}
-  .ob-acts{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;min-height:22px}
-  .ob-acts button{background:none;border:0;padding:0;color:#d5d6d9;font:600 14px Barlow,system-ui,sans-serif;cursor:pointer}
-  .ob-acts button.pri,.ob-acts button:hover{color:var(--acc)} .ob-acts button.x{color:#8e919b}
+  .ob-media{display:grid;gap:14px}
+  .ob-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:16px;align-items:center}
+  .ob-row .rxt-btn,.ob-row .rxt{width:96px}
+  .ob-row .rxt{aspect-ratio:5/6} .ob-row .rxt.rxt-st{aspect-ratio:auto}
+  .ob-row .rxt-empty{font-size:12px}
+  .ob-acts{display:grid;gap:8px;width:150px;justify-items:stretch}
+  .ob-acts .btn{width:100%}
+  .ob-hint{font-size:12.5px;line-height:1.35;color:#8e919b}
+  .ob-x{justify-self:start;background:none;border:0;padding:0;color:#FF5A1F;font:600 13px Barlow,system-ui,sans-serif;cursor:pointer}
+  /* nothing on these steps may push the page wider than the screen */
+  .ob,.ob-body,.oc-list{grid-template-columns:minmax(0,1fr)}
+  .ob-body > *,.oc-list > *{min-width:0}
   .ob-photo{width:100%;aspect-ratio:16/10;border-radius:18px;border:1.5px dashed var(--line2);background:var(--panel) center/cover no-repeat;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:0}
   .ob-photo[style*="background-image"]{border-style:solid}
   .ob-empty{display:grid;gap:6px;justify-items:center;color:var(--dim)} .ob-empty svg{width:30px;height:30px;color:var(--acc)} .ob-empty b{color:var(--text);font-size:17px} .ob-empty small{font-size:13px}
@@ -408,8 +415,8 @@ function obStep(){
   let body = "";
   if (n === 1) body = `
     <div class="ob-media">
-      <div class="field"><label class="f">Your photo</label>${rnxThumbBtn(OB.photoUrl ? rnxPhotoThumb(OB.photoUrl, OB.pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Add photo</span></div>`, "ob-phbox", OB.photoUrl ? "Change photo" : "Add your photo")}
-        <div class="ob-acts">${OB.photoUrl ? `<button type="button" id="ob-photo">Change</button><button type="button" id="ob-adj">Adjust</button>` : `<button type="button" id="ob-photo" class="pri">Add photo</button>`}</div></div>
+      <div class="field"><label class="f">Your photo</label><div class="ob-row">${rnxThumbBtn(OB.photoUrl ? rnxPhotoThumb(OB.photoUrl, OB.pos) : `<div class="rxt"><span class="rxt-empty">${CAM}Photo</span></div>`, "ob-phbox", OB.photoUrl ? "Change photo" : "Add your photo")}
+        <div class="ob-acts">${OB.photoUrl ? `<button type="button" class="btn sm" id="ob-photo">Change photo</button><button type="button" class="btn sm" id="ob-adj">Adjust</button>` : `<button type="button" class="btn sm" id="ob-photo">Add photo</button><span class="ob-hint">A landscape photo works best</span>`}</div></div></div>
       <div class="field"><label class="f">Your logo <span class="muted" style="font-weight:500">· optional</span></label><div id="ob-lgw"></div></div>
     </div>
     <div class="two"><div class="field"><label class="f" for="o-first">First name</label><input id="o-first" value="${esc(OB.first)}" autocomplete="given-name"></div><div class="field"><label class="f" for="o-last">Last name</label><input id="o-last" value="${esc(OB.last)}" autocomplete="family-name"></div></div>
@@ -488,8 +495,8 @@ function obStep(){
 function obLogo(){
   const box = $("#ob-lgw"); if (!box) return;
   const url = OB.logo ? (OB.logo.url || (OB.logo.url = URL.createObjectURL(OB.logo.out))) : "";
-  box.innerHTML = `${rnxThumbBtn(rnxLogoThumb(url, "Add logo", OB.photoUrl, { ...(OB.pos || { x:50, y:35, z:1 }), lg: OB.lgs || 1 }, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`), "ob-lgbox", url ? "Change logo" : "Add logo")}
-    <div class="ob-acts">${url ? `<button type="button" id="ob-lg">Change</button><button type="button" id="ob-lgc">Adjust</button><button type="button" id="ob-lgx" class="x">Remove</button>` : `<button type="button" id="ob-lg">Add logo</button>`}</div>`;
+  box.innerHTML = `<div class="ob-row">${rnxThumbBtn(rnxLogoThumb(url, "Logo", OB.photoUrl, { ...(OB.pos || { x:50, y:35, z:1 }), lg: OB.lgs || 1 }, `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`), "ob-lgbox", url ? "Change logo" : "Add logo")}
+    <div class="ob-acts">${url ? `<button type="button" class="btn sm" id="ob-lg">Change logo</button><button type="button" class="btn sm" id="ob-lgc">Adjust</button><button type="button" class="ob-x" id="ob-lgx">Remove logo</button>` : `<button type="button" class="btn sm" id="ob-lg">Add logo</button><span class="ob-hint">A file, photo or screenshot: we remove the background</span>`}</div></div>`;
   const ed = o => rnxLogoEditor({ photo: OB.photoUrl, pos: OB.pos, size: OB.lgs || 1, title: `${esc((OB.first || "").toUpperCase())} <em>RACE HUB</em>`, getToken: token, ...o });
   $("#ob-lg").onclick = async () => { obSave(); const f = await obPick(); if (!f) return; const r = await ed({ file: f, mode: OB.logo?.mode || "original" }); if (r) { OB.logo = { src: r.src, out: r.out, mode: r.mode }; OB.lgs = r.size || 1; } obLogo(); };
   $("#ob-lgbox").onclick = () => $("#ob-lg").click();
@@ -498,7 +505,7 @@ function obLogo(){
 }
 // ---------- "Your championships": search with suggestions, your picks, popular, then A–Z ----------
 let POP = null, VEHS = null;
-const nextLabel = () => OB.picked.size ? `Create my Race Hub · ${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}` : "Create my Race Hub";
+const nextLabel = () => OB.picked.size ? `Create my Race Hub<span class="ob-cnt" aria-label="${OB.picked.size} championship${OB.picked.size > 1 ? "s" : ""}">${OB.picked.size}</span>` : "Create my Race Hub";
 const lgMini = s => `<span class="oc-lg">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<span>${esc((s.short_name || s.name).slice(0, 5))}</span>`}</span>`;
 function detLine(id){
   const d = OB.det[id] || {}, bits = [d.category, d.vehicle?.name || d.newCar, d.car_number ? "#" + d.car_number : "", d.team].filter(Boolean);
@@ -529,12 +536,12 @@ async function obChamps(){
     const ser = ST.series.find(x => x.id === id);
     if (OB.picked.has(id)) { const r = await champSetup(ser, OB.det[id] || {}); if (r) OB.det[id] = r; }
     else { const r = await champSetup(ser, {}); if (!r) return; OB.picked.add(id); OB.det[id] = r; }
-    $("#o-q").value = ""; drawSug(); drawAll(); $("#o-next").textContent = nextLabel();
+    $("#o-q").value = ""; drawSug(); drawAll(); $("#o-next").innerHTML = nextLabel();
   };
   function bind(){
     $$("[data-s]").forEach(b => b.onclick = () => toggle(b.dataset.s));
     $$("[data-ed]").forEach(b => b.onclick = () => toggle(b.dataset.ed));
-    $$("[data-rm]").forEach(b => b.onclick = () => { OB.picked.delete(b.dataset.rm); delete OB.det[b.dataset.rm]; drawAll(); $("#o-next").textContent = nextLabel(); });
+    $$("[data-rm]").forEach(b => b.onclick = () => { OB.picked.delete(b.dataset.rm); delete OB.det[b.dataset.rm]; drawAll(); $("#o-next").innerHTML = nextLabel(); });
   }
   $("#o-q").oninput = drawSug;
   $("#o-q").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); $("#o-sug [data-s]")?.click(); } };

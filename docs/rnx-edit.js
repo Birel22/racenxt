@@ -113,7 +113,9 @@
   .rx-sep{width:1px;height:18px;background:rgba(255,255,255,.16);margin:0 3px 0 4px}
   .rx-mode button:focus-visible,.rx-av-b:focus-visible,.rx-edit-b:focus-visible{outline:2px solid #FF5A1F;outline-offset:2px}
   body.rx-edit:not(.rx-view) .lang{display:none}
-  body.rx-view .rx-top{display:none}
+  /* fan view: the same switch stays in the same place (tap Edit to come back); the language choice sits under it, as fans see it */
+  body.rx-view .lang{top:66px}
+  @media (max-width:620px){body.rx-view .lang{top:58px}}
   .rx-pow{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:8px 0 2px;font:600 10.5px Barlow,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,244,242,.68)}
   .rx-pow .rx-brand{font:800 italic 16px 'Barlow Condensed',sans-serif;letter-spacing:-.2px;text-transform:none;color:#f4f4f2}
   .rx-brand .x{background:linear-gradient(90deg,#FF5A1F 50%,#f4f4f2 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:1px}
@@ -128,7 +130,7 @@
   .rx-exit{display:none;position:fixed;left:50%;bottom:calc(62px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:900;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:999px;border:1px solid #3b3e47;background:rgba(17,18,22,.9);backdrop-filter:blur(10px);color:#a9abb2;font:500 14px Barlow,system-ui,sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap}
   .rx-exit b{color:#FF5A1F;font-weight:700}
   .rx-exit svg{width:17px;height:17px}
-  body.rx-view .rx-exit{display:inline-flex}
+  body.rx-view .rx-exit{display:none}
   .rx-edit-b{position:relative;z-index:6;margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(10,11,14,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#f4f4f2;font:600 13px Barlow,system-ui,sans-serif;letter-spacing:.01em;text-transform:none;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,border-color .15s}
   .rx-edit-b svg{width:14px;height:14px;color:#FF5A1F}
   .rx-edit-b:hover{background:rgba(10,11,14,.75);border-color:rgba(255,255,255,.3)}

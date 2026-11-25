@@ -815,6 +815,53 @@ async function carsJob(series: any, runId: string) {
   return { result: "proposal", summary: `Found: ${cars.length} car${cars.length > 1 ? "s" : ""} (${fresh} new to the library).`, usage, pages: [], trace: { ...trace, answer: out } };
 }
 
+// ---------- specs: cars that arrive in the library without specs get them looked up once (cheap model, a few cars per call) ----------
+const SPEC_RULES = `You find the technical specs of racing cars for Racenxt, an app that shows athletes' cars to their fans.
+Rules:
+- Sources: the manufacturer's or constructor's own official page first (customer-racing pages, technical sheets, press kits); then the championship's or team's official pages or reliable motorsport press. Never racing games, simulators, fan wikis, forums or sellers.
+- Never guess a figure: null when no source gives it. Power and weight of balanced classes (GT3, LMGT3, GTD, Hypercar/LMDh) depend on the Balance of Performance: say "subject to BoP".
+- Short values, like a spec sheet: "3.5 L V6 twin-turbo", "~500 kW (680 hp) combined, subject to BoP", "1,030 kg minimum", "4,995 × 2,000 × 1,060 mm, wheelbase 3,148 mm".
+- Be economical: one search per car at most, open each page at most once.
+- Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
+const specsPrompt = (cars: any[]) => `Cars:\n${cars.map((c, i) => `${i + 1}. ${c.name}${c.manufacturer ? ` (${c.manufacturer})` : ""}${c.category ? ` · ${c.category}` : ""}`).join("\n")}
+For each car: engine (layout, displacement, aspiration), hybrid system (null if none), power, drivetrain ("rwd", "awd" or "fwd"), max rpm, gearbox, weight, dimensions (length × width × height, wheelbase), and the address of the page the specs come from.
+JSON schema: {"cars": [{"name": string, "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}]}`;
+const SPEC_FIELDS = ["engine", "hybrid", "power", "drivetrain", "max_rpm", "gearbox", "weight", "dimensions"];
+async function specsJob(runId: string) {
+  // library cars and cars suggested for it, with no specs yet (an athlete's own car stays theirs: not looked up)
+  const cars = await db(`vehicles?or=(status.eq.approved,suggested.eq.true)&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
+  if (cars.length) await patch("vehicles", `id=in.(${cars.map((c: any) => c.id).join(",")})`, { specs_tried_at: new Date().toISOString() });   // looked up once
+  const done = newUsage(); let filled = 0; const pages: string[] = [];
+  const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a|-)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;
+  for (let i = 0; i < cars.length; i += 6) {
+    const batch = cars.slice(i, i + 6);
+    let out: any = null;
+    try { const r = await ask(SPEC_RULES, specsPrompt(batch), 8); addUsage(done, r.usage); out = r.out; } catch (_) { continue; }
+    for (const c of Array.isArray(out?.cars) ? out.cars : []) {
+      const v = batch.find((b: any) => carKey(b.name) === carKey(String(c?.name || ""))) || batch[(out.cars as any[]).indexOf(c)];
+      if (!v) continue;
+      const row: any = {};
+      for (const k of SPEC_FIELDS) { const val = k === "drivetrain" ? (["rwd", "awd", "fwd"].includes(String(c[k] || "").toLowerCase()) ? String(c[k]).toLowerCase() : null) : str(c[k]); if (val) row[k] = val; }
+      if (!Object.keys(row).length) continue;
+      if (okUrl(c.spec_url)) { row.spec_source = c.spec_url; pages.push(c.spec_url); }
+      // only empty fields are filled: a figure someone set by hand is never overwritten
+      await patch("vehicles", `id=eq.${v.id}&engine=is.null&power=is.null&weight=is.null`, row);
+      filled++;
+    }
+  }
+  return { result: filled ? "proposal" : "no_change", summary: cars.length ? `Specs: found for ${filled} of ${cars.length} car${cars.length > 1 ? "s" : ""}.` : "Specs: every car already has its specs.", usage: done, pages: pages.slice(0, 20) };
+}
+async function specsStart() {
+  const [run] = await ins("check_runs", { series_id: null, kind: "specs", result: "running", pages: [] });
+  const job = (async () => {
+    try { const r = await specsJob(run.id); await patch("check_runs", `id=eq.${run.id}`, { result: r.result === "proposal" ? "no_change" : r.result, summary: r.summary, usage: r.usage, pages: r.pages, finished_at: new Date().toISOString() }); }
+    catch (e) { await patch("check_runs", `id=eq.${run.id}`, { result: "error", error: String((e as Error).message || e).slice(0, 500), finished_at: new Date().toISOString() }); }
+  })();
+  // @ts-ignore EdgeRuntime is provided by Supabase
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(job); else await job;
+  return json({ run_id: run.id });
+}
+
 // a timetable that contradicts the championship's class format -> a suggestion in the Review queue (never automatic)
 async function suggestClassFormat(series: any, sessions: any[], runId: string, from: string, url: unknown) {
   const sh = classShape(sessions);
@@ -1272,12 +1319,13 @@ Deno.serve(async (req) => {
   if (cron) {
     // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
     const b = await req.json().catch(() => ({}));
-    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars" && b.action !== "class_format") return tick(cron);
+    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars" && b.action !== "class_format" && b.action !== "specs") return tick(cron);
     const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
     if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
     if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
     await loadGuidance();
     if (b.action === "classes") return startJob(b);
+    if (b.action === "specs") return specsStart();
     if (b.action === "cars" || b.action === "class_format") return bgStart(b.action, b.series_id);
     if (b.action === "test_one") {
       // one test per call, so each has the function's full time limit
@@ -1333,6 +1381,7 @@ Deno.serve(async (req) => {
     return json({ run_id: run.id });
   }
   if (body.action === "cars" || body.action === "class_format") return bgStart(body.action, body.series_id);
+  if (body.action === "specs") return specsStart();
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!UUID.test(body.series_id || body.event_id || "")) return json({ error: "bad id" }, 400);
   let series: any, ev: any = null;

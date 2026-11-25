@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-015143"></script>
-<script src="rnx-auth.js?v=20261125-015143"></script>
-<script src="rnx-ui.js?v=20261125-015143"></script>
+<script src="config.js?v=20261125-015832"></script>
+<script src="rnx-auth.js?v=20261125-015832"></script>
+<script src="rnx-ui.js?v=20261125-015832"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -1740,6 +1740,10 @@ async function vehicles(){
     { l:"Type", f:v => { const k = rnxVehKind(v, ""), t = RNX_VK[k]; return `<span class="vk${v.kind ? "" : " guess"}" title="${v.kind ? "" : "Guessed from its classes: open it to set the type"}">${t.svg}<small>${t.l}</small></span>`; } },
     { l:"Status", f:v => v.status === "approved" ? '<span class="chip good">In catalogue</span>' : v.suggested ? '<span class="chip warn">Suggested by a user · to review</span>' : '<span class="chip">A user\'s own car</span>' }
   ], () => editVehicle(), editVehicle, "+ Add vehicle");
+  // specs: looked up by themselves when a car joins the library; this runs it now for any car still without
+  const miss = D.vehicles.filter(v => (v.status === "approved" || v.suggested) && !v.engine && !v.power && !v.weight).length;
+  if (miss) { $("#l-add").insertAdjacentHTML("beforebegin", `<button class="btn ai" id="v-specs"${aiBusy("specs") ? " disabled" : ""} title="Cars joining the library get their specs looked up by themselves. This looks them up now for the ${miss} still without.">Find missing specs · ${miss}</button>`);
+    $("#v-specs").onclick = () => { runAgent({ action:"specs" }, "Car specs", "specs"); $("#v-specs").disabled = true; $("#v-specs").textContent = "Looking up specs…"; }; }
 }
 async function editVehicle(v){
   let drive = v?.drivetrain || "", vkind = v?.kind || "";

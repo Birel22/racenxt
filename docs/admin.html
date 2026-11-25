@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-012832"></script>
-<script src="rnx-auth.js?v=20261125-012832"></script>
-<script src="rnx-ui.js?v=20261125-012832"></script>
+<script src="config.js?v=20261125-013928"></script>
+<script src="rnx-auth.js?v=20261125-013928"></script>
+<script src="rnx-ui.js?v=20261125-013928"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -147,6 +147,8 @@
   td.num{color:var(--mute);width:40px}
   .nowrap{white-space:nowrap}
   .muted{color:var(--mute)} .dim{color:var(--dim)}
+  .st{display:inline-block;white-space:nowrap;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:600;border:1px solid var(--line);color:var(--dim)}
+  .st.good{color:#7ddf9a;border-color:rgba(95,207,110,.35);background:rgba(95,207,110,.08)} .st.warn{color:#f2b20f;border-color:rgba(242,178,15,.35);background:rgba(242,178,15,.08)} .st.bad{color:#ff8a7a;border-color:rgba(232,53,47,.4);background:rgba(232,53,47,.08)}
   .light{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px}
   .vcls{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px} .vcls span{padding:1px 8px;border-radius:999px;background:#23262d;border:1px solid #2f323a;color:#c9cbd0;font:600 11.5px Barlow,sans-serif;letter-spacing:.02em}
   .vk{display:inline-flex;align-items:center;gap:8px;color:#d5d6d9;white-space:nowrap} .vk .car-ic{height:12px;width:auto;max-width:40px} .vk small{font-size:13px;color:var(--dim)} .vk.guess{opacity:.55}
@@ -546,6 +548,13 @@ async function dashboard(){
     api(`events?series_id=not.is.null&year=eq.${YEAR}&select=id&limit=1`, { headers:{ Prefer:"count=exact", Range:"0-0" }, withCount:true }),
     api(`events?series_id=not.is.null&year=eq.${YEAR+1}&select=id&limit=1`, { headers:{ Prefer:"count=exact", Range:"0-0" }, withCount:true })
   ]);
+  // the next 7 days: every championship race weekend, and what we have / don't have for it
+  const wk = await api(`event_overview?series_id=not.is.null&end_date=gte.${TODAY}&start_date=lte.${in7}&select=id,series_id,year,name,start_date,end_date,venue_name,venue_country,session_count,has_race,watch_status,last_check_at,last_check_result&order=start_date,name`).catch(() => []);
+  const wkIds = wk.map(e => e.id), wkSer = [...new Set(wk.map(e => e.series_id))];
+  const [wkSess, wkEnt] = await Promise.all([
+    wkIds.length ? api(`session_times?event_id=in.(${wkIds.join(",")})&select=event_id,type,classes`).catch(() => []) : [],
+    wkSer.length ? api(`entries?series_id=in.(${wkSer.join(",")})&select=series_id,year`).catch(() => []) : []
+  ]);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
   const items = [
     ...soon.map(e => ({ lvl:"warn", when:e.start_date, html:`<b>${esc(ser[e.series_id]?.short_name)} ${esc(e.name)}</b> <span class="muted">${fmtRange(e.start_date, e.end_date)}</span>`, tag:[e.session_count ? "" : "No schedule", e.watch_status === "missing" ? "No where to watch" : ""].filter(Boolean).join(" · "), href:`#/championships/${ser[e.series_id]?.slug}/${e.id}` })),
@@ -562,6 +571,23 @@ async function dashboard(){
       <div class="kpi"><b>${pages.total}</b><span>User pages</span></div>
       <div class="kpi"><b>${PENDING}</b><span>To review</span></div>
     </div>
+    <h3>Next 7 days <span class="muted" style="font:500 14px Barlow;text-transform:none;letter-spacing:0">${wk.length} race weekend${wk.length === 1 ? "" : "s"}</span></h3>
+    ${wk.length ? `<div class="tbl"><table class="wk"><tr><th></th><th>Event</th><th>Schedule</th><th class="hide-m">Classes</th><th>Watch</th><th class="hide-m">Athletes</th><th class="hide-m">Last check</th></tr>${wk.map(e => {
+      const s = ser[e.series_id] || {}, ss = wkSess.filter(x => x.event_id === e.id);
+      const cls = (s.classes || []).length > 1 ? s.classes : [];
+      const races = ss.filter(x => /race/i.test(x.type || ""));
+      const okCls = cls.filter(c => races.some(r => !(r.classes || []).length || r.classes.includes(c)));
+      const fans = wkEnt.filter(x => x.series_id === e.series_id && x.year === e.year).length;
+      const sched = !e.session_count ? ["bad", "None"] : !e.has_race ? ["warn", `${e.session_count} sessions · no race`] : ["good", `${e.session_count} sessions`];
+      const clsC = !cls.length ? ["", "–"] : okCls.length === cls.length ? ["good", `${cls.length}/${cls.length}`] : ["warn", `${okCls.length}/${cls.length}`];
+      const watch = e.watch_status === "race" ? ["good", "Race page"] : e.watch_status === "championship" ? ["good", "Championship"] : ["bad", "Missing"];
+      const lvl = sched[0] === "bad" || watch[0] === "bad" ? "bad" : sched[0] === "warn" || clsC[0] === "warn" ? "warn" : "good";
+      const pill = ([k, t], title) => `<span class="st ${k}"${title ? ` title="${esc(title)}"` : ""}>${k === "good" ? "✓ " : k === "bad" ? "✗ " : k === "warn" ? "! " : ""}${esc(t)}</span>`;
+      return `<tr class="click" data-h="#/championships/${esc(s.slug || "")}"><td style="width:24px"><span class="light" style="background:var(--${lvl === "good" ? "good" : lvl})"></span></td>
+        <td><b>${esc(s.short_name || "")} · ${esc(e.name)}</b><div class="muted" style="font-size:13px">${fmtRange(e.start_date, e.end_date)}${e.venue_country ? " · " + esc(e.venue_country) : ""}</div></td>
+        <td>${pill(sched)}</td><td class="hide-m">${pill(clsC, cls.length ? "Classes with a race in the schedule: " + (okCls.join(", ") || "none") : "")}</td><td>${pill(watch)}</td>
+        <td class="hide-m">${fans ? `${fans} page${fans > 1 ? "s" : ""}` : '<span class="muted">0</span>'}</td><td class="hide-m muted" style="font-size:13px">${e.last_check_at ? ago(e.last_check_at) : "never"}</td></tr>`;
+    }).join("")}</table></div>` : `<p class="dim">No championship race weekend in the next 7 days.</p>`}
     <h3>Needs attention</h3>
     ${items.length ? `<div class="tbl"><table>${items.map((it, i) => `<tr class="click" data-h="${esc(it.href)}"><td style="width:24px"><span class="light" style="background:${col[it.lvl]}"></span></td><td>${it.html}</td><td style="text-align:right"><span class="chip ${it.lvl}">${esc(it.tag)}</span></td></tr>`).join("")}</table></div>` : `<div class="card empty">All good. Nothing needs attention right now.</div>`}`;
   $$("[data-h]").forEach(r => r.onclick = () => location.hash = r.dataset.h);

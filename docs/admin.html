@@ -7,9 +7,9 @@
 <title>Racenxt Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
-<script src="config.js?v=20261125-010935"></script>
-<script src="rnx-auth.js?v=20261125-010935"></script>
-<script src="rnx-ui.js?v=20261125-010935"></script>
+<script src="config.js?v=20261125-012832"></script>
+<script src="rnx-auth.js?v=20261125-012832"></script>
+<script src="rnx-ui.js?v=20261125-012832"></script>
 <style>
   :root{--bg:#0b0c0f;--side:#101115;--panel:#15161b;--panel2:#1b1c22;--line:#26282e;--line2:#33363d;--text:#f4f4f2;--dim:#a9abb2;--mute:#7d808a;--acc:#FF5A1F;--good:#5fcf6e;--warn:#f2b20f;--bad:#e8352f;--side-w:232px}
   *{box-sizing:border-box}
@@ -528,6 +528,7 @@ async function route(){
     await loadRef();
     if (page === "championships" && a) await championshipPage(decodeURIComponent(a), b);
     else if (page === "review" && a) await review(decodeURIComponent(a));
+    else if (page === "users" && a) await openProfile(decodeURIComponent(a));
     else await ({ dashboard, championships, review, users, circuits, vehicles, usage, tests: () => testsPage(), agent: agentPage }[page] || dashboard)();
   } catch(e){ $("#main").innerHTML = `<p class="dim">Couldn't load: ${esc(e.message)}</p>`; }
 }
@@ -1518,12 +1519,14 @@ const SOC = ["instagram","facebook","x","youtube","tiktok","website"];
 async function users(){
   const [pages, accts] = await Promise.all([rpc("admin_users"), rpc("admin_accounts")]);
   const loose = accts.filter(a => !a.pages && !a.is_admin);
-  $("#main").innerHTML = `<div class="ph"><h1>Users</h1><label class="search">${I.search}<input id="u-q" placeholder="Search users" aria-label="Search users"></label><button class="btn pri" id="u-add">+ Add page</button></div>
+  $("#main").innerHTML = `<div class="ph"><h1>Users</h1><label class="search">${I.search}<input id="u-q" placeholder="Search users" aria-label="Search users"></label><button class="btn" id="u-test" title="Opens the sign-up as a new athlete, on your account. Each new test deletes your previous test page.">Test the sign-up ↗</button><button class="btn pri" id="u-add">+ Add page</button></div>
     ${pages.length ? `<div class="tbl"><table><tr><th>Page</th><th class="hide-m">Account</th><th>Status</th><th class="hide-m">Subscription</th></tr>
-      ${pages.map(p => `<tr class="click" data-pid="${p.profile_id}"><td><b>${esc(p.display_name)}</b> <span class="muted">/${esc(p.slug)}</span></td><td class="hide-m dim">${p.members.length ? p.members.map(m => `${esc(m.email)}${m.role !== "owner" ? ` <span class="muted">(${m.role})</span>` : ""}`).join(", ") : '<span class="muted">Managed by admin</span>'}</td><td>${p.published ? '<span class="chip good">Live</span>' : '<span class="chip">Hidden</span>'}</td><td class="hide-m">${p.subscription_status === "active" ? '<span class="chip good">Active</span>' : `<span class="chip">${esc(p.subscription_status || "–")}</span>`}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No user pages yet.</div>`}
-    ${loose.length ? `<h3>Accounts without a page</h3><div class="tbl"><table><tr><th>Email</th><th>Joined</th></tr>${loose.map(a => `<tr><td>${esc(a.email)}</td><td class="muted">${ago(a.created_at)}</td></tr>`).join("")}</table></div>` : ""}`;
+      ${pages.map(p => `<tr class="click" data-pid="${p.profile_id}"><td><b>${esc(p.display_name)}</b> <span class="muted">/${esc(p.slug)}</span>${p.is_test ? ' <span class="chip warn">Test</span>' : ""}</td><td class="hide-m dim">${p.members.length ? p.members.map(m => `${esc(m.email)}${m.role !== "owner" ? ` <span class="muted">(${m.role})</span>` : ""}`).join(", ") : '<span class="muted">Managed by admin</span>'}</td><td>${p.published ? '<span class="chip good">Live</span>' : '<span class="chip">Hidden</span>'}</td><td class="hide-m">${p.subscription_status === "active" ? '<span class="chip good">Active</span>' : `<span class="chip">${esc(p.subscription_status || "–")}</span>`}</td></tr>`).join("")}</table></div>` : `<div class="card empty">No user pages yet.</div>`}
+    ${loose.length ? `<h3>Accounts without a page</h3><p class="muted" style="margin:-4px 0 8px;font-size:13px">Signed up but never finished their page. Deleting a page now also deletes its owner's account, so this list only keeps unfinished sign-ups.</p><div class="tbl"><table><tr><th>Email</th><th>Joined</th><th></th></tr>${loose.map(a => `<tr><td>${esc(a.email)}</td><td class="muted">${ago(a.created_at)}</td><td style="text-align:right"><button class="btn sm" data-delacct="${a.user_id}">Delete</button></td></tr>`).join("")}</table></div>` : ""}`;
   $("#u-add").onclick = () => editProfile();
-  $$("[data-pid]").forEach(r => r.onclick = () => openProfile(r.dataset.pid));
+  $$("[data-pid]").forEach(r => r.onclick = () => { location.hash = "#/users/" + r.dataset.pid; });
+  $("#u-test").onclick = () => window.open("app.html?new=1&test=1", "_blank", "noopener");
+  $$("[data-delacct]").forEach(b => b.onclick = async ev => { ev.stopPropagation(); const a = loose.find(x => x.user_id === b.dataset.delacct); if (!confirm(`Delete the account ${a.email}? It has no page. This can't be undone.`)) return; await guard(async () => { await rpc("admin_delete_account", { p_user: a.user_id }); route(); }, "Account deleted"); });
   $("#u-q").oninput = e => { const q = e.target.value.toLowerCase(); $$("tr[data-pid]").forEach(tr => tr.hidden = !tr.textContent.toLowerCase().includes(q)); };
 }
 async function editProfile(p){
@@ -1537,9 +1540,10 @@ async function editProfile(p){
     { row:[{ k:"s_x", l:"X", type:"url" }, { k:"s_youtube", l:"YouTube", type:"url" }] },
     { row:[{ k:"s_tiktok", l:"TikTok", type:"url" }, { k:"s_website", l:"Website", type:"url" }] },
     { k:"published", l:"Page", type:"bool", l2:"Visible to fans (switch off to take the page down)" }
-  ], { ...(p || {}), ...Object.fromEntries(SOC.map(s => ["s_" + s, p?.socials?.[s] || ""])) }, { onDelete: !!p, deleteText:"Delete this page and everything on it?" });
+  ], { ...(p || {}), ...Object.fromEntries(SOC.map(s => ["s_" + s, p?.socials?.[s] || ""])) }, { onDelete: !!p, deleteText:"Delete this page, everything on it, and its owner's account (unless they have another page)? This can't be undone." });
   if (!r) return;
-  if (r.__delete) return guard(async () => { await del("profiles", p.id); location.hash = "#/users"; route(); }, "Page deleted");
+  // the page and its owner's account (when they have no other page): nothing left behind
+  if (r.__delete) return guard(async () => { try { await rpc("admin_delete_page", { p_profile: p.id }); } catch (e) { await del("profiles", p.id); } location.hash = "#/users"; }, "Page and account deleted");
   const socials = {}; SOC.forEach(s => { if (r["s_" + s]) socials[s] = r["s_" + s]; delete r["s_" + s]; });
   const row = { ...r, socials, slug: slugify(r.slug), updated_at: new Date().toISOString() };
   await guard(async () => {

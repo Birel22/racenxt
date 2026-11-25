@@ -530,7 +530,7 @@ async function loadDisciplines(){
 }
 async function loadRef(){
   [D.series, D.venues, D.vehicles] = await Promise.all([
-    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format,classes,class_format&order=name"),
+    api("series?select=id,slug,name,short_name,sport,watch_url,stream_url,broadcasters_url,timing_url,website_url,logo_url,logo_src_url,logo_mode,weekend_format,classes,class_format&order=name"),
     api("venues?select=*&order=name"), api("vehicles?select=*&order=name"), loadDisciplines()
   ]);
 }
@@ -688,7 +688,7 @@ async function championshipPage(slug, openId){
   $("#main").innerHTML = `<a class="back" href="#/championships">${I.back}All championships</a>
     <div class="card head-card" style="margin-bottom:16px">${s.logo_url ? `<img src="${esc(s.logo_url)}" alt="">` : `<div class="logo-ph" style="width:54px;height:40px;font-size:12px">${esc(s.short_name.slice(0,4))}</div>`}
       <div style="flex:1;min-width:200px"><div style="font:700 24px 'Barlow Condensed';text-transform:uppercase;letter-spacing:.02em">${esc(s.name)}${s.short_name && s.short_name !== s.name ? ` <span class="muted">(${esc(s.short_name)})</span>` : ""}</div>
-      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
+      <div class="links">${s.website_url ? `<a href="${esc(s.website_url)}" target="_blank" rel="noopener">Official site ↗</a>` : ""}${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}${s.timing_url ? `<a href="${esc(s.timing_url)}" target="_blank" rel="noopener">Live timing ↗</a>` : ""}<span class="muted">Agent: ${(src?.urls || []).length ? `${src.urls.length} page${src.urls.length > 1 ? "s" : ""}` : "not set up"}</span></div></div>
       <button class="btn ai" id="s-ai"${aiBusy(s.id) ? " disabled" : ""} title="Finds the official site, logo, calendar and where to watch">${aiBusy(s.id) ? "Checking…" : "Check calendar with AI"}</button><button class="btn ai" id="s-tt" title="Searches the official timetable of each race in the next 60 days that has no schedule yet">Find timetables</button><button class="btn" id="s-edit">Edit championship</button></div>
     <div class="bar"><label class="search">${I.search}<input id="e-q" placeholder="Search races, circuits…" aria-label="Search races"></label>
       <span class="grow"></span><button class="btn" id="e-import">Import calendar</button><button class="btn pri" id="e-add">+ Add race</button></div>
@@ -739,17 +739,23 @@ async function editRace(s, e, yr){
         : `<div class="rc-empty"><div><b style="color:var(--text)">No schedule yet</b><div style="font-size:14px;margin-top:4px">${e.end_date < TODAY ? "This race is over." : "The AI checks automatically in race week, or you can do it now."}</div></div><div class="bar" style="margin:0;justify-content:center"><button type="button" class="btn ai pri" id="rc-ai"${busy ? " disabled" : ""}>${busy ? "Searching…" : "Search with AI"}</button><button type="button" class="btn" id="rc-sched">Add manually</button></div></div>`}
     </section>
     <section class="fs"><h4><i></i>Where to watch</h4>
-      ${s.stream_url || s.broadcasters_url ? `<div class="rc-wl"><span class="muted">Championship</span>${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}</div>` : `<div class="dim" style="font-size:14px;margin-bottom:10px">No championship links yet: add them in Edit championship.</div>`}
+      ${s.stream_url || s.broadcasters_url || s.timing_url ? `<div class="rc-wl"><span class="muted">Championship</span>${s.stream_url ? `<a href="${esc(s.stream_url)}" target="_blank" rel="noopener">Official stream ↗</a>` : ""}${s.broadcasters_url ? `<a href="${esc(s.broadcasters_url)}" target="_blank" rel="noopener">TV broadcasters ↗</a>` : ""}${s.timing_url ? `<a href="${esc(s.timing_url)}" target="_blank" rel="noopener">Live timing ↗</a>` : ""}</div>` : `<div class="dim" style="font-size:14px;margin-bottom:10px">No championship links yet: add them in Edit championship.</div>`}
       <label class="f" style="margin-top:12px">Event broadcast</label>
       ${e.watch_url ? `<div class="rc-link"><a href="${esc(e.watch_url)}" target="_blank" rel="noopener">${esc(e.watch_url)}</a><button type="button" class="btn sm" id="rc-wedit">Change</button></div>` : ""}
       <div id="rc-wform"${e.watch_url ? " hidden" : ""}>${e.watch_url ? "" : `<div class="dim" style="font-size:14px;margin-bottom:10px">Only if there's a broadcast page just for this race: fans then see it as “TV broadcast” instead of the championship's TV broadcasters. The AI looks for one in race week.</div>`}
         <div class="bar" style="margin:0;flex-wrap:nowrap"><input id="rc-wurl" type="url" placeholder="https://" aria-label="Event broadcast" value="${esc(e.watch_url || "")}"><button type="button" class="btn pri" id="rc-wsave">Save</button></div></div>
+      <label class="f" style="margin-top:12px">Event live timing</label>
+      ${e.timing_url ? `<div class="rc-link"><a href="${esc(e.timing_url)}" target="_blank" rel="noopener">${esc(e.timing_url)}</a><button type="button" class="btn sm" id="rc-tedit">Change</button></div>` : ""}
+      <div id="rc-tform"${e.timing_url ? " hidden" : ""}>${e.timing_url ? "" : `<div class="dim" style="font-size:14px;margin-bottom:10px">Only if this race has a live timing page of its own (e.g. Le Mans): fans then see it instead of the championship's live timing. The AI looks for one in race week.</div>`}
+        <div class="bar" style="margin:0;flex-wrap:nowrap"><input id="rc-turl" type="url" placeholder="https://" aria-label="Event live timing" value="${esc(e.timing_url || "")}"><button type="button" class="btn pri" id="rc-tsave">Save</button></div></div>
     </section>`;
   const p = drawer(e.name, [{ html }], {}, { view:true, after(){
     $("#rc-edit").onclick = () => { closeDrawer(null); editRaceDetails(s, e, yr); };
     $("#rc-sched").onclick = () => { closeDrawer(null); editSchedule(s, e, ss); };
     $("#rc-ai").onclick = () => { runAgent({ action:"check_event", event_id:e.id }, `Checking ${s.short_name} ${e.name}`, e.id); $("#rc-ai").disabled = true; $("#rc-ai").textContent = "Searching…"; };
     if ($("#rc-wedit")) $("#rc-wedit").onclick = () => { $("#rc-wform").hidden = false; $("#rc-wedit").closest(".rc-link").hidden = true; $("#rc-wurl").focus(); };
+    if ($("#rc-tedit")) $("#rc-tedit").onclick = () => { $("#rc-tform").hidden = false; $("#rc-tedit").closest(".rc-link").hidden = true; $("#rc-turl").focus(); };
+    $("#rc-tsave").onclick = () => { const v = $("#rc-turl").value.trim(); if (v && !/^https?:\/\//.test(v)) return alert("Start the link with https://"); guard(async () => { await upd("events", e.id, { timing_url: v || null, updated_at: new Date().toISOString() }); closeDrawer(null); route(); }, v ? "Link saved" : "Link removed"); };
     $("#rc-wsave").onclick = () => { const v = $("#rc-wurl").value.trim(); if (v && !/^https?:\/\//.test(v)) return alert("Start the link with https://"); guard(async () => { await upd("events", e.id, { watch_url: v || null, updated_at: new Date().toISOString() }); closeDrawer(null); route(); }, v ? "Link saved" : "Link removed"); };
   } });
   await p;
@@ -1192,9 +1198,10 @@ async function editSeries(s, src){
       { html:`<button type="button" class="btn sm ai" id="f-cars"${aiBusy("cars-" + s.id) ? " disabled" : ""}>Find cars with AI</button>` } ] },
     { section:"Usual race weekend", sub:"Only a hint for the AI (formats often change): learned from the first timetable you approve. It never blocks or stops a search.", items:[
       { row:[{ k:"fmt_practice", l:"Practice sessions", type:"number" }, { k:"fmt_qualifying", l:"Qualifying sessions", type:"number" }, { k:"fmt_race", l:"Races", type:"number" }] } ] },
-    { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast.", items:[
+    { section:"Where to watch", sub:"For the whole season. A race can also get its own Event broadcast and live timing.", items:[
       { k:"stream_url", l:"Official stream", type:"url", help:"The championship's own live stream, e.g. F1 TV, MotoGP VideoPass, FIA WEC+, an official YouTube live page." },
       { k:"broadcasters_url", l:"TV broadcasters", type:"url", help:"The official page listing the TV channels by country. Fans see it as “TV broadcast” on every race without an Event broadcast." },
+      { k:"timing_url", l:"Live timing", type:"url", help:"The official live timing page (the championship's own, or its official timing provider's). Fans see it in Where to watch, and as a shortcut during the race weekend." },
       { html:`<button type="button" class="btn sm ai" id="f-links"${aiBusy("links-" + s.id) ? " disabled" : ""}>Find with AI</button>` } ] },
     { html:`<details class="fs"><summary style="cursor:pointer;font:700 13px Barlow;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)">AI settings</summary><div style="display:grid;gap:14px;margin-top:14px">${fieldHtml({ k:"website_url", l:"Official website", type:"url" }, s.website_url)}${fieldHtml({ k:"urls", l:"Official pages the AI reads (one per line)", type:"textarea" }, (src?.urls || []).map(u => u.url).join("\n"))}${fieldHtml({ k:"instr", l:"Instructions for this championship", type:"textarea", help:"For example: where the timetable PDF is on the race page." }, src?.agent_instructions || "")}</div></details>` }
   ], { ...s, class_format: s.class_format || "none", classes_txt: (s.classes || []).join(", "), fmt_practice: s.weekend_format?.practice ?? "", fmt_qualifying: s.weekend_format?.qualifying ?? "", fmt_race: s.weekend_format?.race ?? "" }, { onDelete:true, deleteText:"Delete this championship, all its races and every user's entry in it?", ok:"Save",
@@ -1214,7 +1221,7 @@ async function editSeries(s, src){
   if ((s.classes || []).length > 1 && !row.classes && !confirm(`Remove the classes of ${s.short_name || s.name} (${s.classes.join(", ")})? Athletes' pages will show every class's sessions.`)) return editSeries(s, src);
   const fmt = Object.fromEntries([["practice", fmt_practice], ["qualifying", fmt_qualifying], ["race", fmt_race]].filter(([, v]) => v !== "" && v != null && +v >= 0).map(([k, v]) => [k, Math.round(+v)]));
   row.weekend_format = Object.keys(fmt).length ? fmt : null;
-  for (const k of ["stream_url", "broadcasters_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }
+  for (const k of ["stream_url", "broadcasters_url", "timing_url"]){ row[k] = (row[k] || "").trim() || null; if (row[k] && !/^https?:\/\//.test(row[k])){ alert("Links start with https://"); return editSeries(s, src); } }
   row.sport = sp.st.v;
   row.short_name = row.short_name || row.name;
   const list = (urls || "").split("\n").map(u => u.trim()).filter(Boolean);
@@ -1263,7 +1270,7 @@ async function review(slug){
   let only = slug ? D.series.find(x => x.slug === slug) : null;
   const ps = await api(`proposals?status=eq.pending${only ? `&series_id=eq.${only.id}` : ""}&select=*,events(name,start_date,venues(name,timezone)),check_runs(kind,ran_at)&order=created_at`);
   const ser = Object.fromEntries(D.series.map(s => [s.id, s]));
-  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Event broadcast", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes", cars:"Cars", class_format:"Class format" };
+  const KIND = { logo:"Logo", new_event:"New race", event_change:"Race change", event_cancelled:"Race cancelled", timetable:"Timetable", watch_link:"Race links", new_season:"New season", series_links:"Where to watch (championship)", classes:"Classes", cars:"Cars", class_format:"Class format" };
   // the same where-to-watch link for several races of a championship: one card, approved or rejected together
   const groups = {};
   for (const p of ps) if (p.kind === "watch_link" && p.payload?.watch_url) (groups[p.series_id + " " + p.payload.watch_url] = groups[p.series_id + " " + p.payload.watch_url] || []).push(p);
@@ -1285,7 +1292,7 @@ async function review(slug){
         : p.kind === "cars" ? carsView(p) + `<div class="now" hidden></div>`
         : p.kind === "class_format" ? classFormatView(p) + `<div class="now" hidden></div>`
         : p.kind === "series_links" ? rvDiff("Loading…", seriesLinks(pl, true))
-        : p.kind === "watch_link" ? rvDiff("Loading…", linkHtml(pretty(p)))
+        : p.kind === "watch_link" ? rvDiff("Loading…", raceLinks(pl, true))
         : p.kind === "timetable" ? `<div class="tz-note">${tzLine(p.events?.venues?.timezone, p.events?.start_date)}</div>${rvDiff("Loading…", ttTable(pl.sessions || []))}<div class="rv-legend"><i></i>New or changed</div>`
         : p.kind === "event_change" ? rvDiff("Loading…", evKV(evObj(pl)))
         : rvDiff("Loading…", `<pre>${esc(pretty(p))}</pre>`);
@@ -1310,7 +1317,7 @@ async function review(slug){
     else if (p.kind === "event_change") (p.event_id ? api(`events?id=eq.${p.event_id}&select=name,start_date,end_date,duration_label,venues(name)`) : Promise.resolve([])).then(([e]) => {
       const now = e ? evObj(e) : {}; n.innerHTML = e ? evKV(now) : "—"; box.querySelector(".prop .pv").innerHTML = evKV(evObj(p.payload || {}), now);
     }).catch(() => { n.textContent = "—"; });
-    else current(p).then(t => { if (!n) return; if (p.kind === "watch_link") n.innerHTML = linkHtml(t); else if (p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
+    else current(p).then(t => { if (!n) return; if (p.kind === "watch_link" || p.kind === "series_links") n.innerHTML = t; else n.textContent = t; });
     box.querySelector('[data-act="approve"]').onclick = () => guard(async () => { await rpc("apply_proposal", { p_id:p.id }); if (only && ps.length === 1) location.hash = `#/championships/${only.slug}`; else route(); }, "Approved and published");
     box.querySelector('[data-act="reject"]').onclick = async () => { const why = prompt("Why? (added to the agent's instructions)"); if (why === null) return; guard(async () => { await rpc("reject_proposal", { p_id:p.id, p_reason:why }); route(); }, "Rejected"); };
     box.querySelector('[data-act="edit"]').onclick = async () => {
@@ -1397,7 +1404,8 @@ function tzLine(tz, date){
   try { off = new Intl.DateTimeFormat("en-GB", { timeZone: tz, timeZoneName: "shortOffset" }).formatToParts(new Date((date || TODAY) + "T12:00:00Z")).find(x => x.type === "timeZoneName")?.value.replace("GMT", "UTC") || ""; } catch(e){}
   return `All times in <b>local circuit time</b> · ${esc(tz)}${off ? ` (${esc(off === "UTC" ? "UTC+0" : off)})` : ""}`;
 }
-const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","TV broadcasters"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
+const raceLinks = (o, onlyGiven) => [["watch_url","Event broadcast"],["timing_url","Event live timing"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
+const seriesLinks = (o, onlyGiven) => [["stream_url","Official stream"],["broadcasters_url","TV broadcasters"],["timing_url","Live timing"]].filter(([k]) => !onlyGiven || k in (o || {})).map(([k, l]) => `<div style="margin:2px 0"><span class="muted">${l}:</span> ${o?.[k] ? linkHtml(o[k]) : '<span class="muted">none</span>'}</div>`).join("");
 // a timetable as text; grouped by class when the sessions have classes (karting: one block per class)
 function ttText(list){
   const line = s => `${String(s.local_start).slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}${s.end_estimated ? "  (end not published)" : ""}`;
@@ -1421,7 +1429,7 @@ const seasonList = pl => `<ul class="evlist">${(pl.events || []).map(e => `<li><
 async function current(p){
   if (p.kind === "timetable" && p.event_id){ const ss = await api(`sessions?event_id=eq.${p.event_id}&select=label,local_start,duration_min&order=local_start`); return ss.length ? ss.map(s => `${s.local_start.replace("T"," ").slice(0,16)}–${endOf(s.local_start, s.duration_min)}  ${s.label}`).join("\n") : "No sessions yet"; }
   if (p.kind === "series_links") return seriesLinks(D.series.find(x => x.id === p.series_id) || {});
-  if (p.kind === "watch_link"){ if (p.event_id){ const [e] = await api(`events?id=eq.${p.event_id}&select=watch_url`); if (e?.watch_url) return e.watch_url; } return D.series.find(x => x.id === p.series_id)?.watch_url || "No link yet"; }
+  if (p.kind === "watch_link"){ const [e] = p.event_id ? await api(`events?id=eq.${p.event_id}&select=watch_url,timing_url`) : [null]; return raceLinks(e || {}, false); }
   if (p.event_id){ const [e] = await api(`events?id=eq.${p.event_id}&select=name,start_date,end_date,duration_label,venues(name)`); return e ? [`${fmtRange(e.start_date, e.end_date)} ${e.start_date.slice(0,4)}`, e.name, e.duration_label, e.venues?.name].filter(Boolean).join("\n") : "—"; }
   return "—";
 }

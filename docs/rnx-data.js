@@ -32,12 +32,12 @@
     const { prof, entries, overrides, sponsors, events, sessions } = raw;
     const hidden = new Set(overrides.filter(o => o.hidden).map(o => o.event_id));
     const notes = Object.fromEntries(overrides.filter(o => o.note).map(o => [o.event_id, o.note]));
-    const series = [], logo = {}, label = {}, official = {}, watch = {}, tv = {}, carOf = {}, cars = {}, team = {}, color = {}, square = {};
+    const series = [], logo = {}, label = {}, official = {}, watch = {}, tv = {}, timing = {}, carOf = {}, cars = {}, team = {}, color = {}, square = {};
     for (const en of entries) {
       const s = en.series; if (!s) continue;
       if (!series.find(x => x.slug === s.slug)) series.push(s);
       logo[s.slug] = s.logo_url || ""; label[s.slug] = s.short_name; official[s.slug] = s.website_url || "";
-      /* where to watch: the championship's stream + list of broadcasters; a race can have its own page (ev.watch) */ watch[s.slug] = s.stream_url || ""; tv[s.slug] = s.broadcasters_url || ""; color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
+      /* where to watch: the championship's stream + list of broadcasters; a race can have its own page (ev.watch) */ watch[s.slug] = s.stream_url || ""; tv[s.slug] = s.broadcasters_url || ""; timing[s.slug] = s.timing_url || ""; color[s.slug] = en.color || "#8a8d96"; square[s.slug] = s.slug === "wec";
       team[s.slug] = { num: en.car_number || "", team: en.team || "", mates: en.teammates || [] };
       if (en.vehicles) {
         // specs from the library, photo = the user's own livery
@@ -75,7 +75,7 @@
       EVENTS.push({
         s: e.start_date, e: e.end_date, series: sl, id, uuid: e.id, name: e.name, dur: e.duration_label || "",
         where: v.name ? (v.city ? `${v.name} · ${v.city}` : v.name) : "", country: v.country || "", flag: flagOf(v.country_code),
-        note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", carKey, links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
+        note: notes[e.id] || e.note || undefined, watch: e.watch_url || "", timing: e.timing_url || "", carKey, links: (e.links || []).filter(l => l && /^https?:\/\//.test(l.url || ""))
       });
       // sessions of the athlete's class + sessions for everyone (karting: each class has its own; WEC/ELMS: split qualifying)
       const ss = (byEvent[e.id] || []).filter(x => !mc || !(x.classes || []).length || x.classes.some(c => ck(c) === mc));
@@ -93,7 +93,7 @@
     const css = Object.entries(color).map(([k, c]) => `.ev.${k},.tt-head.${k},.countdown.${k}{--c:${c}}`).join("\n");
     const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
     return {
-      profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, tv, carOf, cars, team, color, square,
+      profile: prof, first, season, series, events: EVENTS, timetables: TT, logo, label, official, watch, tv, timing, carOf, cars, team, color, square,
       sponsors, pageUrl: location.origin + (window.RNX_BASE || "/") + encodeURIComponent(prof.slug) + "/", /* the public address, with its link preview */ entries,
       customEvents: events.filter(e => !e.series_id)
     };

@@ -395,7 +395,7 @@ function linksPrompt(series: any) {
 Official website: ${series.website_url || "unknown"}
 Today: ${new Date().toISOString().slice(0, 10)}
 Task: ${WATCH_TASK}
-JSON schema: {"stream_url": string|null, "broadcasters_url": string|null}`;
+JSON schema: {"stream_url": string|null, "broadcasters_url": string|null, "timing_url": string|null}`;
 }
 // agent 1, calendar: dates and circuits only (no logo, no timetable, no where to watch)
 function discoverPrompt(series: any, src: any, year: number) {
@@ -447,7 +447,8 @@ const DEEP = "\nA first search didn't find the timetable. Look harder: search th
 // ---------- where to watch: set per championship; a race only gets its own link if it has a page of its own ----------
 const WATCH_TASK = `Where to watch, for the whole championship (official sources only):
    - "stream_url": the championship's official live stream, i.e. its own streaming service or official live channel (e.g. F1 TV, MotoGP VideoPass, FIA WEC+, the official YouTube live page). null if there is none.
-   - "broadcasters_url": the official page that lists the TV broadcasters by country (often called "Where to watch", "Broadcasters", "TV schedule"). null if there is none.`;
+   - "broadcasters_url": the official page that lists the TV broadcasters by country (often called "Where to watch", "Broadcasters", "TV schedule"). null if there is none.
+   - "timing_url": the championship's official LIVE TIMING page, the one fans open during sessions to follow positions and lap times: on the championship's own site, or the official timing provider's page for this championship (e.g. Al Kamel Systems for the ELMS and Asian Le Mans Series). Usually the same address all season. Never an unofficial or fan-made timing site, never a results archive. null if there is none.`;
 const sameUrl = (a: unknown, b: unknown) => {
   if (!a || !b) return false;
   const c = (u: unknown) => String(u).replace(/[/#?]+$/, "").replace(/^https?:\/\/(www\.)?/, "").toLowerCase();
@@ -463,8 +464,10 @@ function raceWatchPrompt(ev: any, series: any) {
 Official website: ${series.website_url || "unknown"}
 Race: ${ev.name}, ${ev.start_date} to ${ev.end_date}
 Today: ${new Date().toISOString().slice(0, 10)}
-Task: where to watch THIS race. Only a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page), on an official site. Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. null if there is no page for this race.
-JSON schema: {"watch_url": string|null}`;
+Task: where to watch and follow THIS race, on official sites only.
+- "watch_url": a page made for this race weekend (e.g. "How to watch the ${ev.name}", the race's broadcast or TV-times page). Not the championship's general stream${series.stream_url ? ` (${series.stream_url})` : ""} or general broadcaster list${series.broadcasters_url ? ` (${series.broadcasters_url})` : ""}. null if there is no page for this race.
+- "timing_url": a LIVE TIMING page made for this race only, when it has its own (e.g. the Le Mans 24 Hours' own live timing). Not the championship's usual live timing${series.timing_url ? ` (${series.timing_url})` : ""}. null if the race uses the championship's usual live timing or has none.
+JSON schema: {"watch_url": string|null, "timing_url": string|null}`;
 }
 // agent 5, checker: opens the source page again and says, item by item, whether it really shows what was found, with the exact words
 const CHECK_RULES = `You check facts against ONE official web page (or PDF). Open that page and only that page: never search the web and never use another source.
@@ -486,6 +489,7 @@ async function proposeLinks(series: any, out: any, runId: string, url: string) {
   const pl: any = {};
   if (okUrl(out.stream_url) && !sameUrl(out.stream_url, series.stream_url)) pl.stream_url = out.stream_url;
   if (okUrl(out.broadcasters_url) && !sameUrl(out.broadcasters_url, series.broadcasters_url)) pl.broadcasters_url = out.broadcasters_url;
+  if (okUrl(out.timing_url) && !sameUrl(out.timing_url, series.timing_url) && !sameUrl(out.timing_url, out.stream_url || series.stream_url)) pl.timing_url = out.timing_url;
   if (!Object.keys(pl).length) return false;
   await ins("proposals", { run_id: runId, series_id: series.id, kind: "series_links", payload: pl, evidence: { url: pl.broadcasters_url || pl.stream_url || url, excerpt: `Where to watch ${series.short_name || series.name}` } });
   return true;
@@ -611,7 +615,7 @@ async function discover(series: any, src: any, runId: string, kind = "discover")
   }
   if (Object.keys(upd).length) await patch("series", `id=eq.${series.id}`, upd);
   // agent 4, where to watch: when the championship is added or checked by hand, or when a link is missing
-  if (kind !== "monthly" || !series.stream_url || !series.broadcasters_url) {
+  if (kind !== "monthly" || !series.stream_url || !series.broadcasters_url || !series.timing_url) {
     try {
       const w = await ask(SYS(), linksPrompt({ ...series, website_url: site }), 5);
       addUsage(usage, w.usage); addTrace(trace, w.trace);
@@ -1074,14 +1078,18 @@ async function checkEvent(ev: any, series: any, src: any, runId: string, kind = 
     if (await suggestClassFormat(series, sessions, runId, `${ev.name} timetable`, out.source_url)) props.push("class format (from this timetable)");
   }
   // agent 4, where to watch this race: only in race week, when race pages get published
-  let watchUrl: string | null = null;
+  let watchUrl: string | null = null, timingUrl: string | null = null;
   if (raceWeek) {
-    try { const w = await ask(SYS(), raceWatchPrompt(ev, series), 4); addUsage(usage, w.usage); addTrace(trace, w.trace); watchUrl = okUrl(w.out.watch_url) ? w.out.watch_url : null; } catch (_) { /* next check */ }
+    try { const w = await ask(SYS(), raceWatchPrompt(ev, series), 4); addUsage(usage, w.usage); addTrace(trace, w.trace); watchUrl = okUrl(w.out.watch_url) ? w.out.watch_url : null; timingUrl = okUrl(w.out.timing_url) ? w.out.timing_url : null; } catch (_) { /* next check */ }
   }
   if (sameUrl(watchUrl, series.stream_url) || sameUrl(watchUrl, series.broadcasters_url)) watchUrl = null;
-  if (watchUrl && !sameUrl(watchUrl, ev.watch_url)) {
-    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: { watch_url: watchUrl }, evidence: { url: watchUrl, excerpt: `Broadcast page for ${ev.name}` } });
-    props.push("this race's broadcast page");
+  if (sameUrl(timingUrl, series.timing_url) || sameUrl(timingUrl, watchUrl) || sameUrl(timingUrl, series.stream_url)) timingUrl = null;
+  const wl: any = {};
+  if (watchUrl && !sameUrl(watchUrl, ev.watch_url)) wl.watch_url = watchUrl;
+  if (timingUrl && !sameUrl(timingUrl, ev.timing_url)) wl.timing_url = timingUrl;
+  if (Object.keys(wl).length) {
+    await ins("proposals", { run_id: runId, series_id: series.id, event_id: ev.id, kind: "watch_link", payload: wl, evidence: { url: wl.watch_url || wl.timing_url, excerpt: [wl.watch_url && `Broadcast page for ${ev.name}`, wl.timing_url && `Live timing for ${ev.name}`].filter(Boolean).join(" · ") } });
+    props.push([wl.watch_url && "this race's broadcast page", wl.timing_url && "this race's live timing"].filter(Boolean).join(", "));
   }
   const summary = props.length ? `Found: ${props.join(", ")}.` : out.timetable_found ? "Nothing new: timetable unchanged." : "Timetable not published yet.";
   return { result: props.length ? "proposal" : "no_change", summary, usage, pages: await fingerprint([out.source_url, out.race_page_url, ...(src?.urls || []).map((u: any) => u.url)]), trace: { ...trace, answer: out } };

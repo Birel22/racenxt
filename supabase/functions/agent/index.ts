@@ -758,7 +758,7 @@ Rules:
 - Which cars race: only from the championship's OFFICIAL entry list (its own website, its organiser's, or the official timing provider). Entry lists often show the car only as a picture or in a team column: read the car model wherever the official page gives it.
 - Specs: the manufacturer's or constructor's own official page first (customer-racing pages, technical sheets, press kits). If a figure isn't there, the racing team's own page or reliable motorsport press may be used. Never use racing games or simulators, fan sites, forums or sellers.
 - Never guess a figure: null when no source gives it. Power and weight of balanced classes (e.g. GT3) depend on the Balance of Performance: say "subject to BoP".
-- One entry per car model, with the model's official name (e.g. "Ferrari 296 GT3 Evo", "Porsche 911 GT3 R", "ORECA 07", "Ligier JS P325"). Evolutions with their own name are separate models only when the entry list tells them apart.
+- One entry per car model, with the MANUFACTURER's official model name (e.g. "Ferrari 296 GT3 Evo", "Porsche 911 GT3 R", "ORECA 07", "Ligier JS P325"), not the name a championship gives it: the WEC's "LMGT3" names are GT3 cars ("Mercedes-AMG LMGT3" is the "Mercedes-AMG GT3 Evo", "BMW M4 LMGT3 Evo" is the "BMW M4 GT3 Evo"). When the car is already in our library under its real name, use that name. Evolutions with their own name are separate models only when the entry list tells them apart.
 - Be economical: open each page at most once and stop as soon as you have the answer.
 - Finish with ONE fenced \`\`\`json code block that follows the requested schema, and nothing after it.`;
 function carsPrompt(series: any, library: any[], year: number) {
@@ -843,9 +843,9 @@ async function specsJob(runId: string) {
       const row: any = {};
       for (const k of SPEC_FIELDS) { const val = k === "drivetrain" ? (["rwd", "awd", "fwd"].includes(String(c[k] || "").toLowerCase()) ? String(c[k]).toLowerCase() : null) : str(c[k]); if (val) row[k] = val; }
       if (!Object.keys(row).length) continue;
-      if (okUrl(c.spec_url)) { row.spec_source = c.spec_url; pages.push(c.spec_url); }
-      // only empty fields are filled: a figure someone set by hand is never overwritten
-      await patch("vehicles", `id=eq.${v.id}&engine=is.null&power=is.null&weight=is.null`, row);
+      if (okUrl(c.spec_url)) { row.spec_url = c.spec_url; pages.push(c.spec_url); }
+      // nothing is published yet: it waits for an admin (Vehicles › Specs to review)
+      await patch("vehicles", `id=eq.${v.id}`, { specs_pending: { ...row, found_at: new Date().toISOString() } });
       filled++;
     }
   }

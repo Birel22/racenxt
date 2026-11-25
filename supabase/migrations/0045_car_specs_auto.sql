@@ -1,8 +1,10 @@
 -- Cars that arrive in the library (or are suggested for it) with no specs: the agent looks them up once, right away.
+-- What it finds waits in vehicles.specs_pending until an admin approves it (Vehicles › Specs to review).
 -- One call per batch of new cars (statement trigger), a cheap model, a few cars per question; only empty fields are filled.
 -- A car is looked up once (specs_tried_at): one it can't find isn't searched again and again.
 -- Also: a new car gets its type (prototype / GT / kart) from its category when none is set.
 alter table public.vehicles add column if not exists specs_tried_at timestamptz;
+alter table public.vehicles add column if not exists specs_pending jsonb;
 alter table public.check_runs drop constraint if exists check_runs_kind_check;
 alter table public.check_runs add constraint check_runs_kind_check check (kind = any (array['monthly','weekly','daily','final','manual','discover','initial','icon','classes','cars','class_format','specs']));
 

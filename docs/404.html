@@ -298,8 +298,13 @@
   .cd-units small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
   .note{color:var(--muted);font-size:13.5px;margin-top:6px}
 
-  .hero-pow{display:flex;align-items:center;gap:8px;margin-top:8px;font:600 10.5px Barlow,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,244,242,.68)}
-  .hero-pow .rnx{font-size:16px}
+  /* "Powered by Racenxt": always in English, under the right end of "NAME RACE HUB" */
+  .hero-tb{display:inline-grid;max-width:100%}
+  .hero-tb h1{margin-bottom:0}
+  .hero-pow{justify-self:end;display:flex;align-items:center;gap:6px;margin-top:1px;font:600 9.5px Barlow,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:rgba(244,244,242,.62)}
+  .hero-pow .rnx{font-size:14px;text-decoration:none}
+  .hero-pow .rnx:hover{filter:brightness(1.15)}
+  .hero-pow .rnx:focus-visible{outline:2px solid var(--lm);outline-offset:3px;border-radius:3px}
   .powered{display:flex;justify-content:center;align-items:baseline;gap:8px;margin:26px 0 8px;color:var(--dim);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
   .rnx{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-weight:800;font-size:19px;letter-spacing:-.01em;color:#F4F4F2;text-transform:none}
   .rnx .x{background:linear-gradient(90deg,#FF5A1F 50%,#F4F4F2 50%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:1px}
@@ -497,11 +502,11 @@
 .ff-none{text-align:center;color:var(--muted);padding:40px 16px;font-size:15px}
 @media (prefers-reduced-motion:reduce){.ff-search{animation:none}}
 </style>
-<script src="config.js?v=20261125-010404"></script>
-<script src="rnx-social.js?v=20261125-010404"></script>
-<script src="rnx-ui.js?v=20261125-010404"></script>
-<script src="rnx-edit.js?v=20261125-010404"></script>
-<script src="rnx-data.js?v=20261125-010404"></script>
+<script src="config.js?v=20261125-010935"></script>
+<script src="rnx-social.js?v=20261125-010935"></script>
+<script src="rnx-ui.js?v=20261125-010935"></script>
+<script src="rnx-edit.js?v=20261125-010935"></script>
+<script src="rnx-data.js?v=20261125-010935"></script>
 </head>
 <body>
 <div class="wrap">
@@ -514,8 +519,7 @@
         <button data-lang="fr" aria-pressed="false">FR</button>
       </div>
       <div class="hero-text">
-        <h1 data-i18n-html="title">Louis <em>Race Hub</em></h1>
-        <div class="hero-pow"><span data-i18n="poweredBy">Powered by</span><span class="rnx" role="img" aria-label="Racenxt">RACEN<span class="x">X</span>T</span></div>
+        <div class="hero-tb"><h1 data-i18n-html="title">Louis <em>Race Hub</em></h1><div class="hero-pow"><span>Powered by</span><a class="rnx" href="https://louisdeletraz.app/" aria-label="Racenxt">RACEN<span class="x">X</span>T</a></div></div>
         <nav class="socials rnx-socials" data-i18n-aria="socials" aria-label="Social media"></nav>
       </div>
     </div>

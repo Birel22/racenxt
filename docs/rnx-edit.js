@@ -134,7 +134,9 @@
   .rx-edit-b{position:relative;z-index:6;margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px 0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(10,11,14,.5);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:#f4f4f2;font:600 13px Barlow,system-ui,sans-serif;letter-spacing:.01em;text-transform:none;cursor:pointer;white-space:nowrap;flex:none;transition:background .15s,border-color .15s}
   .rx-edit-b svg{width:14px;height:14px;color:#FF5A1F}
   .rx-edit-b:hover{background:rgba(10,11,14,.75);border-color:rgba(255,255,255,.3)}
-  body.rx-edit .hero-text{width:100%}
+  /* Edit profile: under the Edit / Fan view switch (where fans have the language choice) */
+  .rx-edit-b.rx-corner{position:absolute;right:18px;top:66px;margin:0;z-index:4}
+  @media (max-width:620px){.rx-edit-b.rx-corner{right:12px;top:58px}}
   .rx-edit-b.rx-alone{margin:0 0 10px}
   .rx-mlang{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px}
   .rx-mlang span{display:flex;align-items:center;gap:12px;color:#f4f4f2}
@@ -1121,7 +1123,7 @@
       // on the "Powered by Racenxt" line, at its right end; editors also see when the page is still hidden
       const ht = hero.querySelector(".hero-text"), pw = hero.querySelector(".hero-pow");
       if (!p.published) { const hs = `<span class="rx-status rx-only" title="Only you can see this page for now"><i></i>Hidden</span>`; if (pw) pw.insertAdjacentHTML("beforeend", hs); else hero.querySelector("h1")?.insertAdjacentHTML("afterend", `<div class="rx-pow rx-only">${hs}</div>`); }
-      if (pw) pw.appendChild(eb); else { eb.classList.add("rx-alone"); if (ht) ht.prepend(eb); else hero.appendChild(eb); }
+      eb.classList.add("rx-corner"); hero.appendChild(eb);
     }
 
     // your season

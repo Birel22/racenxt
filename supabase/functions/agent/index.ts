@@ -828,8 +828,9 @@ For each car: engine (layout, displacement, aspiration), hybrid system (null if 
 JSON schema: {"cars": [{"name": string, "engine": string|null, "hybrid": string|null, "power": string|null, "drivetrain": "rwd"|"awd"|"fwd"|null, "max_rpm": string|null, "gearbox": string|null, "weight": string|null, "dimensions": string|null, "spec_url": string|null}]}`;
 const SPEC_FIELDS = ["engine", "hybrid", "power", "drivetrain", "max_rpm", "gearbox", "weight", "dimensions"];
 async function specsJob(runId: string) {
-  // library cars and cars suggested for it, with no specs yet (an athlete's own car stays theirs: not looked up)
-  const cars = await db(`vehicles?or=(status.eq.approved,suggested.eq.true)&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
+  // library cars and cars suggested for it, with no specs yet (an athlete's own car stays theirs: not looked up).
+  // Not kart chassis: a kart brand has many chassis and no single spec sheet.
+  const cars = await db(`vehicles?or=(status.eq.approved,suggested.eq.true)&engine=is.null&power=is.null&weight=is.null&specs_tried_at=is.null&category=neq.kart%20chassis&kind=is.distinct.kart&select=id,name,manufacturer,category,kind&order=created_at.desc&limit=24`);
   if (cars.length) await patch("vehicles", `id=in.(${cars.map((c: any) => c.id).join(",")})`, { specs_tried_at: new Date().toISOString() });   // looked up once
   const done = newUsage(); let filled = 0; const pages: string[] = [];
   const str = (x: unknown) => (typeof x === "string" && x.trim() && !/^(null|unknown|n\/a|-)$/i.test(x.trim())) ? x.trim().slice(0, 200) : null;

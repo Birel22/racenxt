@@ -10,6 +10,7 @@
 // POST { action: "test_cases" }            -> loads the answer key (agent-tests/answer_key.json) into the database
 // POST { action: "test_run", case_id }     -> runs one test case without filing anything, and scores it
 // POST { action: "tick" } + x-cron-secret      -> called by pg_cron every 15 min: starts the checks that are due
+// POST { action: "links" | "check_event" | "classes", … } + x-cron-secret -> the same check as the admin's button, started from the database
 // Scheduled checks (monthly / daily) first compare the official pages with last time and skip the AI if unchanged.
 // Callers: signed-in admins (from the admin page) or the service role (scheduled checks).
 // The agent never publishes: everything fans see goes through the Review queue.
@@ -1369,7 +1370,7 @@ async function tick(secret: string) {
 
 // the classes job started by the database (after new races of a shared calendar are approved): run as the service role
 async function startJob(b: any) {
-  const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "classes", series_id: b.series_id, classes: b.classes, calendar_url: b.calendar_url }) });
+  const r = await fetch(`${SB}/functions/v1/agent`, { method: "POST", headers: { Authorization: `Bearer ${SRK}`, "Content-Type": "application/json" }, body: JSON.stringify(b.action === "classes" ? { action: "classes", series_id: b.series_id, classes: b.classes, calendar_url: b.calendar_url } : { action: b.action, series_id: b.series_id, event_id: b.event_id }) });
   return json(await r.json().catch(() => ({})), r.status);
 }
 
@@ -1396,12 +1397,13 @@ Deno.serve(async (req) => {
   if (cron) {
     // with the cron secret, the full test run can also be started from the database (no admin sign-in needed)
     const b = await req.json().catch(() => ({}));
-    if (b.action !== "test_all" && b.action !== "test_one" && b.action !== "classes" && b.action !== "cars" && b.action !== "class_format" && b.action !== "specs") return tick(cron);
+    if (!["test_all", "test_one", "classes", "links", "check_event", "cars", "class_format", "specs"].includes(b.action)) return tick(cron);
     const [row] = await db(`agent_secrets?key=eq.cron&select=value`);
     if (!row || row.value !== cron) return json({ error: "bad secret" }, 403);
     if (!AKEY) return json({ error: "ANTHROPIC_API_KEY is not set" }, 500);
     await loadGuidance();
-    if (b.action === "classes") return startJob(b);
+    // a check started from the database (e.g. by Claude for an admin away from the admin page): the same run as the admin's button
+    if (b.action === "classes" || b.action === "links" || b.action === "check_event") return startJob(b);
     if (b.action === "specs") return specsStart();
     if (b.action === "cars" || b.action === "class_format") return bgStart(b.action, b.series_id);
     if (b.action === "test_one") {

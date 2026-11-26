@@ -1762,7 +1762,7 @@ async function vehicles(){
   const pend = D.vehicles.filter(v => v.specs_pending);
   if (pend.length) {
     const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e){ return ""; } };
-    const src = (sp, f) => sp.sources?.[f] ? ` <a class="spk-src" href="${esc(sp.sources[f])}" target="_blank" rel="noopener" title="${esc(sp.sources[f])}">${esc(host(sp.sources[f]))} ↗</a>` : "";
+    const src = (sp, f) => f && sp?.sources?.[f] ? ` <a class="spk-src" href="${esc(sp.sources[f])}" target="_blank" rel="noopener" title="${esc(sp.sources[f])}">${esc(host(sp.sources[f]))} ↗</a>` : "";
     const line = (l, val, req, sp, f) => `<span>${l}${req ? " *" : ""}</span>${val ? `<b>${esc(val)}${src(sp, f)}</b>` : `<b class="un">${req ? "not found" : "—"}</b>`}`;
     $(".ph").insertAdjacentHTML("afterend", `<section class="spr"><h3>Specs to review <span class="muted" style="font:500 14px Barlow;text-transform:none;letter-spacing:0">${pend.length} car${pend.length > 1 ? "s" : ""} · found by the agent, not on fans' pages until you approve</span></h3>
       <div class="spr-grid">${pend.map(v => { const sp = v.specs_pending, k = sp.kind || rnxVehKind(v, ""); return `<div class="card rv" data-spv="${v.id}">
